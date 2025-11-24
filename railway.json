@@ -1,0 +1,16 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "nixpacks"
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "startCommand": "npm run start",
+    "restartPolicyMaxRetries": 0
+  },
+  "plugins": [
+    {
+      "source": "https://github.com/railwayapp/nixpacks/releases/download/v1.0.0/postgres.nix"
+    }
+  ]
+}
