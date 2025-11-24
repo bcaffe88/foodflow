@@ -6,7 +6,7 @@
   "deploy": {
     "numReplicas": 1,
     "startCommand": "npm run start",
-    "restartPolicyMaxRetries": 0
+    "restartPolicyMaxRetries": 1
   },
   "plugins": [
     {
