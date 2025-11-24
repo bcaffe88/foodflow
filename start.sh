@@ -4,7 +4,7 @@
 set -e
 
 # Build the application
-npm install
+npm ci
 export PATH=$(npm bin):$PATH
 export PATH=$(npm bin):$PATH
 npm run build
