@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { serveStaticFixed } from "./static-server";
 import { seedWilsonPizza } from "./seed-wilson-pizza";
 import { seedAdminUser } from "./seed-admin";
 import { seedRestaurantOwner } from "./seed-restaurant";
@@ -117,7 +118,7 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    serveStaticFixed(app);
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
