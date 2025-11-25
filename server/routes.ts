@@ -23,6 +23,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Debug endpoint to check environment
+  app.get("/api/debug/env", (_req, res) => {
+    res.json({ 
+      NODE_ENV: process.env.NODE_ENV,
+      appEnv: (_req.app as any).get("env"),
+      isProd: (_req.app as any).get("env") === "production",
+      isDev: (_req.app as any).get("env") === "development"
+    });
+  });
+
   // Initialize WhatsApp Integration
   const { initializeWhatsAppIntegrationService } = await import('./whatsapp-integration');
   const whatsappService = initializeWhatsAppIntegrationService();
@@ -1812,16 +1822,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-
-  const port = parseInt(process.env.PORT || '5000', 10);
-  const host = process.env.HOST || '127.0.0.1';
-
-  httpServer.listen({
-    port,
-    host,
-  }, () => {
-    console.log(`[Server] Listening on http://${host}:${port}`);
-  });
 
   return httpServer;
 }

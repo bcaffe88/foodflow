@@ -6,10 +6,13 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function serveStaticFixed(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "dist");
+  const distPath = path.resolve(__dirname, "..", "dist", "public");
+  const indexPath = path.resolve(distPath, "index.html");
 
   console.log(`[Static] Attempting to serve from: ${distPath}`);
-  console.log(`[Static] Path exists: ${fs.existsSync(distPath)}`);
+  console.log(`[Static] Index path: ${indexPath}`);
+  console.log(`[Static] Dist path exists: ${fs.existsSync(distPath)}`);
+  console.log(`[Static] Index.html exists: ${fs.existsSync(indexPath)}`);
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
@@ -17,9 +20,20 @@ export function serveStaticFixed(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  if (!fs.existsSync(indexPath)) {
+    throw new Error(
+      `Could not find index.html at: ${indexPath}`,
+    );
+  }
 
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use(express.static(distPath, {
+    index: 'index.html',
+    maxAge: '1h',
+    etag: false
+  }));
+
+  app.use("*", (_req, res, next) => {
+    console.log(`[Static] Serving index.html for: ${_req.path}`);
+    res.sendFile(indexPath);
   });
 }
