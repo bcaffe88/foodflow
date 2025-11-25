@@ -49,4 +49,5 @@ ENV HOST=0.0.0.0
 ENTRYPOINT ["/usr/sbin/dumb-init", "--"]
 
 # Start the application
+# Note: package.json has "type": "module", so Node automatically treats .js files as ESM
 CMD ["node", "dist/index.js"]
