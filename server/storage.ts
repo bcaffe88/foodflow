@@ -569,8 +569,11 @@ export class SmartStorage implements IStorage {
         err?.errno === -3008 ||
         err?.code === 'ENOTFOUND' || 
         err?.code === 'ECONNREFUSED' ||
+        err?.code === 'ENETUNREACH' ||
+        err?.code === 'EADDRNOTAVAIL' ||
         err?.message?.includes('ENOTFOUND') ||
         err?.message?.includes('ECONNREFUSED') ||
+        err?.message?.includes('ENETUNREACH') ||
         err?.message?.includes('connect') ||
         err?.message?.includes('getaddrinfo');
       
