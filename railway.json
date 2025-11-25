@@ -9,6 +9,6 @@
     "restartPolicyMaxRetries": 5,
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 30,
-    "startCommand": "node dist/index.js"
+    "startCommand": "node --input-type=module dist/index.js"
   }
 }
