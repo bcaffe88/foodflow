@@ -10,6 +10,13 @@ import { initRedis, closeRedis } from "./middleware/cache";
 
 const app = express();
 
+// Ensure app env is set correctly based on NODE_ENV
+const nodeEnv = process.env.NODE_ENV || 'development';
+app.set('env', nodeEnv);
+if (nodeEnv === 'production') {
+  app.set('trust proxy', 1);
+}
+
 declare module 'http' {
   interface IncomingMessage {
     rawBody: unknown
@@ -115,9 +122,13 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  const env = app.get("env");
+  log(`[Server] Starting in ${env} mode (NODE_ENV=${nodeEnv})`);
+  if (env === "development") {
+    log("[Server] Setting up Vite dev server...");
     await setupVite(app, server);
   } else {
+    log("[Server] Serving static files from dist/public/...");
     serveStaticFixed(app);
   }
 
@@ -125,7 +136,14 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  
+  const port = parseInt(process.env.PORT || '5000', 10);
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
 
   // Graceful shutdown
   process.on("SIGTERM", async () => {
