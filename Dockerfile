@@ -16,9 +16,10 @@ RUN npm ci
 COPY server ./server
 COPY client ./client
 COPY shared ./shared
+COPY build.js ./build.js
 
-# Build the application
-RUN npm run build
+# Build the application (uses build.js which configures esbuild with proper aliases)
+RUN node build.js
 
 # Production stage
 FROM node:20-alpine
