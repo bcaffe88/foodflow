@@ -13,10 +13,11 @@ execSync('vite build', { stdio: 'inherit' });
 // Then, build the backend with esbuild and alias resolution
 console.log('🔧 Building backend with esbuild...');
 
+// Use relative paths that work both locally and in Docker
 const alias = {
-  '@shared': path.resolve(__dirname, 'shared'),
-  '@': path.resolve(__dirname, 'client', 'src'),
-  '@assets': path.resolve(__dirname, 'attached_assets'),
+  '@shared': './shared',
+  '@': './client/src',
+  '@assets': './attached_assets',
 };
 
 try {
