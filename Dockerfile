@@ -49,4 +49,7 @@ ENV HOST=0.0.0.0
 ENTRYPOINT ["/usr/sbin/dumb-init", "--"]
 
 # Start the application
-CMD ["node", "dist/index.js"]
+CMD ["node", "--input-type=module", "dist/index.js"]
+
+
+
