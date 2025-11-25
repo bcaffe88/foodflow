@@ -18,6 +18,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAuthRoutes(app);
   registerPaymentRoutes(app);
 
+  // Health check endpoint for deployment monitoring
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // Initialize WhatsApp Integration
   const { initializeWhatsAppIntegrationService } = await import('./whatsapp-integration');
   const whatsappService = initializeWhatsAppIntegrationService();
