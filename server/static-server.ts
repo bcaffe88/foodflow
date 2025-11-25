@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function serveStaticFixed(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "dist", "public");
+  const distPath = path.resolve(__dirname, "..", "dist");
 
   console.log(`[Static] Attempting to serve from: ${distPath}`);
   console.log(`[Static] Path exists: ${fs.existsSync(distPath)}`);
