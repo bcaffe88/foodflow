@@ -6,11 +6,7 @@
   "deploy": {
     "numReplicas": 1,
     "startCommand": "npm run start",
-    "restartPolicyMaxRetries": 1
-  },
-  "plugins": [
-    {
-      "source": "https://github.com/railwayapp/nixpacks/releases/download/v1.0.0/postgres.nix"
-    }
-  ]
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 30
+  }
 }
