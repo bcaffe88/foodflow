@@ -8,11 +8,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // First, build the frontend with Vite
 console.log('📦 Building frontend with Vite...');
-execSync('vite build', { stdio: 'inherit' });
+execSync('npx vite build', { stdio: 'inherit' });
 
 // Then, build the backend with esbuild and alias resolution
 console.log('🔧 Building backend with esbuild...');
 
+// Use relative paths that work both locally and in Docker
 const alias = {
   '@shared': './shared',
   '@': './client/src',
