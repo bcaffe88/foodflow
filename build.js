@@ -24,9 +24,8 @@ const alias = {
 const excludeVitePlugin = {
   name: 'exclude-vite',
   setup(build) {
-    // Mark server/vite as external so it's not bundled
+    // Mark ./vite as external so it's not bundled
     build.onResolve({ filter: /^\.\/vite$/ }, () => ({
-      path: 'server/vite',
       external: true,
     }));
   },
