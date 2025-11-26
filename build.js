@@ -73,13 +73,13 @@ try {
   });
   console.log('✅ Build complete!');
   
-  // Create a stub vite.mjs file so production doesn't crash on dynamic import
+  // Create a stub vite.js file so production doesn't crash on dynamic import
   const stubCode = `export async function setupVite() {}
 export function serveStatic() {}
 export function log(msg) { console.log(msg); }
 `;
-  fs.writeFileSync(path.join('dist', 'vite.mjs'), stubCode);
-  console.log('✅ Created vite stub for production');
+  fs.writeFileSync(path.join('dist', 'vite.js'), stubCode);
+  console.log('✅ Created vite.js stub for production');
 } catch (error) {
   console.error('❌ Build failed:', error);
   process.exit(1);
