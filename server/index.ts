@@ -1,14 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { log } from "./logger";
 import { serveStaticFixed } from "./static-server";
 import { seedWilsonPizza } from "./seed-wilson-pizza";
 import { seedAdminUser } from "./seed-admin";
 import { seedRestaurantOwner } from "./seed-restaurant";
 import { rateLimit, csrfProtection } from "./middleware/security";
 import { initRedis, closeRedis } from "./middleware/cache";
-import { log } from "./utils/logger";
 
 const app = express();
+
+// Ensure app env is set correctly based on NODE_ENV
+const nodeEnv = process.env.NODE_ENV || 'development';
+app.set('env', nodeEnv);
+if (nodeEnv === 'production') {
+  app.set('trust proxy', 1);
+}
 
 declare module 'http' {
   interface IncomingMessage {
@@ -115,10 +122,14 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  const env = app.get("env");
+  log(`[Server] Starting in ${env} mode (NODE_ENV=${nodeEnv})`);
+  if (env === "development") {
+    log("[Server] Setting up Vite dev server...");
     const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
+    log("[Server] Serving static files from dist/public/...");
     serveStaticFixed(app);
   }
 
