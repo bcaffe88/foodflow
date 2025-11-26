@@ -20,6 +20,18 @@ const alias = {
   '@assets': './attached_assets',
 };
 
+// Plugin to prevent vite.ts from being bundled
+const excludeVitePlugin = {
+  name: 'exclude-vite',
+  setup(build) {
+    // Mark server/vite as external so it's not bundled
+    build.onResolve({ filter: /^\.\/vite$/ }, () => ({
+      path: 'server/vite',
+      external: true,
+    }));
+  },
+};
+
 try {
   await esbuild.build({
     entryPoints: ['server/index.ts'],
@@ -28,6 +40,7 @@ try {
     format: 'esm',
     outdir: 'dist',
     packages: 'external',
+    plugins: [excludeVitePlugin],
     external: [
       'express',
       'http',
@@ -53,6 +66,7 @@ try {
       'react',
       'react-dom',
       '../vite.config',
+      'server/vite',
     ],
     alias,
     logLevel: 'info',
