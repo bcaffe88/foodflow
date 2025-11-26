@@ -47,6 +47,7 @@ try {
       '@babel/*',
       'lightningcss',
       'postcss',
+      'vite',
     ],
     alias,
     logLevel: 'info',
