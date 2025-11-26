@@ -20,21 +20,6 @@ const alias = {
   '@assets': './attached_assets',
 };
 
-// Plugin to stub out vite and vite.config imports
-const stubVitePlugin = {
-  name: 'stub-vite',
-  setup(build) {
-    build.onResolve({ filter: /^vite$/ }, () => ({
-      path: path.resolve(__dirname, 'vite.config.stub.mjs'),
-      external: true,
-    }));
-    build.onResolve({ filter: /vite\.config/ }, () => ({
-      path: path.resolve(__dirname, 'vite.config.stub.mjs'),
-      external: false,
-    }));
-  },
-};
-
 try {
   await esbuild.build({
     entryPoints: ['server/index.ts'],
@@ -43,7 +28,6 @@ try {
     format: 'esm',
     outdir: 'dist',
     packages: 'external',
-    plugins: [stubVitePlugin],
     external: [
       'express',
       'http',
@@ -68,6 +52,7 @@ try {
       '@replit/vite-plugin-*',
       'react',
       'react-dom',
+      '../vite.config',
     ],
     alias,
     logLevel: 'info',
