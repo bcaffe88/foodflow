@@ -126,8 +126,13 @@ app.use((req, res, next) => {
   log(`[Server] Starting in ${env} mode (NODE_ENV=${nodeEnv})`);
   if (env === "development") {
     log("[Server] Setting up Vite dev server...");
-    const { setupVite } = await import("./vite");
-    await setupVite(app, server);
+    try {
+      const { setupVite } = await import("./vite");
+      await setupVite(app, server);
+    } catch (err) {
+      log("[Server] Vite module not available, serving static files");
+      serveStaticFixed(app);
+    }
   } else {
     log("[Server] Serving static files from dist/public/...");
     serveStaticFixed(app);
