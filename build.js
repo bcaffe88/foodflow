@@ -18,6 +18,7 @@ const alias = {
   '@shared': './shared',
   '@': './client/src',
   '@assets': './attached_assets',
+  '../vite.config': './vite.config.stub.mjs',
 };
 
 try {
