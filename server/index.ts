@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { log } from "./vite";
 import { serveStaticFixed } from "./static-server";
 import { seedWilsonPizza } from "./seed-wilson-pizza";
 import { seedAdminUser } from "./seed-admin";
@@ -126,6 +126,7 @@ app.use((req, res, next) => {
   log(`[Server] Starting in ${env} mode (NODE_ENV=${nodeEnv})`);
   if (env === "development") {
     log("[Server] Setting up Vite dev server...");
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
     log("[Server] Serving static files from dist/public/...");
