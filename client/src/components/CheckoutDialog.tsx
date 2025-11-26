@@ -13,7 +13,9 @@ import type { CartItem } from "@shared/schema";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || "");
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
+  : Promise.resolve(null);
 
 const checkoutSchema = z.object({
   customerName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
