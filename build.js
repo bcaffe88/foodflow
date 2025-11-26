@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import esbuild from 'esbuild';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 
