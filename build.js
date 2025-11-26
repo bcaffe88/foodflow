@@ -18,7 +18,21 @@ const alias = {
   '@shared': './shared',
   '@': './client/src',
   '@assets': './attached_assets',
-  '../vite.config': './vite.config.stub.mjs',
+};
+
+// Plugin to stub out vite and vite.config imports
+const stubVitePlugin = {
+  name: 'stub-vite',
+  setup(build) {
+    build.onResolve({ filter: /^vite$/ }, () => ({
+      path: path.resolve(__dirname, 'vite.config.stub.mjs'),
+      external: true,
+    }));
+    build.onResolve({ filter: /vite\.config/ }, () => ({
+      path: path.resolve(__dirname, 'vite.config.stub.mjs'),
+      external: false,
+    }));
+  },
 };
 
 try {
@@ -29,6 +43,7 @@ try {
     format: 'esm',
     outdir: 'dist',
     packages: 'external',
+    plugins: [stubVitePlugin],
     external: [
       'express',
       'http',
