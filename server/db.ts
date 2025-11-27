@@ -21,13 +21,13 @@ if (!databaseUrl) {
 } else {
   console.log("[DB] Connecting to:", databaseUrl.split('@')[0] + "@..." + (databaseUrl.includes('railway') ? 'railway' : databaseUrl.includes('supabase') ? 'supabase' : 'replit-db'));
   
-  // Use very short timeout for development (1s) - if Railway DB unreachable, fallback to MemStorage
+  // Use appropriate timeout for database connection
   pool = new Pool({ 
     connectionString: databaseUrl,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: process.env.NODE_ENV === "production" ? 5000 : 1000,
-    query_timeout: 1000,
+    connectionTimeoutMillis: process.env.NODE_ENV === "production" ? 10000 : 5000,
+    query_timeout: 5000,
   });
 
   db = drizzle({ client: pool, schema });

@@ -32,8 +32,13 @@ export function serveStaticFixed(app: Express) {
     etag: false
   }));
 
-  app.use("*", (_req, res, next) => {
-    console.log(`[Static] Serving index.html for: ${_req.path}`);
+  // Send index.html for SPA routing (only for non-API routes)
+  app.get('*', (req, res) => {
+    // Don't serve index.html for API routes
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    console.log(`[Static] Serving index.html for: ${req.path}`);
     res.sendFile(indexPath);
   });
 }
