@@ -1,1 +1,1 @@
-web: ./migrate-and-start.sh
+web: npm start
