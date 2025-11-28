@@ -9,6 +9,14 @@ export function registerPaymentRoutes(app: Express) {
   // Create payment intent (PUBLIC - for storefront checkout)
   app.post("/api/payments/create-intent", async (req: Request, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ 
+          error: "Payment service not configured",
+          clientSecret: `pi_mock_${Date.now()}`,
+          paymentIntentId: `pi_mock_${Date.now()}`,
+        });
+      }
+
       const schema = z.object({
         amount: z.number().min(1),
         customerEmail: z.string().email().optional(),
@@ -46,6 +54,10 @@ export function registerPaymentRoutes(app: Express) {
   // Confirm payment (PUBLIC - for storefront checkout)
   app.post("/api/payments/confirm", async (req: Request, res) => {
     try {
+      if (!stripe) {
+        return res.status(503).json({ error: "Payment service not configured" });
+      }
+
       const schema = z.object({
         paymentIntentId: z.string(),
       });
@@ -76,6 +88,10 @@ export function registerPaymentRoutes(app: Express) {
 
   // Webhook for Stripe events - LISTENER ATIVO
   app.post("/api/payments/webhook", async (req: Request, res) => {
+    if (!stripe) {
+      return res.status(503).json({ error: "Payment service not configured" });
+    }
+
     const sig = req.headers["stripe-signature"] as string;
 
     if (!sig) {
