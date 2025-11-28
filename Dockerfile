@@ -17,6 +17,7 @@ COPY server ./server
 COPY client ./client
 COPY shared ./shared
 COPY build.js ./build.js
+COPY migrations ./migrations
 
 # Build the application (uses build.js which configures esbuild with proper aliases)
 RUN node build.js

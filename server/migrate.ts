@@ -1,13 +1,23 @@
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db } from "./db";
 import { log } from "./logger";
+import fs from "fs";
 
 export async function runMigrations() {
   log("Running Drizzle migrations...");
   try {
-    const isProduction = process.env.NODE_ENV === "production";
-    const migrationsFolder = isProduction ? "./dist/migrations" : "./migrations";
+    // Tenta encontrar a pasta de migrações - verifica ambos os caminhos
+    let migrationsFolder = "./migrations";
+    
+    // Se ./migrations/meta/_journal.json não existir, tenta ./dist/migrations
+    if (!fs.existsSync("./migrations/meta/_journal.json")) {
+      if (fs.existsSync("./dist/migrations/meta/_journal.json")) {
+        migrationsFolder = "./dist/migrations";
+      }
+    }
+    
     log(`Using migrations folder: ${migrationsFolder}`);
+    log(`NODE_ENV: ${process.env.NODE_ENV}`);
     await migrate(db, { migrationsFolder });
     log("✅ Migrations complete.");
   } catch (error) {
