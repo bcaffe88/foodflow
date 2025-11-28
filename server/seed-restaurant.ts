@@ -17,13 +17,20 @@ export async function seedRestaurantOwner() {
       return;
     }
 
-    // Get the tenant created by seedWilsonPizza (uses "wilsonpizza" slug - lowercase, no hyphen)
+    // Get the tenant - try both slugs for backward compatibility
     let tenant = await db.select().from(tenants).where(eq(tenants.slug, "wilsonpizza")).limit(1).then((r: any) => r[0]);
     
     if (!tenant) {
-      console.error("[Seed] Wilson Pizza restaurant not found - seedWilsonPizza should have created it");
+      // Try alternate slug for backward compatibility
+      tenant = await db.select().from(tenants).where(eq(tenants.slug, "wilson-pizza")).limit(1).then((r: any) => r[0]);
+    }
+    
+    if (!tenant) {
+      console.error("[Seed] Wilson Pizza restaurant not found");
       return;
     }
+    
+    console.log("[Seed] Found Wilson Pizza restaurant with slug:", tenant.slug);
 
     // Hash password
     const hashedPassword = await hash("wilson123", 10);
