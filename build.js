@@ -80,6 +80,39 @@ export function log(msg) { console.log(msg); }
 `;
   fs.writeFileSync(path.join('dist', 'vite.js'), stubCode);
   console.log('✅ Created vite.js stub for production');
+  
+  // Copy migrations folder to dist for production
+  const migrationsSource = path.join(__dirname, 'migrations');
+  const migrationsDest = path.join(__dirname, 'dist', 'migrations');
+  
+  if (fs.existsSync(migrationsSource)) {
+    // Create dist/migrations directory
+    if (!fs.existsSync(migrationsDest)) {
+      fs.mkdirSync(migrationsDest, { recursive: true });
+    }
+    
+    // Copy all files from migrations to dist/migrations
+    const copyDir = (src, dest) => {
+      if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest, { recursive: true });
+      }
+      const entries = fs.readdirSync(src, { withFileTypes: true });
+      for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+        if (entry.isDirectory()) {
+          copyDir(srcPath, destPath);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+        }
+      }
+    };
+    
+    copyDir(migrationsSource, migrationsDest);
+    console.log('✅ Copied migrations folder to dist/migrations');
+  } else {
+    console.warn('⚠️ migrations folder not found, skipping copy');
+  }
 } catch (error) {
   console.error('❌ Build failed:', error);
   process.exit(1);
