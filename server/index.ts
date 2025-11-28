@@ -91,13 +91,10 @@ app.use((req, res, next) => {
     log("Seeding restaurant owner...");
     await seedRestaurantOwner();
     
-    const tenantCheck = await import("./db").then(m => m.db.select().from(require("@shared/schema").tenants).limit(1));
-    if (tenantCheck.length === 0) {
-      log("Seeding database with Wilson Pizza...");
-      await seedWilsonPizza();
-    }
+    log("Seeding Wilson Pizza restaurant and products...");
+    await seedWilsonPizza();
   } catch (err) {
-    log("Seed check skipped or already seeded");
+    log("Seed error:", err);
   }
 
   const server = await registerRoutes(app);
