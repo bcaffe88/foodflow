@@ -53,21 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activeRestaurants);
     } catch (error) {
       console.error("Get restaurants error:", error);
-      // Fallback: Return mock restaurant for demo
-      const mockRestaurants = [
-        {
-          id: "wilson-pizza-001",
-          name: "Wilson Pizzaria",
-          slug: "wilson-pizza",
-          logo: "https://via.placeholder.com/100",
-          description: "A melhor pizzaria da região",
-          phone: "(11) 98765-4321",
-          address: "Rua das Pizzas, 123",
-          commissionPercentage: "10.00",
-          isActive: true
-        }
-      ];
-      res.json(mockRestaurants);
+      res.status(500).json({ error: "Failed to load restaurants" });
     }
   });
 
@@ -112,12 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(categories);
     } catch (error) {
       console.error("Get categories error:", error);
-      // Fallback: Return mock categories for demo
-      const mockCategories = [
-        { id: "cat-1", tenantId: "wilson-001", name: "Pizzas Salgadas", slug: "salgadas", displayOrder: 1 },
-        { id: "cat-2", tenantId: "wilson-001", name: "Pizzas Doces", slug: "doces", displayOrder: 2 }
-      ];
-      res.json(mockCategories);
+      res.status(500).json({ error: "Failed to load categories" });
     }
   });
 
@@ -142,37 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(products);
     } catch (error) {
       console.error("Get products error:", error);
-      // Fallback: Return mock products for demo
-      const mockProducts = [
-        { 
-          id: "prod-1", 
-          tenantId: "wilson-001", 
-          categoryId: "cat-1",
-          name: "Carne de Sol", 
-          description: "Pizza com carne de sol fresca", 
-          price: "50.00", 
-          image: "https://via.placeholder.com/200"
-        },
-        { 
-          id: "prod-2", 
-          tenantId: "wilson-001", 
-          categoryId: "cat-1",
-          name: "Calabresa", 
-          description: "Pizza tradicional com calabresa", 
-          price: "48.00", 
-          image: "https://via.placeholder.com/200"
-        },
-        { 
-          id: "prod-3", 
-          tenantId: "wilson-001", 
-          categoryId: "cat-1",
-          name: "Frango Defumado", 
-          description: "Pizza com frango defumado", 
-          price: "55.00", 
-          image: "https://via.placeholder.com/200"
-        }
-      ];
-      res.json(mockProducts);
+      res.status(500).json({ error: "Failed to load products" });
     }
   });
 
