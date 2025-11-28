@@ -5,7 +5,6 @@ import { serveStaticFixed } from "./static-server";
 import { seedWilsonPizza } from "./seed-wilson-pizza";
 import { seedAdminUser } from "./seed-admin";
 import { seedRestaurantOwner } from "./seed-restaurant";
-import { runMigrations } from "./migrate";
 import { rateLimit, csrfProtection } from "./middleware/security";
 import { initRedis, closeRedis } from "./middleware/cache";
 
@@ -81,9 +80,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Run migrations and then seed database on startup
-  await runMigrations();
-
+  // Seed database on startup
   try {
     log("Seeding admin user...");
     await seedAdminUser();
