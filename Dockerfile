@@ -8,6 +8,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 COPY vite.config.ts ./
 COPY drizzle.config.ts ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
 
 # Install dependencies
 RUN npm ci
