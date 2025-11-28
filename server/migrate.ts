@@ -7,7 +7,7 @@ export async function runMigrations() {
   try {
     // O caminho para a pasta de migrações é relativo ao local de execução do script.
     // Assumindo que o script é executado a partir da raiz do projeto, o caminho é "./db/migrations".
-    await migrate(db, { migrationsFolder: "./db/migrations" });
+    await migrate(db, { migrationsFolder: "./zoom/db/migrations" });
     log("✅ Migrations complete.");
   } catch (error) {
     log("❌ Migration failed:", error);
