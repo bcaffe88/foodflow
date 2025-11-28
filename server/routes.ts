@@ -1050,6 +1050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           useOwnDriver: z.boolean().optional(),
           deliveryFeeBusiness: z.union([z.string(), z.number()]).optional(),
           deliveryFeeCustomer: z.union([z.string(), z.number()]).optional(),
+          commissionPercentage: z.string().optional(),
         });
 
         const data = settingsSchema.parse(req.body);
@@ -1061,6 +1062,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         console.error("Update settings error:", error);
         res.status(500).json({ error: "Failed to update settings" });
+      }
+    }
+  );
+
+  // Admin route to update restaurant commission percentage
+  app.patch("/api/admin/restaurants/:id/commission",
+    authenticate,
+    requireRole("platform_admin"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { id } = req.params;
+        const schema = z.object({
+          commissionPercentage: z.string(),
+        });
+
+        const data = schema.parse(req.body);
+        const updated = await storage.updateTenant(id, {
+          commissionPercentage: data.commissionPercentage,
+        });
+
+        res.json(updated);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: error.errors });
+        }
+        console.error("Update commission error:", error);
+        res.status(500).json({ error: "Failed to update commission percentage" });
       }
     }
   );

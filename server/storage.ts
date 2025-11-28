@@ -16,7 +16,6 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
-import { mockWilsonProducts } from "./mock-products";
 import { memStorage } from "./mem-storage";
 
 export interface IStorage {

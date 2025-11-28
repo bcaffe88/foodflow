@@ -2,20 +2,17 @@ import { db } from "./db";
 import { tenants, categories, products } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
-const generateId = () => Math.random().toString(36).substr(2, 9);
-const WILSON_PIZZA_ID = "wilson-pizza-" + Date.now();
-
 export async function seedWilsonPizza() {
   try {
     // Check if Wilson Pizza already exists
     const existing = await db.select().from(tenants).where(eq(tenants.slug, "wilsonpizza")).limit(1).then(r => r[0]);
     if (existing) {
+      console.log("[Seed] Wilson Pizza restaurant already exists");
       return;
     }
 
-    // Create Wilson Pizza tenant
+    // Create Wilson Pizza tenant (auto-generate ID via database)
     const tenant = await db.insert(tenants).values({
-      id: WILSON_PIZZA_ID,
       name: "Wilson Pizza",
       slug: "wilsonpizza",
       description: "As melhores pizzas da cidade! Tradicional, saudável e com ingredientes de qualidade.",
@@ -28,42 +25,42 @@ export async function seedWilsonPizza() {
 
     // Insert categories directly
     const pizzasTraditionals = await db.insert(categories).values({
-      tenantId: WILSON_PIZZA_ID,
+      tenantId: tenant.id,
       name: "Pizzas Tradicionais",
       slug: "pizzas-tradicionais",
       displayOrder: 1,
     } as any).returning().then(r => r[0]);
 
     const pizzasDoces = await db.insert(categories).values({
-      tenantId: WILSON_PIZZA_ID,
+      tenantId: tenant.id,
       name: "Pizzas Doces",
       slug: "pizzas-doces",
       displayOrder: 2,
     } as any).returning().then(r => r[0]);
 
     const massas = await db.insert(categories).values({
-      tenantId: WILSON_PIZZA_ID,
+      tenantId: tenant.id,
       name: "Massas",
       slug: "massas",
       displayOrder: 3,
     } as any).returning().then(r => r[0]);
 
     const apetitivos = await db.insert(categories).values({
-      tenantId: WILSON_PIZZA_ID,
+      tenantId: tenant.id,
       name: "Apetitivos",
       slug: "apetitivos",
       displayOrder: 4,
     } as any).returning().then(r => r[0]);
 
     const bebidas = await db.insert(categories).values({
-      tenantId: WILSON_PIZZA_ID,
+      tenantId: tenant.id,
       name: "Bebidas",
       slug: "bebidas",
       displayOrder: 5,
     } as any).returning().then(r => r[0]);
 
     const sobremesas = await db.insert(categories).values({
-      tenantId: WILSON_PIZZA_ID,
+      tenantId: tenant.id,
       name: "Sobremesas",
       slug: "sobremesas",
       displayOrder: 6,
@@ -113,7 +110,7 @@ export async function seedWilsonPizza() {
     for (const p of productsToInsert) {
       if (p.categoryId) {
         await db.insert(products).values({
-          tenantId: WILSON_PIZZA_ID,
+          tenantId: tenant.id,
           categoryId: p.categoryId,
           name: p.name,
           description: p.description,
@@ -124,7 +121,8 @@ export async function seedWilsonPizza() {
       }
     }
 
+    console.log("[Seed] Wilson Pizza restaurant, categories and products created successfully");
   } catch (error) {
-    console.error("Error seeding Wilson Pizza:", error);
+    console.error("[Seed] Error seeding Wilson Pizza:", error);
   }
 }
