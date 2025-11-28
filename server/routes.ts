@@ -57,6 +57,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get restaurant Stripe public key (for checkout)
+  app.get("/api/storefront/:slug/stripe-key", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const tenant = await storage.getTenantBySlug(slug);
+      
+      if (!tenant || !tenant.isActive) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+
+      // If restaurant has custom Stripe key, use it
+      if (tenant.stripePublicKey) {
+        return res.json({ publicKey: tenant.stripePublicKey });
+      }
+
+      // Fallback to global Stripe key if not configured
+      const globalKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || process.env.VITE_STRIPE_PUBLIC_KEY || "";
+      res.json({ publicKey: globalKey });
+    } catch (error) {
+      console.error("Get stripe key error:", error);
+      res.status(500).json({ error: "Failed to get payment key" });
+    }
+  });
+
   // Get tenant by slug (public)
   app.get("/api/storefront/:slug", async (req, res) => {
     try {

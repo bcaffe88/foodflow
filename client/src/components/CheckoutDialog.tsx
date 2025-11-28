@@ -8,14 +8,16 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import MapAddressInput from "@/components/MapAddressInput";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { CartItem } from "@shared/schema";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
-  : Promise.resolve(null);
+// Create Stripe promise - will be initialized with restaurant's key or global key
+const createStripePromise = async (publicKey?: string) => {
+  const key = publicKey || import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+  return key ? loadStripe(key) : Promise.resolve(null);
+};
 
 const checkoutSchema = z.object({
   customerName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -110,6 +112,31 @@ export default function CheckoutDialog({
   const total = totalProp || (subtotal + deliveryFee);
   const [isLoading, setIsLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [stripePromise, setStripePromise] = useState<any>(null);
+  const [restaurantPublicKey, setRestaurantPublicKey] = useState<string | null>(null);
+
+  // Fetch restaurant's Stripe public key on mount
+  useEffect(() => {
+    if (open && restaurantSlug) {
+      const fetchStripeKey = async () => {
+        try {
+          const response = await fetch(`/api/storefront/${restaurantSlug}/stripe-key`);
+          if (response.ok) {
+            const { publicKey } = await response.json();
+            setRestaurantPublicKey(publicKey);
+            const promise = await createStripePromise(publicKey);
+            setStripePromise(promise);
+          }
+        } catch (error) {
+          console.error("Failed to fetch restaurant Stripe key:", error);
+          // Fallback to global key
+          const promise = await createStripePromise();
+          setStripePromise(promise);
+        }
+      };
+      fetchStripeKey();
+    }
+  }, [open, restaurantSlug]);
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -140,6 +167,7 @@ export default function CheckoutDialog({
             customerEmail: data.customerEmail,
             currency: "brl", // Para PIX é necessário BRL
             paymentMethods: paymentMethod === "pix_stripe" ? ["pix"] : ["card"],
+            tenantSlug: restaurantSlug, // Pass restaurant slug to use its Stripe key
           }),
         });
 
@@ -199,14 +227,20 @@ export default function CheckoutDialog({
           <div className="bg-muted p-4 rounded-md mb-4">
             <p className="text-sm font-semibold">Total: R$ {total.toFixed(2)}</p>
           </div>
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <StripePaymentForm 
-              total={total}
-              paymentMethod={paymentMethod}
-              onSuccess={handleStripeSuccess}
-              onError={(error) => toast({ title: "Erro", description: error, variant: "destructive" })}
-            />
-          </Elements>
+          {stripePromise ? (
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <StripePaymentForm 
+                total={total}
+                paymentMethod={paymentMethod}
+                onSuccess={handleStripeSuccess}
+                onError={(error) => toast({ title: "Erro", description: error, variant: "destructive" })}
+              />
+            </Elements>
+          ) : (
+            <div className="p-4 text-center text-muted-foreground">
+              Carregando opções de pagamento...
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     );

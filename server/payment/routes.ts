@@ -9,7 +9,31 @@ export function registerPaymentRoutes(app: Express) {
   // Create payment intent (PUBLIC - for storefront checkout)
   app.post("/api/payments/create-intent", async (req: Request, res) => {
     try {
-      if (!stripe) {
+      const schema = z.object({
+        amount: z.number().min(1),
+        customerEmail: z.string().email().optional(),
+        currency: z.string().optional().default("brl"),
+        paymentMethods: z.array(z.string()).optional(),
+        tenantSlug: z.string().optional(), // Restaurant slug to use its Stripe key
+      });
+
+      const data = schema.parse(req.body);
+
+      // Get restaurant's Stripe account if provided
+      let tenantStripeKey = null;
+      if (data.tenantSlug) {
+        const tenant = await storage.getTenantBySlug(data.tenantSlug);
+        if (tenant?.stripeSecretKey) {
+          tenantStripeKey = tenant.stripeSecretKey;
+        }
+      }
+
+      // Use restaurant's Stripe key, fallback to global
+      const stripeClient = tenantStripeKey 
+        ? new (await import("stripe")).default(tenantStripeKey)
+        : stripe;
+
+      if (!stripeClient) {
         return res.status(503).json({ 
           error: "Payment service not configured",
           clientSecret: `pi_mock_${Date.now()}`,
@@ -17,19 +41,10 @@ export function registerPaymentRoutes(app: Express) {
         });
       }
 
-      const schema = z.object({
-        amount: z.number().min(1),
-        customerEmail: z.string().email().optional(),
-        currency: z.string().optional().default("brl"),
-        paymentMethods: z.array(z.string()).optional(),
-      });
-
-      const data = schema.parse(req.body);
-
       // Configurar métodos de pagamento - SOMENTE CARD (Stripe)
       const paymentMethodTypes = data.paymentMethods || ["card"];
 
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntent = await stripeClient.paymentIntents.create({
         amount: Math.round(data.amount * 100),
         currency: data.currency.toLowerCase(),
         receipt_email: data.customerEmail,
