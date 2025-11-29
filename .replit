@@ -1,10 +1,10 @@
-modules = ["nodejs-20", "bash", "web"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-25_05"
-packages = ["railway", "unzip"]
+channel = "stable-24_05"
+packages = ["railway"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -101,7 +101,6 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_mem_db:1.0.0", "javascript_database:1.0.0", "javascript_stripe:1.0.0", "github:1.0.0"]
-expertMode = true
 
 [userenv]
 
@@ -111,45 +110,3 @@ VITE_SENTRY_DSN = "https://placeholder@sentry.io/placeholder"
 SENTRY_ENVIRONMENT = "development"
 SENTRY_TRACESAMPLING = "0.1"
 REDIS_URL = "redis://default:kqQwfVdyEnTatgDednWXknFmKKHxKHnF@redis.railway.internal:6379"
-OSRM_URL = "http://localhost:5001"
-
-# CONFIGURAÇÃO AVANÇADA REPLIT
-[nix]
-channel = "unstable"
-
-[env]
-VIRTUAL_ENV = "/opt/replit"
-PYTHONPATH = "."
-REPLIT_UNLOCKED = "true"
-AI_MODE = "AGGRESSIVE"
-
-[git]
-enableGitHub = true
-autoCommit = true
-autoPush = true
-
-[debugger]
-support = true
-transport = "localhost:0"
-
-[unitTest]
-adapter = "advanced"
-
-[language]
-name = "nodejs_ts"
-
-[packager]
-language = "nodejs_ts"
-ignoredPaths = [".git", "node_modules"]
-
-[runner]
-language = "nodejs_ts"
-compile = "npm run build"
-run = "npm start"
-
-# FEATURES EXPERIMENTAIS ATIVADAS
-[features]
-premiumAI = true
-unlimitedCompute = true
-advancedDebugging = true
-realTimeCollaboration = true
