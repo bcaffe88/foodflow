@@ -2514,6 +2514,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================================
+  // AGENT ORCHESTRATION ENDPOINTS
+  // ============================================================================
+
+  // Get list of all agents
+  app.get("/api/agents/list", async (req, res) => {
+    try {
+      const { getAllAgents } = await import("./agents/agent-registry.js");
+      const agents = getAllAgents();
+
+      res.json({
+        agents: agents.map((a) => ({
+          id: a.id,
+          name: a.name,
+          displayName: a.displayName,
+          icon: a.icon,
+          role: a.role,
+          title: a.title,
+          keywords: a.keywords,
+        })),
+        total: agents.length,
+      });
+    } catch (error) {
+      console.error("Get agents error:", error);
+      res.status(500).json({ error: "Failed to fetch agents" });
+    }
+  });
+
+  // Execute task with agent orchestrator
+  app.post("/api/agents/execute", async (req, res) => {
+    try {
+      const { input, type, preferredAgent } = req.body;
+
+      if (!input) {
+        return res.status(400).json({ error: "Missing task input" });
+      }
+
+      const { orchestrator } = await import("./agents/orchestrator.js");
+      const { TaskRequest } = await import("@shared/agent-types.js");
+
+      const request = {
+        input,
+        type,
+        preferredAgent,
+      };
+
+      const response = await orchestrator.processTask(request);
+      res.json(response);
+    } catch (error: any) {
+      console.error("Execute agent error:", error);
+      res.status(500).json({ error: error.message || "Failed to execute task" });
+    }
+  });
+
+  // Get agent task history
+  app.get("/api/agents/history", async (req, res) => {
+    try {
+      const { orchestrator } = await import("./agents/orchestrator.js");
+      const history = orchestrator.getHistory();
+
+      res.json({
+        total: history.length,
+        tasks: history.map((h) => ({
+          taskId: h.taskId,
+          agent: h.agent.name,
+          input: h.input,
+          timestamp: h.startTime,
+          processingTime: h.endTime - h.startTime,
+        })),
+      });
+    } catch (error) {
+      console.error("Get history error:", error);
+      res.status(500).json({ error: "Failed to fetch history" });
+    }
+  });
+
   // Receive Webhook from Printer (PUBLIC ENDPOINT - webhook receivers must be public)
   app.post("/api/webhook/receive", async (req, res) => {
     try {
