@@ -13,6 +13,7 @@ import OrderConfirmation from "@/pages/order-confirmation";
 import CustomerOrdersHistory from "@/pages/customer-orders-history";
 import RestaurantDashboard from "@/pages/restaurant-dashboard";
 import DriverDashboard from "@/pages/driver-dashboard";
+import DeliveryDashboard from "@/pages/delivery-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 import RestaurantSettings from "@/pages/restaurant-settings";
@@ -43,7 +44,7 @@ function Router() {
         <Route path="/restaurant/orders" component={RestaurantOrders} />
         <Route path="/restaurant/financials" component={RestaurantFinancials} />
         <Route path="/restaurant/settings" component={RestaurantSettings} />
-        <Route path="/driver/dashboard" component={DriverDashboard} />
+        <Route path="/driver/dashboard" component={DeliveryDashboard} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/restaurants" component={AdminRestaurants} />
         <Route path="/admin/platform" component={AdminPlatform} />

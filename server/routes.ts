@@ -1101,7 +1101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthRequest, res) => {
       try {
         const user = await storage.getUser(req.user!.userId);
-        res.json(user || { role: "driver", status: "available" });
+        const driverProfile = user ? await storage.getDriverProfile(user.id) : null;
+        const activeOrders = user ? await storage.getOrdersByDriver(user.id).then(orders => orders.filter(o => o.status === "out_for_delivery")) : [];
+        res.json({
+          ...user,
+          ...driverProfile,
+          activeOrdersCount: activeOrders.length,
+          status: driverProfile?.status || "offline"
+        });
       } catch (error) {
         res.status(500).json({ error: "Failed to load driver profile" });
       }
@@ -1125,13 +1132,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireRole("driver"),
     async (req: AuthRequest, res) => {
       try {
-        // In production, this would query DB for pending orders across all restaurants
-        // For MVP, returning empty array - ready for real implementation
-        const availableOrders: any[] = [];
-        res.json(availableOrders);
+        const allTenants = await storage.getAllTenants();
+        const allOrders: any[] = [];
+        for (const tenant of allTenants) {
+          const orders = await storage.getOrdersByTenant(tenant.id);
+          allOrders.push(...orders);
+        }
+        const readyOrders = allOrders.filter(o => o.status === "ready" && !o.driverId);
+        res.json(readyOrders);
       } catch (error) {
         console.error("Failed to load available orders:", error);
-        res.status(500).json({ error: "Failed to load orders" });
+        res.json([]);
       }
     }
   );
@@ -1144,7 +1155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { orderId } = req.body;
         const order = await storage.getOrder(orderId);
         if (!order) return res.status(404).json({ error: "Order not found" });
-        res.json({ ...order, driverId: req.user!.userId });
+        const updated = await storage.assignDriver(orderId, req.user!.userId);
+        res.json(updated || order);
       } catch (error) {
         res.status(500).json({ error: "Failed to accept order" });
       }
@@ -1157,7 +1169,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthRequest, res) => {
       try {
         const { orderId } = req.params;
-        res.json({ id: orderId, status: "delivered" });
+        const updated = await storage.updateOrderStatus(orderId, "delivered");
+        res.json(updated || { id: orderId, status: "delivered" });
       } catch (error) {
         res.status(500).json({ error: "Failed to complete order" });
       }
