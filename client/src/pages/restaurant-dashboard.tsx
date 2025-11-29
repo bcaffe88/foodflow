@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { LogOut, Plus, Package } from "lucide-react";
+import { LogOut, Plus, Package, MapPin } from "lucide-react";
 import type { Order } from "@shared/schema";
 
 export default function RestaurantDashboard() {
@@ -84,6 +84,11 @@ export default function RestaurantDashboard() {
     navigate("/login");
   };
 
+  const handleViewDriverMap = () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    navigate(`/restaurant/driver-map?tenantId=${user.tenantId}`);
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       // Atualizar estado local ANTES de fazer request para atualizar visualmente
@@ -144,10 +149,14 @@ export default function RestaurantDashboard() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-4 mb-8 flex-wrap">
           <Button onClick={() => navigate("/restaurant/products")} data-testid="button-manage-products">
             <Package className="h-4 w-4 mr-2" />
             Gerenciar Produtos
+          </Button>
+          <Button onClick={handleViewDriverMap} variant="outline" data-testid="button-view-driver-map">
+            <MapPin className="h-4 w-4 mr-2" />
+            Ver Entregadores
           </Button>
           <Button variant="outline" onClick={() => navigate("/restaurant/settings")} data-testid="button-settings">
             Configurações

@@ -26,6 +26,7 @@ import RegisterDriver from "@/pages/register-driver";
 import AdminRestaurants from "@/pages/admin-restaurants";
 import AdminPlatform from "@/pages/admin-platform";
 import CustomerOrderTracking from "@/pages/customer-order-tracking";
+import DriverMap from "@/pages/driver-map";
 
 function Router() {
   return (
@@ -45,6 +46,7 @@ function Router() {
         <Route path="/restaurant/orders" component={RestaurantOrders} />
         <Route path="/restaurant/financials" component={RestaurantFinancials} />
         <Route path="/restaurant/settings" component={RestaurantSettings} />
+        <Route path="/restaurant/driver-map" component={DriverMap} />
         <Route path="/driver/dashboard" component={DeliveryDashboard} />
         <Route path="/kitchen/dashboard" component={KitchenDashboard} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
