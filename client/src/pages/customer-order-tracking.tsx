@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { ChevronLeft, MapPin, Clock, Phone, Truck } from "lucide-react";
-import type { Order, OrderItem } from "@shared/schema";
+import type { Order, OrderItem, User } from "@shared/schema";
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const statusStages = ["pending", "confirmed", "preparing", "ready", "out_for_delivery", "delivered"];
 const statusLabels: Record<string, string> = {
@@ -28,6 +30,12 @@ const statusEmojis: Record<string, React.ReactNode> = {
   delivered: "🎉",
 };
 
+// Fix Leaflet icon issue
+L.Icon.Default.mergeOptions({
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
 export default function CustomerOrderTracking() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/customer/order/:id");
@@ -35,14 +43,46 @@ export default function CustomerOrderTracking() {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
 
+  // Initialize map
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+    
+    try {
+      mapInstanceRef.current = L.map(mapRef.current).setView([-7.9056, -40.1056], 13);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(mapInstanceRef.current);
+    } catch (error) {
+      console.error('Map init error:', error);
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Poll for order updates and driver location
   useEffect(() => {
     if (params?.id) {
       loadOrder();
-      const interval = setInterval(loadOrder, 5000);
+      const interval = setInterval(() => {
+        loadOrder();
+        // Poll for driver location if order is out for delivery
+        if (order?.status === "out_for_delivery" && order?.driverId) {
+          loadDriverLocation();
+        }
+      }, 5000);
       return () => clearInterval(interval);
     }
-  }, [params?.id]);
+  }, [params?.id, order?.driverId]);
 
   const loadOrder = async () => {
     try {
@@ -55,6 +95,47 @@ export default function CustomerOrderTracking() {
       toast({ title: "Erro", description: "Falha ao carregar pedido", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadDriverLocation = async () => {
+    try {
+      if (!order?.driverId) return;
+      const driverData = await apiRequest("GET", `/api/drivers/${order.driverId}`);
+      if (driverData?.currentLatitude && driverData?.currentLongitude) {
+        const loc = { lat: Number(driverData.currentLatitude), lng: Number(driverData.currentLongitude) };
+        setDriverLocation(loc);
+        
+        // Update map marker if map exists
+        if (mapInstanceRef.current) {
+          const existing = (mapInstanceRef.current as any).driverMarker;
+          if (existing) {
+            existing.setLatLng([loc.lat, loc.lng]);
+          } else {
+            const marker = L.marker([loc.lat, loc.lng], { title: 'Motorista' }).addTo(mapInstanceRef.current);
+            (mapInstanceRef.current as any).driverMarker = marker;
+          }
+          // Add destination marker if we have it
+          if (order?.addressLatitude && order?.addressLongitude) {
+            const destLat = Number(order.addressLatitude);
+            const destLng = Number(order.addressLongitude);
+            if (!(mapInstanceRef.current as any).destinationMarker) {
+              const destMarker = L.marker([destLat, destLng], { 
+                title: 'Destino',
+                icon: L.icon({
+                  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+                  iconSize: [25, 41]
+                })
+              }).addTo(mapInstanceRef.current);
+              (mapInstanceRef.current as any).destinationMarker = destMarker;
+            }
+            // Auto-fit both markers in view
+            mapInstanceRef.current.fitBounds([[loc.lat, loc.lng], [destLat, destLng]], { padding: [50, 50] });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Driver location error:', error);
     }
   };
 
@@ -104,6 +185,17 @@ export default function CustomerOrderTracking() {
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6 md:py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 md:space-y-6">
+          {/* Live Map - Show when out for delivery */}
+          {order?.status === "out_for_delivery" && (
+            <Card className="overflow-hidden">
+              <div 
+                ref={mapRef}
+                className="w-full h-64 md:h-96 bg-muted"
+                data-testid="container-delivery-map"
+              />
+            </Card>
+          )}
+
           {/* Timeline/Progress */}
           <Card className="p-4 md:p-6">
             <h2 className="font-bold mb-4 md:mb-6 text-sm md:text-base">Status do Pedido</h2>
