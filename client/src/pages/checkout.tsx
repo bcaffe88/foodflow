@@ -95,31 +95,35 @@ function CheckoutForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-      <div>
-        <label className="text-xs md:text-sm font-medium mb-2 block flex items-center gap-2">
-          <MapPin className="h-4 w-4" />
-          Endereço de Entrega
+    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 md:space-y-6">
+      <div className="space-y-2">
+        <label className="text-xs sm:text-sm font-medium flex items-center gap-2">
+          <MapPin className="h-3 sm:h-4 w-3 sm:w-4 flex-shrink-0" />
+          <span>Endereço de Entrega</span>
         </label>
-        <AddressSelector
-          onAddressSelect={handleAddressSelect}
-          placeholder="Digite seu endereço..."
-          value={selectedAddress?.address || ""}
-          data-testid="input-address"
-        />
+        <div className="w-full overflow-x-hidden">
+          <AddressSelector
+            onAddressSelect={handleAddressSelect}
+            placeholder="Digite seu endereço..."
+            value={selectedAddress?.address || ""}
+            data-testid="input-address"
+          />
+        </div>
         {selectedAddress && (
-          <p className="text-xs text-green-600 mt-2" data-testid="status-address-confirmed">✓ Endereço confirmado</p>
+          <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2" data-testid="status-address-confirmed">✓ Endereço confirmado</p>
         )}
       </div>
       
-      <div>
-        <label className="text-xs md:text-sm font-medium mb-2 block">Dados do Cartão</label>
-        <PaymentElement />
+      <div className="space-y-2">
+        <label className="text-xs sm:text-sm font-medium block">Dados do Cartão</label>
+        <div className="w-full overflow-x-hidden">
+          <PaymentElement />
+        </div>
       </div>
       
       <Button
         type="submit"
-        className="w-full text-xs md:text-sm"
+        className="w-full text-xs sm:text-sm py-2 sm:py-3"
         disabled={!stripe || !elements || isLoading || !selectedAddress}
         data-testid="button-pay"
       >

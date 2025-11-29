@@ -61,6 +61,7 @@ export class MemStorage {
         role: "customer",
         name: "João Cliente",
         phone: "11988776655",
+        tenantId: "wilson-001",
         isActive: true,
       },
       {
@@ -70,6 +71,7 @@ export class MemStorage {
         role: "driver",
         name: "Carlos Entregador",
         phone: "11987654321",
+        tenantId: "wilson-001",
         isActive: true,
       },
     ];
@@ -130,28 +132,8 @@ export class MemStorage {
         id: generateId("prod"),
         tenantId: "wilson-001",
         categoryId: catSalgadas.id,
-        name: "Portuguesa",
-        description: "Presunto, ovos, cebola e azeitona",
-        price: "54.00",
-        image: "https://via.placeholder.com/300?text=Portuguesa",
-        isAvailable: true,
-      },
-      {
-        id: generateId("prod"),
-        tenantId: "wilson-001",
-        categoryId: catSalgadas.id,
-        name: "Frango com Catupiry",
-        description: "Frango desfiado com catupiry cremoso",
-        price: "55.00",
-        image: "https://via.placeholder.com/300?text=Frango+Catupiry",
-        isAvailable: true,
-      },
-      {
-        id: generateId("prod"),
-        tenantId: "wilson-001",
-        categoryId: catSalgadas.id,
         name: "Calabresa",
-        description: "Calabresa fatiada com cebola",
+        description: "Calabresa fresca com cebola roxa",
         price: "50.00",
         image: "https://via.placeholder.com/300?text=Calabresa",
         isAvailable: true,
@@ -161,7 +143,7 @@ export class MemStorage {
         tenantId: "wilson-001",
         categoryId: catSalgadas.id,
         name: "Vegetariana",
-        description: "Tomate, cebola, pimentão, milho e brócolis",
+        description: "Brócolis, tomate, cebola e azeitona",
         price: "46.00",
         image: "https://via.placeholder.com/300?text=Vegetariana",
         isAvailable: true,
@@ -170,10 +152,10 @@ export class MemStorage {
         id: generateId("prod"),
         tenantId: "wilson-001",
         categoryId: catSalgadas.id,
-        name: "Bacon",
-        description: "Bacon crocante com cheddar",
-        price: "58.00",
-        image: "https://via.placeholder.com/300?text=Bacon",
+        name: "Frango com Batata Doce",
+        description: "Frango com batata doce e alecrim",
+        price: "54.00",
+        image: "https://via.placeholder.com/300?text=Frango+Batata+Doce",
         isAvailable: true,
       },
       // Doces
@@ -181,10 +163,10 @@ export class MemStorage {
         id: generateId("prod"),
         tenantId: "wilson-001",
         categoryId: catDoces.id,
-        name: "Chocolate",
-        description: "Pizza doce com chocolate belga e morango",
+        name: "Chocolate com Morango",
+        description: "Chocolate derretido com morangos frescos",
         price: "44.00",
-        image: "https://via.placeholder.com/300?text=Chocolate",
+        image: "https://via.placeholder.com/300?text=Chocolate+Morango",
         isAvailable: true,
       },
       {
@@ -253,24 +235,12 @@ export class MemStorage {
     return this.tenants.get(id);
   }
 
-  async getAllTenants() {
-    return Array.from(this.tenants.values()).filter(t => t.isActive);
-  }
-
   async getTenantBySlug(slug: string) {
-    return Array.from(this.tenants.values()).find(t => t.slug === slug);
+    return Array.from(this.tenants.values()).find((t: any) => t.slug === slug);
   }
 
-  async updateTenant(id: string, data: Partial<any>) {
-    const tenant = this.tenants.get(id);
-    if (!tenant) {
-      console.warn(`[MemStorage] Tenant not found: ${id}`);
-      return undefined;
-    }
-    const updated = { ...tenant, ...data };
-    this.tenants.set(id, updated);
-    console.log(`[MemStorage] Updated tenant: ${id} - ${JSON.stringify(data)}`);
-    return updated;
+  async getAllTenants() {
+    return Array.from(this.tenants.values());
   }
 
   // ========== USERS ==========
@@ -285,28 +255,28 @@ export class MemStorage {
   }
 
   async getUserByEmail(email: string) {
-    return Array.from(this.users.values()).find(u => u.email === email);
+    return Array.from(this.users.values()).find((u: any) => u.email === email);
+  }
+
+  async getUsersByRole(role: string) {
+    return Array.from(this.users.values()).filter((u: any) => u.role === role);
   }
 
   // ========== CATEGORIES ==========
   async createCategory(data: any) {
     const category = { ...data, id: generateId("cat") };
     this.categories.set(category.id, category);
-    console.log(`[MemStorage] Created category: ${category.name}`);
     return category;
   }
 
   async getCategoriesByTenant(tenantId: string) {
-    return Array.from(this.categories.values())
-      .filter(c => c.tenantId === tenantId)
-      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    return Array.from(this.categories.values()).filter((c: any) => c.tenantId === tenantId);
   }
 
-  // ========== PRODUCTS - WITH UPDATE/DELETE/TOGGLE ==========
+  // ========== PRODUCTS ==========
   async createProduct(data: any) {
     const product = { ...data, id: generateId("prod") };
     this.products.set(product.id, product);
-    console.log(`[MemStorage] Created product: ${product.name}`);
     return product;
   }
 
@@ -315,53 +285,16 @@ export class MemStorage {
   }
 
   async getProductsByTenant(tenantId: string) {
-    return Array.from(this.products.values()).filter(p => p.tenantId === tenantId);
+    return Array.from(this.products.values()).filter((p: any) => p.tenantId === tenantId);
   }
 
   async getProductsByCategory(categoryId: string) {
-    return Array.from(this.products.values())
-      .filter(p => p.categoryId === categoryId && p.isAvailable === true);
+    return Array.from(this.products.values()).filter((p: any) => p.categoryId === categoryId);
   }
 
-  async updateProduct(id: string, data: Partial<any>) {
-    const product = this.products.get(id);
-    if (!product) {
-      console.warn(`[MemStorage] Product not found: ${id}`);
-      return undefined;
-    }
-    const updated = { ...product, ...data };
-    this.products.set(id, updated);
-    console.log(`[MemStorage] Updated product: ${id} - ${JSON.stringify(data)}`);
-    return updated;
-  }
-
-  async deleteProduct(id: string) {
-    const existed = this.products.has(id);
-    this.products.delete(id);
-    console.log(`[MemStorage] Deleted product: ${id}`);
-    return existed;
-  }
-
-  // ========== SETTINGS ==========
-  async getSettings(tenantId: string) {
-    return this.settings.get(tenantId) || {};
-  }
-
-  async updateSettings(tenantId: string, data: any) {
-    const current = this.settings.get(tenantId) || {};
-    const updated = { ...current, ...data };
-    this.settings.set(tenantId, updated);
-    console.log(`[MemStorage] Updated settings for ${tenantId}: ${JSON.stringify(data)}`);
-    return updated;
-  }
-
-  // ========== ORDERS (STUB) ==========
-  private payments = new Map<string, any>();
-  private orderItems = new Map<string, any[]>();
-  private commissions = new Map<string, any>();
-
+  // ========== ORDERS ==========
   async createOrder(data: any) {
-    const order = { ...data, id: generateId("order"), status: "pending", createdAt: new Date() };
+    const order = { ...data, id: generateId("order") };
     this.orders.set(order.id, order);
     return order;
   }
@@ -371,193 +304,76 @@ export class MemStorage {
   }
 
   async getOrdersByTenant(tenantId: string) {
-    return Array.from(this.orders.values()).filter(o => o.tenantId === tenantId);
+    return Array.from(this.orders.values()).filter((o: any) => o.tenantId === tenantId);
   }
 
   async getOrdersByCustomer(customerId: string) {
-    return Array.from(this.orders.values()).filter(o => o.customerId === customerId);
+    return Array.from(this.orders.values()).filter((o: any) => o.customerId === customerId);
   }
 
   async getOrdersByDriver(driverId: string) {
-    return Array.from(this.orders.values()).filter(o => o.driverId === driverId);
-  }
-
-  async getPendingOrdersByTenant(tenantId: string) {
-    return Array.from(this.orders.values())
-      .filter(o => o.tenantId === tenantId && o.status === "pending");
+    return Array.from(this.orders.values()).filter((o: any) => o.driverId === driverId);
   }
 
   async updateOrderStatus(id: string, status: string) {
     const order = this.orders.get(id);
-    if (!order) return undefined;
-    const updated = { ...order, status };
-    this.orders.set(id, updated);
-    return updated;
+    if (order) {
+      order.status = status;
+    }
+    return order;
   }
 
   async assignDriver(orderId: string, driverId: string) {
     const order = this.orders.get(orderId);
-    if (!order) return undefined;
-    const updated = { ...order, driverId };
-    this.orders.set(orderId, updated);
-    return updated;
-  }
-
-  async createOrderWithTransaction(orderData: any, paymentData?: any, itemsData?: any[], commissionData?: any) {
-    const order = await this.createOrder(orderData);
-    const payment = paymentData ? await this.createPayment(paymentData) : undefined;
-    const items = itemsData ? await Promise.all(itemsData.map(item => this.createOrderItem(item))) : undefined;
-    const commission = commissionData ? await this.createCommission(commissionData) : undefined;
-    return { order, payment, items, commission };
-  }
-
-  // ========== ORDER ITEMS ==========
-  async createOrderItem(data: any) {
-    const item = { ...data, id: generateId("item") };
-    const orderId = data.orderId;
-    if (!this.orderItems.has(orderId)) {
-      this.orderItems.set(orderId, []);
+    if (order) {
+      order.driverId = driverId;
     }
-    this.orderItems.get(orderId)!.push(item);
-    return item;
+    return order;
+  }
+
+  // ========== PAGINATION HELPERS ==========
+  async getAllSettings() {
+    return Array.from(this.settings.values());
   }
 
   async getOrderItems(orderId: string) {
-    return this.orderItems.get(orderId) || [];
-  }
-
-  // ========== PAYMENTS ==========
-  async createPayment(data: any) {
-    const payment = { ...data, id: generateId("payment"), status: "pending" };
-    this.payments.set(payment.id, payment);
-    return payment;
+    return [];
   }
 
   async getPaymentByOrder(orderId: string) {
-    return Array.from(this.payments.values()).find(p => p.orderId === orderId);
+    return undefined;
   }
 
   async getPaymentById(id: string) {
-    return this.payments.get(id);
+    return undefined;
   }
 
   async getPaymentsByTenant(tenantId: string, limit: number, offset: number) {
-    return Array.from(this.payments.values())
-      .filter(p => p.tenantId === tenantId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(offset, offset + limit);
+    return [];
   }
 
   async getPaymentCountByTenant(tenantId: string) {
-    return Array.from(this.payments.values()).filter(p => p.tenantId === tenantId).length;
-  }
-
-  async updatePaymentStatus(id: string, status: string) {
-    const payment = this.payments.get(id);
-    if (!payment) return undefined;
-    const updated = { ...payment, status };
-    this.payments.set(id, updated);
-    return updated;
-  }
-
-  async updatePaymentStripeId(id: string, stripeId: string) {
-    const payment = this.payments.get(id);
-    if (!payment) return undefined;
-    const updated = { ...payment, stripePaymentIntentId: stripeId };
-    this.payments.set(id, updated);
-    return updated;
-  }
-
-  // ========== COMMISSIONS ==========
-  async createCommission(data: any) {
-    const commission = { ...data, id: generateId("commission") };
-    this.commissions.set(commission.id, commission);
-    return commission;
+    return 0;
   }
 
   async getCommissionsByTenant(tenantId: string) {
-    return Array.from(this.commissions.values()).filter(c => c.tenantId === tenantId);
-  }
-
-  async getUnpaidCommissions() {
-    return Array.from(this.commissions.values()).filter(c => c.status !== "paid");
-  }
-
-  async markCommissionPaid(id: string) {
-    const commission = this.commissions.get(id);
-    if (!commission) return undefined;
-    const updated = { ...commission, status: "paid" };
-    this.commissions.set(id, updated);
-    return updated;
-  }
-
-  // ========== STUBS FOR OTHER METHODS ==========
-  async createCustomerProfile(data: any) {
-    return { ...data, id: generateId("customer") };
-  }
-
-  async getCustomerProfile(userId: string) {
-    return undefined;
-  }
-
-  async updateCustomerProfile(userId: string, data: any) {
-    return undefined;
-  }
-
-  async createDriverProfile(data: any) {
-    return { ...data, id: generateId("driver") };
-  }
-
-  async getDriverProfile(userId: string) {
-    return undefined;
+    return [];
   }
 
   async getAvailableDrivers() {
+    return Array.from(this.users.values()).filter((u: any) => u.role === "driver");
+  }
+
+  async getAvailableOrdersByTenant(tenantId: string, status: string) {
+    return Array.from(this.orders.values()).filter((o: any) => o.tenantId === tenantId && o.status === status);
+  }
+
+  async getRatingsByTenant(tenantId: string) {
     return [];
   }
 
-  async updateDriverStatus(userId: string, status: string) {
-    return undefined;
-  }
-
-  async deleteCategory(id: string) {
-    this.categories.delete(id);
-  }
-
-  async createDriverAssignment(data: any) {
-    return { ...data, id: generateId("assignment") };
-  }
-
-  async getAssignmentsByOrder(orderId: string) {
+  async getPromotionsByTenant(tenantId: string) {
     return [];
-  }
-
-  async getPendingAssignmentsByDriver(driverId: string) {
-    return [];
-  }
-
-  async respondToAssignment(id: string, status: string) {
-    return undefined;
-  }
-
-  async createDailyMetric(data: any) {
-    return { ...data, id: generateId("metric") };
-  }
-
-  async getMetricsByTenant(tenantId: string, startDate: Date, endDate: Date) {
-    return [];
-  }
-
-  async getPendingRestaurants() {
-    return Array.from(this.tenants.values()).filter((t: any) => t.status === 'pending');
-  }
-
-  async getCustomerAddresses(userId: string) {
-    return [];
-  }
-
-  async createCustomerAddress(data: any) {
-    return { ...data, id: generateId("address") };
   }
 }
 

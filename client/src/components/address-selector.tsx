@@ -80,28 +80,28 @@ export function AddressSelector({
 
   return (
     <div className="relative w-full">
-      <div className="relative">
-        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      <div className="relative w-full">
+        <MapPin className="absolute left-2 sm:left-3 top-2.5 sm:top-3 h-3 sm:h-4 w-3 sm:w-4 text-muted-foreground flex-shrink-0" />
         <Input
           placeholder={placeholder}
           value={input}
           onChange={handleInputChange}
           onFocus={() => input.length >= 3 && setShowSuggestions(true)}
-          className="pl-10"
+          className="pl-8 sm:pl-10 text-xs sm:text-sm py-2 sm:py-2.5"
           data-testid="input-address"
         />
         {isLoading && (
-          <Loader className="absolute right-3 top-3 h-4 w-4 text-primary animate-spin" />
+          <Loader className="absolute right-2 sm:right-3 top-2.5 sm:top-3 h-3 sm:h-4 w-3 sm:w-4 text-primary animate-spin flex-shrink-0" />
         )}
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <Card className="absolute top-full left-0 right-0 mt-2 z-50 p-0 max-h-60 overflow-y-auto">
+        <Card className="absolute top-full left-0 right-0 mt-1 sm:mt-2 z-50 p-0 max-h-48 sm:max-h-60 overflow-y-auto">
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.osm_id}
               onClick={() => handleSelectSuggestion(suggestion)}
-              className="w-full text-left px-4 py-3 hover:bg-muted transition-colors border-b last:border-0 flex items-start gap-2"
+              className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-muted transition-colors border-b last:border-0 flex items-start gap-2 text-xs sm:text-sm"
               data-testid={`button-suggestion-${suggestion.osm_id}`}
             >
               <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
