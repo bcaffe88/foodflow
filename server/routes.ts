@@ -53,21 +53,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activeRestaurants);
     } catch (error) {
       console.error("Get restaurants error:", error);
-      // Fallback: Return mock restaurant for demo
-      const mockRestaurants = [
-        {
-          id: "wilson-pizza-001",
-          name: "Wilson Pizzaria",
-          slug: "wilson-pizza",
-          logo: "https://via.placeholder.com/100",
-          description: "A melhor pizzaria da região",
-          phone: "(11) 98765-4321",
-          address: "Rua das Pizzas, 123",
-          commissionPercentage: "10.00",
-          isActive: true
-        }
-      ];
-      res.json(mockRestaurants);
+      res.status(500).json({ error: "Failed to load restaurants" });
+    }
+  });
+
+  // Get restaurant Stripe public key (for checkout)
+  app.get("/api/storefront/:slug/stripe-key", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const tenant = await storage.getTenantBySlug(slug);
+      
+      if (!tenant || !tenant.isActive) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+
+      // If restaurant has custom Stripe key, use it
+      if (tenant.stripePublicKey) {
+        return res.json({ publicKey: tenant.stripePublicKey });
+      }
+
+      // Fallback to global Stripe key if not configured
+      const globalKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || process.env.VITE_STRIPE_PUBLIC_KEY || "";
+      res.json({ publicKey: globalKey });
+    } catch (error) {
+      console.error("Get stripe key error:", error);
+      res.status(500).json({ error: "Failed to get payment key" });
     }
   });
 
@@ -112,12 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(categories);
     } catch (error) {
       console.error("Get categories error:", error);
-      // Fallback: Return mock categories for demo
-      const mockCategories = [
-        { id: "cat-1", tenantId: "wilson-001", name: "Pizzas Salgadas", slug: "salgadas", displayOrder: 1 },
-        { id: "cat-2", tenantId: "wilson-001", name: "Pizzas Doces", slug: "doces", displayOrder: 2 }
-      ];
-      res.json(mockCategories);
+      res.status(500).json({ error: "Failed to load categories" });
     }
   });
 
@@ -142,37 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(products);
     } catch (error) {
       console.error("Get products error:", error);
-      // Fallback: Return mock products for demo
-      const mockProducts = [
-        { 
-          id: "prod-1", 
-          tenantId: "wilson-001", 
-          categoryId: "cat-1",
-          name: "Carne de Sol", 
-          description: "Pizza com carne de sol fresca", 
-          price: "50.00", 
-          image: "https://via.placeholder.com/200"
-        },
-        { 
-          id: "prod-2", 
-          tenantId: "wilson-001", 
-          categoryId: "cat-1",
-          name: "Calabresa", 
-          description: "Pizza tradicional com calabresa", 
-          price: "48.00", 
-          image: "https://via.placeholder.com/200"
-        },
-        { 
-          id: "prod-3", 
-          tenantId: "wilson-001", 
-          categoryId: "cat-1",
-          name: "Frango Defumado", 
-          description: "Pizza com frango defumado", 
-          price: "55.00", 
-          image: "https://via.placeholder.com/200"
-        }
-      ];
-      res.json(mockProducts);
+      res.status(500).json({ error: "Failed to load products" });
     }
   });
 
@@ -1050,6 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           useOwnDriver: z.boolean().optional(),
           deliveryFeeBusiness: z.union([z.string(), z.number()]).optional(),
           deliveryFeeCustomer: z.union([z.string(), z.number()]).optional(),
+          commissionPercentage: z.string().optional(),
         });
 
         const data = settingsSchema.parse(req.body);
@@ -1061,6 +1037,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         console.error("Update settings error:", error);
         res.status(500).json({ error: "Failed to update settings" });
+      }
+    }
+  );
+
+  // Admin route to update restaurant commission percentage
+  app.patch("/api/admin/restaurants/:id/commission",
+    authenticate,
+    requireRole("platform_admin"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { id } = req.params;
+        const schema = z.object({
+          commissionPercentage: z.string(),
+        });
+
+        const data = schema.parse(req.body);
+        const updated = await storage.updateTenant(id, {
+          commissionPercentage: data.commissionPercentage,
+        });
+
+        res.json(updated);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: error.errors });
+        }
+        console.error("Update commission error:", error);
+        res.status(500).json({ error: "Failed to update commission percentage" });
       }
     }
   );
