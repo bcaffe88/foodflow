@@ -360,6 +360,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Get restaurant dashboard data
+  // Get restaurant analytics summary
+  app.get("/api/analytics/summary", 
+    authenticate, 
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const tenantId = req.user!.tenantId!;
+        const allOrders = await storage.getOrdersByTenant(tenantId);
+        const recentOrders = allOrders.filter(o => new Date(o.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+        const totalRevenue = recentOrders.reduce((sum, o) => sum + Number(o.total), 0);
+        res.json({ totalOrders: recentOrders.length, totalRevenue, period: "30 days" });
+      } catch (error) {
+        res.json({ totalOrders: 0, totalRevenue: 0 });
+      }
+    }
+  );
+
   app.get("/api/restaurant/dashboard", 
     authenticate, 
     requireRole("restaurant_owner"),
@@ -1570,6 +1588,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (error) {
         res.status(500).json({ error: "Failed to load financials" });
+      }
+    }
+  );
+
+  // Get restaurant analytics summary
+  app.get("/api/analytics/summary", 
+    authenticate, 
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const tenantId = req.user!.tenantId!;
+        const allOrders = await storage.getOrdersByTenant(tenantId);
+        const recentOrders = allOrders.filter(o => new Date(o.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+        const totalRevenue = recentOrders.reduce((sum, o) => sum + Number(o.total), 0);
+        res.json({ totalOrders: recentOrders.length, totalRevenue, period: "30 days" });
+      } catch (error) {
+        res.json({ totalOrders: 0, totalRevenue: 0 });
       }
     }
   );
