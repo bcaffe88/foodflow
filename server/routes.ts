@@ -1178,6 +1178,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // ============================================================================
+  // KITCHEN ROUTES (for cozinheiros - show pending/confirmed orders)
+  // ============================================================================
+
+  app.get("/api/kitchen/orders",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const tenantId = req.user!.tenantId!;
+        const orders = await storage.getOrdersByTenant(tenantId);
+        
+        // Filter kitchen orders: pending, confirmed, or preparing
+        const kitchenOrders = orders
+          .filter(o => ["pending", "confirmed", "preparing"].includes(o.status))
+          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+          .map(o => ({
+            id: o.id,
+            customerName: o.customerName,
+            items: [],
+            status: o.status,
+            createdAt: o.createdAt,
+            orderNotes: o.orderNotes
+          }));
+        
+        res.json(kitchenOrders);
+      } catch (error) {
+        console.error("Failed to load kitchen orders:", error);
+        res.json([]);
+      }
+    }
+  );
+
+  app.patch("/api/kitchen/orders/:orderId/status",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+        
+        if (!status || !["pending", "confirmed", "preparing", "ready"].includes(status)) {
+          return res.status(400).json({ error: "Invalid status" });
+        }
+        
+        const updated = await storage.updateOrderStatus(orderId, status);
+        res.json(updated || { id: orderId, status });
+      } catch (error) {
+        console.error("Failed to update kitchen order status:", error);
+        res.status(500).json({ error: "Failed to update order status" });
+      }
+    }
+  );
+
+  // ============================================================================
   // FINANCIAL & ADMIN ROUTES
   // ============================================================================
 
