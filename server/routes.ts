@@ -147,8 +147,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(products);
     } catch (error) {
-      console.error("Get products error:", error);
       res.status(500).json({ error: "Failed to load products" });
+    }
+  });
+
+  // Get menu for a tenant (alias for products) - for compatibility
+  app.get("/api/storefront/:slug/menu", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const tenant = await storage.getTenantBySlug(slug);
+      if (!tenant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+      const products = await storage.getProductsByTenant(tenant.id);
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load menu" });
     }
   });
 
@@ -227,8 +241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryType: data.deliveryType || "delivery",
       };
 
-      // Prepare payment data if Stripe payment
-      let paymentData: { stripePaymentIntentId: string; amount: string; status: "pending" | "completed" | "failed" | "refunded"; paymentMethod: string } | undefined;
+      // Prepare payment data if Stripe payment (without orderId - will be added in transaction)
+      let paymentData: Omit<InsertPayment, 'orderId'> | undefined;
       if (data.paymentIntentId) {
         paymentData = {
           stripePaymentIntentId: data.paymentIntentId,
@@ -247,15 +261,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes: item.notes,
       }));
 
-      // Prepare commission data (automatic calculation)
+      // Prepare commission data (automatic calculation - orderId will be added in transaction)
       const commissionPercentage = parseFloat(tenant.commissionPercentage || "10");
       const commissionAmount = (parseFloat(data.total) * commissionPercentage / 100).toFixed(2);
       
       const commissionData = {
         tenantId: tenant.id,
-        commissionAmount: commissionAmount,
+        commissionAmount,
         commissionPercentage: tenant.commissionPercentage || "10.00",
         orderTotal: data.total,
+        status: "pending" as const,
         isPaid: false,
       };
 
