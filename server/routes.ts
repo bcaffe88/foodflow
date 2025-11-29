@@ -1178,6 +1178,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // ============================================================================
+  // ADDRESS & GEOCODING ROUTES
+  // ============================================================================
+
+  app.get("/api/address/geocode",
+    authenticate,
+    async (req: AuthRequest, res) => {
+      try {
+        const { address } = req.query;
+        
+        // For demo: return placeholder coordinates
+        if (address) {
+          res.json({
+            address,
+            latitude: -23.5505,
+            longitude: -46.6333,
+            reference: String(address),
+          });
+        } else {
+          res.status(400).json({ error: "Address required" });
+        }
+      } catch (error) {
+        console.error("Geocoding error:", error);
+        res.status(500).json({ error: "Geocoding failed" });
+      }
+    }
+  );
+
+  app.patch("/api/orders/:orderId/update",
+    authenticate,
+    async (req: AuthRequest, res) => {
+      try {
+        const { orderId } = req.params;
+        const { deliveryAddress, addressLatitude, addressLongitude, addressReference } = req.body;
+        
+        const updated = await storage.updateOrderStatus(orderId, (await storage.getOrder(orderId))?.status || "pending");
+        
+        res.json({
+          ...updated,
+          deliveryAddress,
+          addressLatitude,
+          addressLongitude,
+          addressReference,
+        });
+      } catch (error) {
+        console.error("Order update error:", error);
+        res.status(500).json({ error: "Failed to update order" });
+      }
+    }
+  );
+
+  // ============================================================================
   // KITCHEN ROUTES (for cozinheiros - show pending/confirmed orders)
   // ============================================================================
 

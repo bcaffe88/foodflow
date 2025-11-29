@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
+import { AddressSelector } from "@/components/address-selector";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
@@ -23,11 +24,43 @@ function CheckoutForm({
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+
+  const handleAddressSelect = async (address: any) => {
+    try {
+      await apiRequest("PATCH", `/api/orders/${orderId}/update`, {
+        deliveryAddress: address.address,
+        addressLatitude: address.latitude,
+        addressLongitude: address.longitude,
+        addressReference: address.reference,
+      });
+      setSelectedAddress(address);
+      toast({
+        title: "Endereço salvo",
+        description: "Localização confirmada para entrega",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao salvar endereço",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      return;
+    }
+
+    if (!selectedAddress) {
+      toast({
+        title: "Endereço obrigatório",
+        description: "Por favor, selecione um endereço de entrega",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -60,12 +93,25 @@ function CheckoutForm({
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="text-sm font-medium mb-2 block">📍 Endereço de Entrega</label>
+        <AddressSelector
+          onAddressSelect={handleAddressSelect}
+          placeholder="Digite seu endereço completo..."
+          value={selectedAddress?.address || ""}
+        />
+        {selectedAddress && (
+          <p className="text-xs text-green-600 mt-2">✓ Endereço confirmado</p>
+        )}
+      </div>
+      
       <PaymentElement />
+      
       <Button
         type="submit"
-        className="w-full mt-6"
-        disabled={!stripe || !elements || isLoading}
+        className="w-full"
+        disabled={!stripe || !elements || isLoading || !selectedAddress}
       >
         {isLoading ? "Processando..." : "Pagar"}
       </Button>
