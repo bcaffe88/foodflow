@@ -73,11 +73,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Fallback to global Stripe key if not configured
-      const globalKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || process.env.VITE_STRIPE_PUBLIC_KEY || "";
+      const globalKey = process.env.STRIPE_PUBLIC_KEY || "";
+      if (!globalKey) {
+        console.warn(`[Stripe] No public key configured for restaurant: ${slug}`);
+      }
       res.json({ publicKey: globalKey });
     } catch (error) {
       console.error("Get stripe key error:", error);
-      res.status(500).json({ error: "Failed to get payment key" });
+      res.status(500).json({ error: "Stripe key not configured" });
     }
   });
 
@@ -180,24 +183,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const data = orderSchema.parse(req.body);
+      
+      // Validate prices are not negative
+      if (parseFloat(data.subtotal) < 0 || parseFloat(data.deliveryFee) < 0 || parseFloat(data.total) < 0) {
+        return res.status(400).json({ error: "Price values must be non-negative" });
+      }
+
       const tenant = await storage.getTenantBySlug(slug);
       
       if (!tenant) {
         return res.status(404).json({ error: "Restaurant not found" });
       }
 
+      // Helper to sanitize strings (prevent XSS)
+      const sanitizeString = (str: string | undefined): string | undefined => {
+        if (!str) return str;
+        return str.replace(/[<>\"']/g, (char) => {
+          const map: {[key: string]: string} = {
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+          };
+          return map[char];
+        });
+      };
+
       // Prepare all data for atomic transaction
       const orderData = {
         tenantId: tenant.id,
         customerId: req.user?.userId,
-        customerName: data.customerName,
-        customerPhone: data.customerPhone,
-        customerEmail: data.customerEmail,
-        deliveryAddress: data.deliveryAddress,
+        customerName: sanitizeString(data.customerName),
+        customerPhone: sanitizeString(data.customerPhone),
+        customerEmail: sanitizeString(data.customerEmail),
+        deliveryAddress: sanitizeString(data.deliveryAddress),
         addressLatitude: data.addressLatitude,
         addressLongitude: data.addressLongitude,
-        addressReference: data.addressReference,
-        orderNotes: data.orderNotes,
+        addressReference: sanitizeString(data.addressReference),
+        orderNotes: sanitizeString(data.orderNotes),
         status: "pending" as const,
         subtotal: data.subtotal,
         deliveryFee: data.deliveryFee,
