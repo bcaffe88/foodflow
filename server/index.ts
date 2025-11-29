@@ -108,6 +108,10 @@ app.use((req, res, next) => {
   const { driverSocketManager } = await import("./websocket/driver-socket");
   driverSocketManager.initialize(server);
 
+  // Initialize WebSocket for generic notifications (all users)
+  const { notificationSocketManager } = await import("./websocket/notification-socket");
+  notificationSocketManager.initialize(server);
+
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
