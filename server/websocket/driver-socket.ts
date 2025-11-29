@@ -116,9 +116,7 @@ export class DriverSocketManager {
 
     try {
       // Save location to database (async, non-blocking)
-      storage.updateDriverLocation(driverId, lat, lng).catch((error) => {
-        log(`[DriverSocket] Error saving location: ${error}`);
-      });
+      await storage.updateDriverLocation(driverId, lat, lng);
 
       // Broadcast driver location to nearby drivers (for future feature)
       this.broadcastToTenant(tenantId, {

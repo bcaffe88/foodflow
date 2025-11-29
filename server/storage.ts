@@ -43,6 +43,9 @@ export interface IStorage {
   getDriverProfile(userId: string): Promise<DriverProfile | undefined>;
   getAvailableDrivers(): Promise<DriverProfile[]>;
   updateDriverStatus(userId: string, status: string): Promise<DriverProfile | undefined>;
+  updateDriverLocation(userId: string, latitude: number, longitude: number): Promise<void>;
+  getActiveDriversLocations(tenantId: string): Promise<any[]>;
+  getAvailableOrdersByTenant(tenantId: string, status: string): Promise<Order[]>;
 
   // Categories
   createCategory(category: InsertCategory): Promise<Category>;
@@ -545,6 +548,39 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoNothing()
       .returning();
   }
+
+  // GPS Tracking
+  async updateDriverLocation(userId: string, latitude: number, longitude: number): Promise<void> {
+    await db.update(driverProfiles).set({
+      currentLatitude: String(latitude),
+      currentLongitude: String(longitude),
+    }).where(eq(driverProfiles.userId, userId));
+  }
+
+  async getActiveDriversLocations(tenantId: string): Promise<any[]> {
+    const driverUsers = await db.select().from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.role, "driver")));
+    
+    const locations: any[] = [];
+    for (const user of driverUsers) {
+      const profile = await this.getDriverProfile(user.id);
+      if (profile) {
+        locations.push({
+          driverId: user.id,
+          name: user.name,
+          lat: profile.currentLatitude,
+          lng: profile.currentLongitude,
+          onlineStatus: profile.status === "available",
+        });
+      }
+    }
+    return locations;
+  }
+
+  async getAvailableOrdersByTenant(tenantId: string, status: string): Promise<Order[]> {
+    return db.select().from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.status, status)));
+  }
 }
 
 // SmartStorage: Fallback from Database to MemStorage on connection errors
@@ -972,6 +1008,28 @@ export class SmartStorage implements IStorage {
       () => this.memStorage.createCustomerAddress(data)
     );
   }
+
+  // GPS Tracking
+  async updateDriverLocation(userId: string, latitude: number, longitude: number): Promise<void> {
+    return this.tryDb(
+      () => this.dbStorage.updateDriverLocation(userId, latitude, longitude),
+      () => Promise.resolve()
+    );
+  }
+
+  async getActiveDriversLocations(tenantId: string): Promise<any[]> {
+    return this.tryDb(
+      () => this.dbStorage.getActiveDriversLocations(tenantId),
+      () => Promise.resolve([])
+    );
+  }
+
+  async getAvailableOrdersByTenant(tenantId: string, status: string): Promise<Order[]> {
+    return this.tryDb(
+      () => this.dbStorage.getAvailableOrdersByTenant(tenantId, status),
+      () => this.memStorage.getOrdersByTenant(tenantId)
+    );
+  }
 }
 
 export const storage = new SmartStorage();
@@ -1003,39 +1061,3 @@ export async function paginate<T>(
     pages: Math.ceil((count || 0) / limit),
   };
 }
-
-  // GPS Tracking
-  async updateDriverLocation(driverId: string, latitude: number, longitude: number): Promise<void> {
-    const profileData = await this.getDriverProfile(driverId);
-    if (profileData) {
-      await db.update(driverProfiles).set({
-        lastLocationLat: latitude,
-        lastLocationLng: longitude,
-      }).where(eq(driverProfiles.userId, driverId));
-    }
-  }
-
-  async getActiveDriversLocations(tenantId: string): Promise<any[]> {
-    const driverUsers = await db.select().from(users)
-      .where(and(eq(users.tenantId, tenantId), eq(users.role, "driver")));
-    
-    const profiles = await Promise.all(
-      driverUsers.map((u) => this.getDriverProfile(u.id))
-    );
-    
-    return profiles.filter((p) => p && p.isOnline).map((p) => ({
-      driverId: p?.userId,
-      name: p?.name,
-      lat: p?.lastLocationLat,
-      lng: p?.lastLocationLng,
-      onlineStatus: p?.isOnline,
-    }));
-  }
-
-  async getAvailableOrdersByTenant(tenantId: string, status: string): Promise<Order[]> {
-    return db.select().from(orders)
-      .where(and(eq(orders.tenantId, tenantId), eq(orders.status, status)));
-  }
-}
-
-export const storage = new DatabaseStorage();
