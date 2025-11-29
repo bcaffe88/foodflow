@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { insertProductSchema, type Product, type Category } from "@shared/schema";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Loader2, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 
 type FormData = z.infer<typeof insertProductSchema>;
 
@@ -22,8 +22,6 @@ export default function ManageProducts() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [llmLoading, setLlmLoading] = useState(false);
-  const [llmFormData, setLlmFormData] = useState({ establishmentType: "", category: "" });
 
   // Verificar autenticação
   useEffect(() => {
@@ -121,77 +119,6 @@ export default function ManageProducts() {
     mutation.mutate(data);
   };
 
-  const handleGenerateDescription = async () => {
-    const productName = form.getValues("name");
-    if (!productName) {
-      toast({ title: "Erro", description: "Preenchea o nome do produto primeiro", variant: "destructive" });
-      return;
-    }
-
-    setLlmLoading(true);
-    try {
-      const response = await fetch(`/api/restaurant/products/${editingId || "new"}/improve-description`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productName,
-          currentDescription: form.getValues("description"),
-        }),
-      });
-
-      if (!response.ok) throw new Error("Falha ao gerar descrição");
-      const data = await response.json();
-      form.setValue("description", data.improvedDescription);
-      toast({ title: "Sucesso!", description: "Descrição melhorada com IA" });
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message || "Falha ao gerar descrição", variant: "destructive" });
-    } finally {
-      setLlmLoading(false);
-    }
-  };
-
-  const handleGenerateProducts = async () => {
-    if (!llmFormData.establishmentType.trim() || !llmFormData.category.trim()) {
-      toast({ 
-        title: "Erro", 
-        description: "Preencha tipo de estabelecimento e categoria", 
-        variant: "destructive" 
-      });
-      return;
-    }
-
-    setLlmLoading(true);
-    try {
-      const response = await fetch("/api/restaurant/products/generate-llm-from-category", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          establishmentType: llmFormData.establishmentType,
-          category: llmFormData.category,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Falha ao gerar produtos");
-      const data = await response.json();
-      
-      toast({ 
-        title: "Sucesso!", 
-        description: `${data.productsCount} produtos criados!` 
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ["/api/restaurant/products"] });
-      setLlmFormData({ establishmentType: "", category: "" });
-    } catch (error: any) {
-      toast({ 
-        title: "Erro", 
-        description: error.message || "Falha ao gerar produtos", 
-        variant: "destructive" 
-      });
-    } finally {
-      setLlmLoading(false);
-    }
-  };
-
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
@@ -208,64 +135,6 @@ export default function ManageProducts() {
           Novo Produto
         </Button>
       </div>
-
-      {/* LLM Generator - Always visible for quick access */}
-      <Card className="mb-8 border-blue-200 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-600" />
-            Gerar Produtos com IA
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600">Preencha o tipo de estabelecimento e a categoria para gerar até 10 produtos automaticamente</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Estabelecimento</label>
-              <Input
-                placeholder="Ex: Pizzaria, Restaurante de Sushi, Padaria"
-                value={llmFormData.establishmentType}
-                onChange={(e) => setLlmFormData({ ...llmFormData, establishmentType: e.target.value })}
-                disabled={llmLoading}
-                data-testid="input-establishment-type"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Categoria de Produtos</label>
-              <Input
-                placeholder="Ex: Prato Principal, Bebida, Sobremesa"
-                value={llmFormData.category}
-                onChange={(e) => setLlmFormData({ ...llmFormData, category: e.target.value })}
-                disabled={llmLoading}
-                data-testid="input-product-category"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <Button
-              onClick={handleGenerateProducts}
-              disabled={llmLoading || !llmFormData.establishmentType.trim() || !llmFormData.category.trim()}
-              className="gap-2"
-              data-testid="button-generate-products"
-            >
-              {llmLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Gerando até 10 produtos...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Gerar até 10 Produtos
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {showForm && (
         <Card className="mb-8">
@@ -319,33 +188,10 @@ export default function ManageProducts() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center justify-between mb-2">
-                        <FormLabel>Descrição</FormLabel>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleGenerateDescription}
-                          disabled={llmLoading || !form.getValues("name")}
-                          className="gap-1"
-                          data-testid="button-generate-description"
-                        >
-                          {llmLoading ? (
-                            <>
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              Gerando...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-3 h-3" />
-                              Gerar com IA
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      <FormLabel>Descrição</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Descreva o produto... ou clique em 'Gerar com IA'"
+                          placeholder="Descreva o produto..."
                           data-testid="textarea-product-description"
                           {...field}
                         />
