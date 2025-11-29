@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
+import { Store, ArrowLeft } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(3),
@@ -47,69 +49,92 @@ export default function RegisterRestaurantPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-6">
-        <h1 className="text-2xl font-bold mb-6">Registrar Restaurante</h1>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Restaurante</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Seu Restaurante" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="seu@email.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telefone</FormLabel>
-                  <FormControl>
-                    <Input placeholder="558799999999" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Endereço</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Rua, número, cidade..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Enviando..." : "Registrar"}
-            </Button>
-          </form>
-        </Form>
-      </Card>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="bg-card border-b sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto px-4 py-3 md:py-4 flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/")}
+            data-testid="button-back"
+            className="h-9 w-9"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <Store className="h-5 md:h-6 w-5 md:w-6 text-primary" />
+            <h1 className="text-lg md:text-xl font-bold truncate">Seu Restaurante</h1>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center p-4 py-6 md:py-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="w-full max-w-md p-6 md:p-8">
+            <p className="text-muted-foreground text-center mb-6 text-xs md:text-sm">Cadastre seu restaurante na plataforma</p>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 md:space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Nome do Restaurante</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Seu Restaurante" className="text-xs md:text-sm h-9 md:h-10" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="seu@email.com" className="text-xs md:text-sm h-9 md:h-10" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Telefone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="558799999999" className="text-xs md:text-sm h-9 md:h-10" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Endereço</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Rua, número, cidade..." className="text-xs md:text-sm h-9 md:h-10" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full text-xs md:text-sm" disabled={isLoading} data-testid="button-submit">
+                  {isLoading ? "Enviando..." : "Registrar Restaurante"}
+                </Button>
+              </form>
+            </Form>
+          </Card>
+        </motion.div>
+      </main>
     </div>
   );
 }
