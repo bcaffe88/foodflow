@@ -249,6 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stripePaymentIntentId: data.paymentIntentId,
           amount: data.total,
           status: "pending" as const,
+          tenantId: tenant.id,
           paymentMethod: "card",
         };
       }
@@ -2287,9 +2288,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: code.toUpperCase(),
           description,
           discountType,
-          discountValue: parseFloat(discountValue),
+          discountValue: parseFloat(discountValue).toString(),
           maxUses,
-          minOrderValue: minOrderValue ? parseFloat(minOrderValue) : undefined,
+          minOrderValue: minOrderValue ? parseFloat(minOrderValue).toString() : undefined,
           isActive: isActive ?? true,
           startDate: new Date(),
         });
@@ -2626,12 +2627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       total: 0,
       tasks: [],
       status: "Agent history tracking planned for future turns"
-        })),
-      });
-    } catch (error) {
-      console.error("Get history error:", error);
-      res.status(500).json({ error: "Failed to fetch history" });
-    }
+    });
   });
 
   // Receive Webhook from Printer (PUBLIC ENDPOINT - webhook receivers must be public)
