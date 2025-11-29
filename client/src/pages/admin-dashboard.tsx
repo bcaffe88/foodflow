@@ -50,14 +50,20 @@ export default function AdminDashboard() {
   const loadTenants = async () => {
     try {
       const data = await apiRequest("GET", "/api/admin/tenants");
-      setTenants(data || []);
+      const tenantsList = Array.isArray(data) ? data : [];
+      setTenants(tenantsList);
       setStats({
-        totalRestaurants: data?.length || 0,
-        totalRevenue: data?.reduce((sum: number, t: Tenant) => sum + (parseFloat(t.commissionPercentage) * 100), 0) || 0,
-        pendingOrders: 12, // Mock - seria de um endpoint real
+        totalRestaurants: tenantsList.length,
+        totalRevenue: tenantsList.reduce((sum: number, t: any) => {
+          const comm = parseFloat(t.commissionPercentage || "0");
+          return sum + (isNaN(comm) ? 0 : comm * 100);
+        }, 0),
+        pendingOrders: 0,
       });
     } catch (error) {
-      toast({ title: "Erro", description: "Falha ao carregar restaurantes", variant: "destructive" });
+      console.error("Dashboard load error:", error);
+      setTenants([]);
+      setStats({ totalRestaurants: 0, totalRevenue: 0, pendingOrders: 0 });
     } finally {
       setIsLoading(false);
     }

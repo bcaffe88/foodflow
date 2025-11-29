@@ -1567,32 +1567,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  app.get("/api/admin/tenants",
-    authenticate,
-    requireRole("platform_admin"),
-    async (req: AuthRequest, res) => {
-      try {
-        const tenants = await storage.getAllTenants();
-        res.json(tenants);
-      } catch (error) {
-        res.status(500).json({ error: "Failed to load restaurants" });
-      }
-    }
-  );
-
-  app.get("/api/admin/restaurants",
-    authenticate,
-    requireRole("platform_admin"),
-    async (req: AuthRequest, res) => {
-      try {
-        const tenants = await storage.getAllTenants();
-        res.json(tenants);
-      } catch (error) {
-        res.status(500).json({ error: "Failed to load restaurants" });
-      }
-    }
-  );
-
   app.delete("/api/admin/restaurants/:id",
     authenticate,
     requireRole("platform_admin"),

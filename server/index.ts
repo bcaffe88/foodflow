@@ -3,9 +3,7 @@ import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { log } from "./logger";
 import { serveStaticFixed } from "./static-server";
-import { seedWilsonPizza } from "./seed-wilson-pizza";
-import { seedAdminUser } from "./seed-admin";
-import { seedRestaurantOwner } from "./seed-restaurant";
+import { seedDatabase } from "./seed-index";
 import { runMigrations } from "./migrate";
 import { rateLimit, csrfProtection } from "./middleware/security";
 import { initRedis, closeRedis } from "./middleware/cache";
@@ -99,14 +97,7 @@ app.use((req, res, next) => {
   await runMigrations();
 
   try {
-    log("Seeding admin user...");
-    await seedAdminUser();
-    
-    log("Seeding restaurant owner...");
-    await seedRestaurantOwner();
-    
-    log("Seeding Wilson Pizza restaurant and products...");
-    await seedWilsonPizza();
+    await seedDatabase();
   } catch (err) {
     log("Seed error:", err);
   }
