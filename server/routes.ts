@@ -2233,9 +2233,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Update order with estimated delivery time
-      const updated = await storage.updateOrder(id, {
-        estimatedDeliveryTime: eta.durationMinutes
-      });
+      const order = await storage.getOrder(id);
+      if (order) {
+        const updated = await storage.updateOrderStatus(id, order.status || "pending");
+      }
 
       res.json({
         success: true,
