@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "" });
 
 interface ProductGenerationRequest {
   restaurantName: string;
@@ -53,9 +53,8 @@ IMPORTANTE: Responda APENAS em JSON válido (sem markdown), sem explicações an
   "summary": "Resumo breve dos produtos gerados"
 }`;
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-  const response = await model.generateContent({
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
     contents: [
       {
         role: "user",
@@ -65,10 +64,10 @@ IMPORTANTE: Responda APENAS em JSON válido (sem markdown), sem explicações an
   });
 
   try {
-    const content = response.response.text();
+    const content = (response.candidates?.[0]?.content?.parts?.[0] as any)?.text || "";
     if (!content) throw new Error("Resposta vazia do LLM");
 
-    // Extract JSON from response (sometimes model wraps in markdown)
+    // Extract JSON from response
     let jsonStr = content;
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -106,9 +105,8 @@ export async function improveProductDescription(
 Produto: ${productName}
 ${currentDescription ? `Descrição atual: ${currentDescription}` : ""}`;
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-  const response = await model.generateContent({
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
     contents: [
       {
         role: "user",
@@ -117,5 +115,6 @@ ${currentDescription ? `Descrição atual: ${currentDescription}` : ""}`;
     ],
   });
 
-  return (response.response.text() || currentDescription || "").trim();
+  const content = (response.candidates?.[0]?.content?.parts?.[0] as any)?.text || "";
+  return (content || currentDescription || "").trim();
 }
