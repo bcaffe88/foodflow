@@ -85,7 +85,7 @@ export default function AnalyticsDashboard() {
         if (order.driverId) {
           const current = driverMetrics.get(order.driverId) || {
             driverId: order.driverId,
-            driverName: order.driverName || 'Entregador',
+            driverName: `Entregador #${order.driverId.substring(0, 8)}`,
             completedOrders: 0,
             averageRating: 4.5,
           };
