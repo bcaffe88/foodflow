@@ -12,7 +12,7 @@ export function registerPaymentRoutes(app: Express) {
       const tenantId = req.user?.tenantId;
       if (!tenantId) return res.status(401).json({ error: "Unauthorized" });
 
-      const tenant = await storage.getTenantById(tenantId);
+      const tenant = await storage.getTenant(tenantId);
       if (!tenant) return res.status(404).json({ error: "Tenant not found" });
 
       res.json({
@@ -38,7 +38,7 @@ export function registerPaymentRoutes(app: Express) {
       const data = schema.parse(req.body);
       
       // Update tenant with Stripe keys
-      const tenant = await storage.getTenantById(tenantId);
+      const tenant = await storage.getTenant(tenantId);
       if (!tenant) return res.status(404).json({ error: "Tenant not found" });
 
       await storage.updateTenant(tenantId, {
