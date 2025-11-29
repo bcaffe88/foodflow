@@ -28,6 +28,7 @@ import AdminPlatform from "@/pages/admin-platform";
 import CustomerOrderTracking from "@/pages/customer-order-tracking";
 import DriverMap from "@/pages/driver-map";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
+import AdminWebhookConfig from "@/pages/admin-webhook-config";
 
 function Router() {
   return (
@@ -54,6 +55,7 @@ function Router() {
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/restaurants" component={AdminRestaurants} />
         <Route path="/admin/platform" component={AdminPlatform} />
+        <Route path="/admin/webhook-config" component={AdminWebhookConfig} />
         <Route path="/customer/order/:id" component={CustomerOrderTracking} />
         <Route component={NotFound} />
       </Switch>
