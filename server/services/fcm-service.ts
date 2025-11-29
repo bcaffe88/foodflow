@@ -148,7 +148,7 @@ export async function sendBroadcast(
 
       // Log failed tokens for cleanup
       if (response.failureCount > 0) {
-        response.responses.forEach((resp, idx) => {
+        response.responses.forEach((resp: any, idx: number) => {
           if (!resp.success) {
             console.warn(`Failed to send to token ${batch[idx]}:`, resp.error);
           }
