@@ -36,6 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize WhatsApp Integration
   const { initializeWhatsAppIntegrationService } = await import('./whatsapp-integration');
   const whatsappService = initializeWhatsAppIntegrationService();
+  
+  // Initialize WhatsApp Notification Service
+  const { whatsAppService } = await import('./notifications/whatsapp-service');
 
   // Initialize Google Maps & Delivery Services
   const mapsService = initializeGoogleMapsService();
@@ -1170,6 +1173,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { orderId } = req.params;
         const updated = await storage.updateOrderStatus(orderId, "delivered");
+        
+        // Send WhatsApp notification that order was delivered
+        if (updated) {
+          const tenant = await storage.getTenant(updated.tenantId);
+          await whatsAppService.sendOrderNotification({
+            type: "order.delivered",
+            orderId,
+            customerPhone: updated.customerPhone,
+            customerName: updated.customerName,
+            restaurantName: tenant?.name || "Restaurant",
+          });
+        }
+        
         res.json(updated || { id: orderId, status: "delivered" });
       } catch (error) {
         res.status(500).json({ error: "Failed to complete order" });
@@ -1195,6 +1211,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const { processIFoodWebhook } = await import("./webhook/ifood-ubereats");
         const result = await processIFoodWebhook(payload, tenantId, storage);
+
+        // Send WhatsApp notification to customer
+        if (result.orderId) {
+          const order = await storage.getOrder(result.orderId);
+          if (order) {
+            await whatsAppService.sendOrderNotification({
+              type: "order.created",
+              orderId: result.orderId,
+              customerPhone: order.customerPhone,
+              customerName: order.customerName,
+              restaurantName: (await storage.getTenant(tenantId))?.name || "Restaurant",
+              orderDetails: {
+                total: order.total,
+                address: order.deliveryAddress || "Delivery Address",
+              },
+            });
+          }
+        }
 
         res.json({
           status: "received",
@@ -1333,6 +1367,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         const updated = await storage.updateOrderStatus(orderId, status);
+        
+        // Send WhatsApp notifications on status changes
+        if (updated) {
+          const tenant = await storage.getTenant(updated.tenantId);
+          
+          if (status === "preparing") {
+            await whatsAppService.sendOrderNotification({
+              type: "order.preparing",
+              orderId,
+              customerPhone: updated.customerPhone,
+              customerName: updated.customerName,
+              restaurantName: tenant?.name || "Restaurant",
+            });
+          } else if (status === "ready") {
+            await whatsAppService.sendOrderNotification({
+              type: "order.ready",
+              orderId,
+              customerPhone: updated.customerPhone,
+              customerName: updated.customerName,
+              restaurantName: tenant?.name || "Restaurant",
+            });
+          }
+        }
+        
         res.json(updated || { id: orderId, status });
       } catch (error) {
         console.error("Failed to update kitchen order status:", error);
