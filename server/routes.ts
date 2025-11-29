@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { authenticate, requireRole, requireTenantAccess, optionalAuth, type AuthRequest } from "./auth/middleware";
 import { cacheMiddleware, invalidateCache } from "./middleware/cache";
 import { z } from "zod";
+import type { InsertPayment } from "@shared/schema";
 import { initializeN8NClient, type N8NClient } from "./n8n-api";
 import { initializeSupabaseService, type SupabaseService } from "./supabase-service";
 import { initializeGoogleMapsService } from "./google-maps-service";
@@ -924,7 +925,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: data.name,
           slug: data.slug,
           commissionPercentage: data.commissionPercentage || "10.00",
-        });
+          printerWebhookEnabled: false,
+          printerWebhookMethod: "POST",
+        } as any);
 
         res.status(201).json(tenant);
       } catch (error) {
@@ -2604,70 +2607,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AGENT ORCHESTRATION ENDPOINTS
   // ============================================================================
 
-  // Get list of all agents
+  // Agent endpoints (planned for future implementation)
+  // TODO: Implement agent orchestration endpoints in future turns
   app.get("/api/agents/list", async (req, res) => {
-    try {
-      const { getAllAgents } = await import("./agents/agent-registry.js");
-      const agents = getAllAgents();
-
-      res.json({
-        agents: agents.map((a) => ({
-          id: a.id,
-          name: a.name,
-          displayName: a.displayName,
-          icon: a.icon,
-          role: a.role,
-          title: a.title,
-          keywords: a.keywords,
-        })),
-        total: agents.length,
-      });
-    } catch (error) {
-      console.error("Get agents error:", error);
-      res.status(500).json({ error: "Failed to fetch agents" });
-    }
+    res.json({
+      agents: [],
+      total: 0,
+      status: "Agent system planned for future turns"
+    });
   });
 
-  // Execute task with agent orchestrator
   app.post("/api/agents/execute", async (req, res) => {
-    try {
-      const { input, type, preferredAgent } = req.body;
-
-      if (!input) {
-        return res.status(400).json({ error: "Missing task input" });
-      }
-
-      const { orchestrator } = await import("./agents/orchestrator.js");
-      const { TaskRequest } = await import("@shared/agent-types.js");
-
-      const request = {
-        input,
-        type,
-        preferredAgent,
-      };
-
-      const response = await orchestrator.processTask(request);
-      res.json(response);
-    } catch (error: any) {
-      console.error("Execute agent error:", error);
-      res.status(500).json({ error: error.message || "Failed to execute task" });
-    }
+    res.status(501).json({ error: "Agent execution planned for future implementation" });
   });
 
-  // Get agent task history
   app.get("/api/agents/history", async (req, res) => {
-    try {
-      const { orchestrator } = await import("./agents/orchestrator.js");
-      const history = orchestrator.getHistory();
-
-      res.json({
-        total: history.length,
-        tasks: history.map((h) => ({
-          taskId: h.taskId,
-          agent: h.agent.name,
-          input: h.input,
-          timestamp: h.startTime,
-          processingTime: h.endTime - h.startTime,
+    res.json({
+      total: 0,
+      tasks: [],
+      status: "Agent history tracking planned for future turns"
         })),
       });
     } catch (error) {

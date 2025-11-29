@@ -98,8 +98,8 @@ app.use((req, res, next) => {
 
   try {
     await seedDatabase();
-  } catch (err) {
-    log("Seed error:", err);
+  } catch (err: any) {
+    log("Seed error:", err?.message || String(err));
   }
 
   const server = await registerRoutes(app);
