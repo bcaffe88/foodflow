@@ -466,8 +466,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireTenantAccess,
     async (req: AuthRequest, res) => {
       try {
-        if (!process.env.OPENAI_API_KEY) {
-          return res.status(503).json({ error: "LLM service not configured. Please set OPENAI_API_KEY." });
+        if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+          return res.status(503).json({ error: "LLM service not configured. Please set GOOGLE_GENERATIVE_AI_API_KEY." });
         }
 
         const schema = z.object({
@@ -526,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireTenantAccess,
     async (req: AuthRequest, res) => {
       try {
-        if (!process.env.OPENAI_API_KEY) {
+        if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
           return res.status(503).json({ error: "LLM service not configured" });
         }
 

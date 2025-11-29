@@ -1,12 +1,11 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// o modelo mais novo OpenAI é "gpt-5", lançado em 7 agosto de 2025, não mude isso a menos que explicitamente solicitado
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 
 interface ProductGenerationRequest {
   restaurantName: string;
   cuisineType: string;
-  context?: string; // Ex: "Pizzaria italiana tradicional", "Sushi premium", etc
+  context?: string;
 }
 
 interface GeneratedProduct {
@@ -14,7 +13,7 @@ interface GeneratedProduct {
   description: string;
   price: number;
   category: string;
-  preparationTime?: number; // em minutos
+  preparationTime?: number;
   isAvailable: boolean;
 }
 
@@ -54,27 +53,29 @@ IMPORTANTE: Responda APENAS em JSON válido (sem markdown), sem explicações an
   "summary": "Resumo breve dos produtos gerados"
 }`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-5",
-    messages: [
-      {
-        role: "system",
-        content: "Você é um assistente especializado em criação de cardápios de restaurantes. Sempre responda com JSON válido e bem formatado.",
-      },
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const response = await model.generateContent({
+    contents: [
       {
         role: "user",
-        content: prompt,
+        parts: [{ text: prompt }],
       },
     ],
-    response_format: { type: "json_object" },
-    max_completion_tokens: 2048,
   });
 
   try {
-    const content = response.choices[0].message.content;
+    const content = response.response.text();
     if (!content) throw new Error("Resposta vazia do LLM");
 
-    const parsed = JSON.parse(content);
+    // Extract JSON from response (sometimes model wraps in markdown)
+    let jsonStr = content;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonStr);
 
     // Validar e sanitizar produtos
     const products = (parsed.products || []).map((p: any) => ({
@@ -96,26 +97,6 @@ IMPORTANTE: Responda APENAS em JSON válido (sem markdown), sem explicações an
   }
 }
 
-export async function analyzeProductCategory(productName: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: "gpt-5",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Você é um assistente que categoriza produtos de restaurante. Responda APENAS com a categoria em uma palavra (Entrada, Prato Principal, Bebida, Sobremesa, Acompanhamento, Sauce).",
-      },
-      {
-        role: "user",
-        content: `Categorize este produto: "${productName}"`,
-      },
-    ],
-    max_completion_tokens: 10,
-  });
-
-  return (response.choices[0].message.content || "Diversos").trim();
-}
-
 export async function improveProductDescription(
   productName: string,
   currentDescription?: string
@@ -125,21 +106,16 @@ export async function improveProductDescription(
 Produto: ${productName}
 ${currentDescription ? `Descrição atual: ${currentDescription}` : ""}`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-5",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Você é um copywriter especializado em cardápios de restaurante. Crie descrições atrativas, concisas e que destaquem os benefícios do prato.",
-      },
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const response = await model.generateContent({
+    contents: [
       {
         role: "user",
-        content: prompt,
+        parts: [{ text: prompt }],
       },
     ],
-    max_completion_tokens: 100,
   });
 
-  return (response.choices[0].message.content || currentDescription || "").trim();
+  return (response.response.text() || currentDescription || "").trim();
 }

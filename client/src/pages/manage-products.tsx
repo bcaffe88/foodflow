@@ -137,6 +137,13 @@ export default function ManageProducts() {
         </Button>
       </div>
 
+      {/* LLM Product Generator */}
+      <div className="mb-8">
+        <LLMProductGenerator onProductsGenerated={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/restaurant/products"] });
+        }} />
+      </div>
+
       {showForm && (
         <Card className="mb-8">
           <CardHeader>
