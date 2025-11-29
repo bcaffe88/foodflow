@@ -2514,6 +2514,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Receive Webhook from Printer (PUBLIC ENDPOINT - webhook receivers must be public)
+  app.post("/api/webhook/receive", async (req, res) => {
+    try {
+      const { event, tenantId, data, signature } = req.body;
+
+      if (!event || !tenantId) {
+        return res.status(400).json({ error: "Missing event or tenantId" });
+      }
+
+      // Get tenant configuration
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      if (!tenant.printerWebhookEnabled) {
+        return res.status(403).json({ error: "Webhooks disabled for this tenant" });
+      }
+
+      // Validate signature if secret is configured
+      const { validateWebhookSignature, processPrinterWebhook } = await import("./services/webhook-handler.js");
+      
+      if (tenant.printerWebhookSecret && signature) {
+        const payloadStr = JSON.stringify(req.body);
+        if (!validateWebhookSignature(payloadStr, signature, tenant.printerWebhookSecret)) {
+          return res.status(403).json({ error: "Invalid webhook signature" });
+        }
+      }
+
+      // Process webhook
+      const result = await processPrinterWebhook(
+        tenant,
+        {
+          event,
+          tenantId,
+          timestamp: new Date().toISOString(),
+          data
+        },
+        storage
+      );
+
+      res.json({
+        success: result.success,
+        message: result.message,
+        processed: result.processed
+      });
+    } catch (error) {
+      console.error("Webhook receive error:", error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
   // Broadcast notification to all drivers (e.g., system alerts, promotions)
   app.post("/api/notifications/broadcast-drivers", authenticate, async (req: AuthRequest, res) => {
     try {
