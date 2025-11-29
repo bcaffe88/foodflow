@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 import { insertProductSchema, type Product, type Category } from "@shared/schema";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Loader2, Sparkles } from "lucide-react";
-import { LLMProductGenerator } from "@/components/LLMProductGenerator";
 
 type FormData = z.infer<typeof insertProductSchema>;
 
