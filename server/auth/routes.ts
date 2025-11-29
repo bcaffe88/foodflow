@@ -87,25 +87,6 @@ export function registerAuthRoutes(app: Express) {
     try {
       const data = loginSchema.parse(req.body);
 
-      // Fallback: Mock login when credentials match demo user
-      if (data.email.toLowerCase() === "wilson@wilsonpizza.com" && data.password === "wilson123") {
-        console.log("[Auth] Mock login for Wilson Pizza");
-        const mockTokens = {
-          accessToken: "mock_access_token_" + Date.now(),
-          refreshToken: "mock_refresh_token_" + Date.now(),
-        };
-        return res.json({
-          user: {
-            id: "wilson-001",
-            email: data.email.toLowerCase(),
-            name: "Wilson",
-            role: "restaurant_owner",
-            tenantId: "wilson-001",
-          },
-          ...mockTokens,
-        });
-      }
-
       // Find user in database
       const user = await storage.getUserByEmail(data.email);
       if (!user) {
