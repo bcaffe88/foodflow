@@ -119,7 +119,8 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Tenants
   async createTenant(insertTenant: InsertTenant): Promise<Tenant> {
-    const [tenant] = await db.insert(tenants).values(insertTenant as any).returning();
+    const tenantValues: typeof tenants.$inferInsert = insertTenant;
+    const [tenant] = await db.insert(tenants).values(tenantValues).returning();
     return tenant;
   }
 
@@ -138,7 +139,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTenant(id: string, data: Partial<InsertTenant>): Promise<Tenant | undefined> {
-    const updateData: any = {};
+    const updateData: Record<string, any> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.commissionPercentage !== undefined) updateData.commissionPercentage = data.commissionPercentage;

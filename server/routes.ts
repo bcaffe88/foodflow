@@ -55,7 +55,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const activeRestaurants = allTenants.filter(t => t.isActive);
       res.json(activeRestaurants);
     } catch (error) {
-      console.error("Get restaurants error:", error);
       res.status(500).json({ error: "Failed to load restaurants" });
     }
   });
@@ -77,12 +76,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fallback to global Stripe key if not configured
       const globalKey = process.env.STRIPE_PUBLIC_KEY || "";
-      if (!globalKey) {
-        console.warn(`[Stripe] No public key configured for restaurant: ${slug}`);
-      }
+      // Stripe key fallback (silently use empty string if not configured)
       res.json({ publicKey: globalKey });
     } catch (error) {
-      console.error("Get stripe key error:", error);
       res.status(500).json({ error: "Stripe key not configured" });
     }
   });
@@ -109,7 +105,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         whatsappPhone: tenant.whatsappPhone || tenant.phone,
       });
     } catch (error) {
-      console.error("Get tenant error:", error);
       res.status(500).json({ error: "Failed to load restaurant" });
     }
   });
