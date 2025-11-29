@@ -51,8 +51,8 @@ export default function DriverMap() {
     if (!mapContainer.current || map.current) return;
 
     try {
-      // Initialize map centered on São Paulo
-      map.current = L.map(mapContainer.current).setView([-23.5505, -46.6333], 13);
+      // Initialize map centered on Ouricuri, PE
+      map.current = L.map(mapContainer.current).setView([-7.9056, -40.1056], 13);
 
       // Add OpenStreetMap tiles (FREE, no API key needed)
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
