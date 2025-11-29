@@ -30,6 +30,11 @@ export const tenants = pgTable("tenants", {
   deliveryFeeBusiness: decimal("delivery_fee_business", { precision: 10, scale: 2 }).default("0"),
   deliveryFeeCustomer: decimal("delivery_fee_customer", { precision: 10, scale: 2 }).default("0"),
   n8nWebhookUrl: text("n8n_webhook_url"),
+  printerWebhookUrl: text("printer_webhook_url"),
+  printerWebhookEnabled: boolean("printer_webhook_enabled").notNull().default(false),
+  printerWebhookMethod: text("printer_webhook_method").notNull().default("POST"),
+  printerWebhookSecret: text("printer_webhook_secret"),
+  printerWebhookEvents: json("printer_webhook_events").$type<string[]>().default(sql`'["order.ready", "order.cancelled"]'`),
   operatingHours: json("operating_hours").$type<{
     monday: { open: string; close: string; closed: boolean };
     tuesday: { open: string; close: string; closed: boolean };
@@ -301,7 +306,13 @@ export const promotions = pgTable("promotions", {
 }));
 
 // Insert Schemas
-export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true, createdAt: true });
+export const insertTenantSchema = createInsertSchema(tenants)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    printerWebhookEnabled: z.boolean().optional().default(false),
+    printerWebhookMethod: z.enum(["GET", "POST", "PUT"]).optional().default("POST"),
+    printerWebhookEvents: z.array(z.string()).optional(),
+  });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertCustomerProfileSchema = createInsertSchema(customerProfiles).omit({ id: true });
 export const insertDriverProfileSchema = createInsertSchema(driverProfiles).omit({ id: true });
