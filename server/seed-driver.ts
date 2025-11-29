@@ -10,13 +10,22 @@ export async function seedDriver() {
       return;
     }
 
-    // Check if driver already exists
-    const existing = await db
+    // Check if driver already exists (both old and new emails for backward compatibility)
+    let existing = await db
       .select()
       .from(users)
-      .where(eq(users.email, "driver@wilsonpizza.com"))
+      .where(eq(users.email, "driver@example.com"))
       .limit(1)
       .then((r: any) => r[0]);
+    
+    if (!existing) {
+      existing = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, "driver@wilsonpizza.com"))
+        .limit(1)
+        .then((r: any) => r[0]);
+    }
 
     if (existing) {
       console.log("[Seed] Driver already exists");
@@ -51,24 +60,28 @@ export async function seedDriver() {
     const hashedPassword = await hash("driver123", 10);
 
     // Create driver user and link to Wilson Pizza tenant
-    const driver = await db
+    const [driver] = await db
       .insert(users)
       .values({
-        email: "driver@wilsonpizza.com",
+        email: "driver@example.com",
         password: hashedPassword,
-        name: "Motorista Wilson",
-        phone: "11988888888",
+        name: "Carlos Entregador",
+        phone: "11987654321",
         role: "driver",
         tenantId: tenant.id,
         isActive: true,
       } as any)
-      .returning()
-      .then((r: any) => r[0]);
+      .returning();
+    
+    if (!driver) {
+      console.error("[Seed] Failed to create driver");
+      return;
+    }
 
     console.log("[Seed] Driver created:", driver.email, "linked to tenant:", tenant.id);
 
     // Create driver profile
-    const driverProfile = await db
+    const [driverProfile] = await db
       .insert(driverProfiles)
       .values({
         userId: driver.id,
@@ -80,8 +93,7 @@ export async function seedDriver() {
         rating: "5.00",
         totalDeliveries: 0,
       } as any)
-      .returning()
-      .then((r: any) => r[0]);
+      .returning();
 
     console.log("[Seed] Driver profile created:", driverProfile.id);
     console.log("[Seed] ✅ Driver fully synced with Wilson Pizza tenant");
