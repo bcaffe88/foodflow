@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MapPin, Loader } from "lucide-react";
 
 interface AddressSuggestion {
-  place_id: string;
-  description: string;
-  latitude: number;
-  longitude: number;
+  osm_id: string;
+  display_name: string;
+  lat: string;
+  lon: string;
 }
 
 interface AddressSelectorProps {
@@ -24,35 +23,16 @@ interface AddressSelectorProps {
 
 export function AddressSelector({
   onAddressSelect,
-  placeholder = "Digite seu endereço...",
+  placeholder = "Digite seu endereço em Ouricuri, PE...",
   value = "",
 }: AddressSelectorProps) {
   const [input, setInput] = useState(value);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const autocompleteService = useRef<any>(null);
-  const placesService = useRef<any>(null);
 
-  useEffect(() => {
-    // Initialize Google Maps API
-    if (!window.google) {
-      console.warn("Google Maps API not loaded");
-      return;
-    }
-
-    autocompleteService.current =
-      new window.google.maps.places.AutocompleteService();
-    placesService.current = new window.google.maps.places.PlacesService(
-      document.createElement("div")
-    );
-  }, []);
-
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInput(value);
-
-    if (value.length < 3) {
+  const searchAddresses = async (query: string) => {
+    if (query.length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -60,70 +40,42 @@ export function AddressSelector({
 
     setIsLoading(true);
     try {
-      if (autocompleteService.current) {
-        const predictions =
-          await autocompleteService.current.getPlacePredictions({
-            input: value,
-            componentRestrictions: { country: "br" },
-          });
-
-        const suggestions = (predictions.predictions || []).map((p: any) => ({
-          place_id: p.place_id,
-          description: p.description,
-          latitude: 0,
-          longitude: 0,
-        }));
-
-        setSuggestions(suggestions);
-        setShowSuggestions(true);
-      }
+      // Free OpenStreetMap Nominatim API - no key required
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}, Ouricuri, Pernambuco, Brasil&limit=5`,
+        {
+          headers: { 'User-Agent': 'FoodFlow-App' }
+        }
+      );
+      
+      const results = await response.json();
+      setSuggestions(results);
+      setShowSuggestions(true);
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
+      console.error("Error fetching addresses:", error);
       setSuggestions([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSelectSuggestion = async (suggestion: AddressSuggestion) => {
-    setInput(suggestion.description);
-    setShowSuggestions(false);
-    setIsLoading(true);
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInput(value);
+    await searchAddresses(value);
+  };
 
-    try {
-      if (placesService.current) {
-        placesService.current.getDetails(
-          { placeId: suggestion.place_id },
-          (place: any) => {
-            if (place && place.geometry) {
-              onAddressSelect({
-                address: place.formatted_address || suggestion.description,
-                latitude: place.geometry.location.lat(),
-                longitude: place.geometry.location.lng(),
-                reference: place.formatted_address || suggestion.description,
-              });
-            } else {
-              onAddressSelect({
-                address: suggestion.description,
-                latitude: 0,
-                longitude: 0,
-                reference: suggestion.description,
-              });
-            }
-            setIsLoading(false);
-          }
-        );
-      }
-    } catch (error) {
-      console.error("Error getting place details:", error);
-      onAddressSelect({
-        address: suggestion.description,
-        latitude: 0,
-        longitude: 0,
-        reference: suggestion.description,
-      });
-      setIsLoading(false);
-    }
+  const handleSelectSuggestion = async (suggestion: AddressSuggestion) => {
+    const address = {
+      address: suggestion.display_name,
+      latitude: parseFloat(suggestion.lat),
+      longitude: parseFloat(suggestion.lon),
+      reference: suggestion.display_name,
+    };
+    
+    setInput(suggestion.display_name);
+    setShowSuggestions(false);
+    onAddressSelect(address);
   };
 
   return (

@@ -103,14 +103,13 @@ export class DriverSocketManager {
     let driverId = "";
     let tenantId = "";
 
-    for (const [id, conn] of this.driverConnections.entries()) {
+    this.driverConnections.forEach((conn, id) => {
       if (conn.ws === ws) {
         driverId = conn.userId;
         tenantId = conn.tenantId;
         conn.lastLocation = { lat, lng };
-        break;
       }
-    }
+    });
 
     if (!driverId) return;
 
@@ -130,13 +129,12 @@ export class DriverSocketManager {
   }
 
   private handleDisconnect(ws: WebSocket): void {
-    for (const [id, conn] of this.driverConnections.entries()) {
+    this.driverConnections.forEach((conn, id) => {
       if (conn.ws === ws) {
         this.driverConnections.delete(id);
         log(`[DriverSocket] Driver disconnected: ${id}`);
-        break;
       }
-    }
+    });
   }
 
   // Broadcast new orders to all online drivers
@@ -150,11 +148,11 @@ export class DriverSocketManager {
         order,
       });
 
-      for (const [id, conn] of this.driverConnections.entries()) {
+      this.driverConnections.forEach((conn) => {
         if (conn.tenantId === tenantId && conn.ws.readyState === WebSocket.OPEN) {
           conn.ws.send(message);
         }
-      }
+      });
 
       log(`[DriverSocket] Broadcasted order ${orderId} to ${tenantId}`);
     } catch (error) {
@@ -165,20 +163,20 @@ export class DriverSocketManager {
   private broadcastToTenant(tenantId: string, data: any): void {
     const message = JSON.stringify(data);
 
-    for (const [id, conn] of this.driverConnections.entries()) {
+    this.driverConnections.forEach((conn) => {
       if (conn.tenantId === tenantId && conn.ws.readyState === WebSocket.OPEN) {
         conn.ws.send(message);
       }
-    }
+    });
   }
 
   getActiveDriversCount(tenantId: string): number {
     let count = 0;
-    for (const [id, conn] of this.driverConnections.entries()) {
+    this.driverConnections.forEach((conn) => {
       if (conn.tenantId === tenantId && conn.ws.readyState === WebSocket.OPEN) {
         count++;
       }
-    }
+    });
     return count;
   }
 }
