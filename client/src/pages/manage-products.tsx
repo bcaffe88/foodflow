@@ -24,7 +24,6 @@ export default function ManageProducts() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [llmLoading, setLlmLoading] = useState(false);
-  const [showLLMGenerator, setShowLLMGenerator] = useState(false);
   const [llmFormData, setLlmFormData] = useState({ establishmentType: "", category: "" });
 
   // Verificar autenticação
@@ -182,7 +181,6 @@ export default function ManageProducts() {
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/restaurant/products"] });
-      setShowLLMGenerator(false);
       setLlmFormData({ establishmentType: "", category: "" });
     } catch (error: any) {
       toast({ 
@@ -201,13 +199,9 @@ export default function ManageProducts() {
         <h1 className="text-3xl font-bold">Gerenciar Produtos</h1>
         <Button
           onClick={() => {
-            if (editingId) {
-              setEditingId(null);
-              form.reset();
-              setShowForm(!showForm);
-            } else {
-              setShowLLMGenerator(true);
-            }
+            setEditingId(null);
+            form.reset();
+            setShowForm(!showForm);
           }}
           data-testid="button-add-product"
         >
@@ -216,16 +210,18 @@ export default function ManageProducts() {
         </Button>
       </div>
 
-      {/* LLM Generator - Dialog for creating new products */}
-      {showLLMGenerator && (
-        <Card className="mb-8 border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-              Gerar Produtos com IA
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {/* LLM Generator - Always visible for quick access */}
+      <Card className="mb-8 border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            Gerar Produtos com IA
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">Preencha o tipo de estabelecimento e a categoria para gerar até 10 produtos automaticamente</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo de Estabelecimento</label>
               <Input
@@ -240,49 +236,37 @@ export default function ManageProducts() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Categoria de Produtos</label>
               <Input
-                placeholder="Ex: Prato Principal, Bebida, Sobremesa, Acompanhamento"
+                placeholder="Ex: Prato Principal, Bebida, Sobremesa"
                 value={llmFormData.category}
                 onChange={(e) => setLlmFormData({ ...llmFormData, category: e.target.value })}
                 disabled={llmLoading}
                 data-testid="input-product-category"
               />
             </div>
+          </div>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={handleGenerateProducts}
-                disabled={llmLoading || !llmFormData.establishmentType.trim() || !llmFormData.category.trim()}
-                className="gap-2"
-                data-testid="button-generate-products"
-              >
-                {llmLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Gerando até 10 produtos...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Gerar até 10 Produtos
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowLLMGenerator(false);
-                  setLlmFormData({ establishmentType: "", category: "" });
-                  setShowForm(true);
-                }}
-                disabled={llmLoading}
-                data-testid="button-create-manual"
-              >
-                Criar Manualmente
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          <div className="flex gap-2 pt-2">
+            <Button
+              onClick={handleGenerateProducts}
+              disabled={llmLoading || !llmFormData.establishmentType.trim() || !llmFormData.category.trim()}
+              className="gap-2"
+              data-testid="button-generate-products"
+            >
+              {llmLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Gerando até 10 produtos...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Gerar até 10 Produtos
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {showForm && (
         <Card className="mb-8">
