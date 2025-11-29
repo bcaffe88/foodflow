@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,6 @@ export default function DriverDashboard() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Verificar autenticação
     const token = localStorage.getItem("accessToken");
     const user = localStorage.getItem("user");
     
@@ -78,7 +78,7 @@ export default function DriverDashboard() {
           userId: user.id,
           tenantId: user.tenantId,
         }));
-        toast({ title: "Conectado", description: "Você está online e recebendo pedidos em tempo real", variant: "default" });
+        toast({ title: "Conectado", description: "Online e recebendo pedidos em tempo real" });
       };
 
       ws.onmessage = (event) => {
@@ -88,7 +88,7 @@ export default function DriverDashboard() {
             setAvailableOrders(message.orders || []);
           } else if (message.action === "new_order") {
             setAvailableOrders((prev) => [message.order, ...prev]);
-            toast({ title: "Novo pedido!", description: "Um novo pedido está disponível", variant: "default" });
+            toast({ title: "Novo pedido!", description: "Um novo pedido está disponível" });
           }
         } catch (error) {
           console.error("WS message parse error:", error);
@@ -104,8 +104,6 @@ export default function DriverDashboard() {
       };
     } catch (error) {
       console.error("WebSocket connection error:", error);
-      toast({ title: "Erro", description: "Falha ao conectar WebSocket, usando polling", variant: "destructive" });
-      // Fallback to polling
       const interval = setInterval(loadAvailableOrders, 5000);
       wsRef.current = { close: () => clearInterval(interval) } as any;
     }
@@ -124,13 +122,11 @@ export default function DriverDashboard() {
       return;
     }
 
-    // Update location every 10 seconds
     const interval = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
 
-          // Send to server via WebSocket if available, otherwise HTTP
           if (wsRef.current && wsConnected) {
             wsRef.current.send(JSON.stringify({
               action: "location",
@@ -181,7 +177,7 @@ export default function DriverDashboard() {
       setIsOnline(!isOnline);
       toast({
         title: isOnline ? "Offline" : "Online",
-        description: isOnline ? "Você está offline" : "Você está pronto para receber pedidos",
+        description: isOnline ? "Você está offline" : "Pronto para receber pedidos",
       });
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao atualizar status", variant: "destructive" });
@@ -205,7 +201,7 @@ export default function DriverDashboard() {
     try {
       await apiRequest("PATCH", `/api/driver/orders/${orderId}/complete`);
       setActiveOrder(null);
-      toast({ title: "Pedido entregue!", description: "Pronto para o próximo" });
+      toast({ title: "Entregue!", description: "Pronto para o próximo pedido" });
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao completar pedido", variant: "destructive" });
     }
@@ -218,7 +214,13 @@ export default function DriverDashboard() {
     navigate("/login");
   };
 
-  if (isLoading) return <div className="p-4">Carregando...</div>;
+  if (isLoading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md p-8 text-center">
+        <p className="text-sm md:text-base">Carregando seu dashboard...</p>
+      </Card>
+    </div>
+  );
 
   const mockStats = {
     totalEarnings: 450.00,
@@ -229,131 +231,162 @@ export default function DriverDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="bg-card border-b border-card-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Dashboard - Motorista</h1>
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-3 md:py-4 flex items-center justify-between gap-3">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold truncate">Dashboard Motorista</h1>
+          <div className="flex items-center gap-2 md:gap-3">
             <Button
               variant={isOnline ? "default" : "outline"}
               onClick={toggleOnline}
               size="sm"
               data-testid="button-toggle-online"
+              className="gap-1 md:gap-2 text-xs md:text-sm"
             >
-              {isOnline ? "🟢 Online" : "⚫ Offline"}
+              {isOnline ? (
+                <>
+                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="hidden sm:inline">Online</span>
+                </>
+              ) : (
+                <>
+                  <div className="h-2 w-2 rounded-full bg-gray-400"></div>
+                  <span className="hidden sm:inline">Offline</span>
+                </>
+              )}
             </Button>
-            <Button variant="outline" onClick={handleLogout} data-testid="button-logout">
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
+            <Button 
+              variant="outline" 
+              onClick={handleLogout} 
+              data-testid="button-logout"
+              size="sm"
+              className="gap-1 md:gap-2 text-xs md:text-sm"
+            >
+              <LogOut className="h-3 md:h-4 w-3 md:w-4" />
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-6">
-            <h3 className="text-muted-foreground text-sm mb-2">Ganhos Hoje</h3>
-            <p className="text-3xl font-bold">R$ {mockStats.totalEarnings.toFixed(2)}</p>
-            <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> +15% vs ontem
-            </p>
-          </Card>
-          <Card className="p-6">
-            <h3 className="text-muted-foreground text-sm mb-2">Entregas</h3>
-            <p className="text-3xl font-bold">{mockStats.deliveriesCompleted}</p>
-            <p className="text-xs text-muted-foreground mt-2">Hoje</p>
-          </Card>
-          <Card className="p-6">
-            <h3 className="text-muted-foreground text-sm mb-2">Avaliação</h3>
-            <p className="text-3xl font-bold">⭐ {mockStats.rating}</p>
-            <p className="text-xs text-muted-foreground mt-2">Baseado em {mockStats.acceptanceRate} entregas</p>
-          </Card>
-          <Card className="p-6">
-            <h3 className="text-muted-foreground text-sm mb-2">Taxa Aceitação</h3>
-            <p className="text-3xl font-bold">{mockStats.acceptanceRate}%</p>
-            <p className="text-xs text-muted-foreground mt-2">Excelente!</p>
-          </Card>
-        </div>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: { transition: { staggerChildren: 0.1 } }
+          }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8"
+        >
+          {[
+            { icon: DollarSign, label: "Ganhos Hoje", value: `R$ ${mockStats.totalEarnings.toFixed(2)}`, trend: "+15% vs ontem" },
+            { icon: TrendingUp, label: "Entregas", value: mockStats.deliveriesCompleted, trend: "Hoje" },
+            { icon: Clock, label: "Avaliação", value: `⭐ ${mockStats.rating}`, trend: `${mockStats.acceptanceRate} entregas` },
+            { icon: MapPin, label: "Taxa Aceitação", value: `${mockStats.acceptanceRate}%`, trend: "Excelente!" },
+          ].map((stat, idx) => (
+            <motion.div key={idx} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+              <Card className="p-4 md:p-6 h-full">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-muted-foreground text-xs md:text-sm font-medium">{stat.label}</h3>
+                  <stat.icon className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-2xl md:text-3xl font-bold mb-1">{stat.value}</p>
+                <p className="text-xs md:text-sm text-muted-foreground">{stat.trend}</p>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Active Order */}
           {activeOrder && (
-            <Card className="p-6 lg:col-span-2">
-              <h2 className="font-bold mb-4">Pedido Ativo</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-semibold">#{activeOrder.id.slice(0, 8)}</p>
-                    <p className="text-sm text-muted-foreground">{activeOrder.customerName}</p>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2">
+              <Card className="p-4 md:p-6">
+                <h2 className="font-bold text-lg md:text-xl mb-4">Pedido Ativo</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1">
+                      <p className="font-semibold text-base md:text-lg">#{activeOrder.id.slice(0, 8)}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">{activeOrder.customerName}</p>
+                    </div>
+                    <Badge variant="default" className="text-xs md:text-sm">Em Rota</Badge>
                   </div>
-                  <Badge variant="default">Em Rota</Badge>
+                  <div className="flex gap-2 md:gap-3 p-3 bg-muted rounded text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <p className="text-xs md:text-sm line-clamp-2">{activeOrder.deliveryAddress}</p>
+                  </div>
+                  <div className="flex gap-2 md:gap-3 p-3 bg-muted rounded text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <p className="text-xs md:text-sm">Prioridade: Próximos 30 minutos</p>
+                  </div>
+                  <Button 
+                    className="w-full text-xs md:text-base" 
+                    onClick={() => completeOrder(activeOrder.id)} 
+                    data-testid="button-complete-delivery"
+                  >
+                    Marcar Entregue
+                  </Button>
                 </div>
-                <div className="flex gap-2 p-3 bg-muted rounded">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-sm">{activeOrder.deliveryAddress}</p>
-                </div>
-                <div className="flex gap-2 p-3 bg-muted rounded">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-sm">Prioridade: Próximos 30 minutos</p>
-                </div>
-                <Button className="w-full" onClick={() => completeOrder(activeOrder.id)} data-testid="button-complete-delivery">
-                  Marcar como Entregue
-                </Button>
-              </div>
-            </Card>
+              </Card>
+            </motion.div>
           )}
 
           {/* Available Orders */}
           {isOnline && (
-            <div className={activeOrder ? "lg:col-span-1" : "lg:col-span-3"}>
-              <h2 className="font-bold mb-4">Pedidos Disponíveis ({availableOrders.length})</h2>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={activeOrder ? "lg:col-span-1" : "lg:col-span-3"}>
+              <h2 className="font-bold text-lg md:text-xl mb-3 md:mb-4">Pedidos ({availableOrders.length})</h2>
+              <div className="space-y-2 md:space-y-3 max-h-96 overflow-y-auto">
                 {availableOrders.length === 0 ? (
-                  <Card className="p-4 text-center text-muted-foreground">
-                    <p>Nenhum pedido disponível no momento</p>
+                  <Card className="p-4 md:p-6 text-center text-muted-foreground">
+                    <p className="text-xs md:text-sm">Nenhum pedido disponível agora</p>
                   </Card>
                 ) : (
                   availableOrders.map((order) => (
-                    <Card key={order.id} className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="font-semibold text-sm">#{order.id.slice(0, 8)}</p>
-                          <p className="text-xs text-muted-foreground">{order.customerName}</p>
+                    <motion.div key={order.id} whileHover={{ scale: 1.02 }}>
+                      <Card className="p-3 md:p-4">
+                        <div className="flex justify-between items-start mb-2 gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm md:text-base">#{order.id.slice(0, 8)}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">{order.customerName}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs md:text-sm flex-shrink-0">
+                            R$ {Number(order.total).toFixed(2)}
+                          </Badge>
                         </div>
-                        <Badge variant="secondary">
-                          R$ {Number(order.total).toFixed(2)}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                        {order.deliveryAddress}
-                      </p>
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={() => acceptOrder(order.id)}
-                        data-testid={`button-accept-order-${order.id}`}
-                      >
-                        Aceitar Entrega
-                      </Button>
-                    </Card>
+                        <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {order.deliveryAddress}
+                        </p>
+                        <Button
+                          size="sm"
+                          className="w-full text-xs md:text-sm"
+                          onClick={() => acceptOrder(order.id)}
+                          data-testid={`button-accept-order-${order.id}`}
+                        >
+                          Aceitar
+                        </Button>
+                      </Card>
+                    </motion.div>
                   ))
                 )}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Offline Message */}
           {!isOnline && !activeOrder && (
-            <Card className="p-8 lg:col-span-3 text-center">
-              <p className="text-lg font-semibold mb-4">Você está offline</p>
-              <p className="text-muted-foreground mb-6">
-                Ative seu status online para receber pedidos
-              </p>
-              <Button size="lg" onClick={toggleOnline} data-testid="button-go-online">
-                Ficar Online
-              </Button>
-            </Card>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-3">
+              <Card className="p-8 md:p-12 text-center">
+                <p className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Você está offline</p>
+                <p className="text-muted-foreground mb-6 md:mb-8 text-sm md:text-base">
+                  Ative seu status online para começar a receber pedidos
+                </p>
+                <Button size="lg" onClick={toggleOnline} data-testid="button-go-online" className="text-sm md:text-base">
+                  Ficar Online
+                </Button>
+              </Card>
+            </motion.div>
           )}
         </div>
       </main>
