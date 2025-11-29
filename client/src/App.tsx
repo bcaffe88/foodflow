@@ -30,6 +30,8 @@ import DriverMap from "@/pages/driver-map";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import AdminWebhookConfig from "@/pages/admin-webhook-config";
 import RestaurantPromotions from "@/pages/restaurant-promotions";
+import CustomerRating from "@/pages/customer-rating";
+import RestaurantRatings from "@/pages/restaurant-ratings";
 
 function Router() {
   return (
@@ -52,6 +54,8 @@ function Router() {
         <Route path="/restaurant/driver-map" component={DriverMap} />
         <Route path="/restaurant/analytics" component={AnalyticsDashboard} />
         <Route path="/restaurant/promotions" component={RestaurantPromotions} />
+        <Route path="/restaurant/ratings" component={RestaurantRatings} />
+        <Route path="/customer/rating" component={CustomerRating} />
         <Route path="/driver/dashboard" component={DeliveryDashboard} />
         <Route path="/kitchen/dashboard" component={KitchenDashboard} />
         <Route path="/admin/dashboard" component={AdminDashboard} />

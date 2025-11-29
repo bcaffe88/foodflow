@@ -2213,6 +2213,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create rating/feedback for order
   app.post("/api/ratings", authenticate, async (req: AuthRequest, res) => {
+  app.get("/api/ratings/restaurant/:tenantId",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const ratings = await storage.getRatingsByTenant(req.params.tenantId);
+        res.json(ratings);
+      } catch (error) {
+        res.json([]);
+      }
+    }
+  );
+
     try {
       const { orderId, restaurantRating, driverRating, foodRating, restaurantComment, driverComment, foodComment, deliveryTime } = req.body;
       
