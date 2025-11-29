@@ -1400,6 +1400,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // ============================================================================
+  // GPS TRACKING ROUTES
+  // ============================================================================
+
+  app.post("/api/driver/location",
+    authenticate,
+    requireRole("driver"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { latitude, longitude } = req.body;
+        const userId = req.user?.id;
+
+        if (!userId || typeof latitude !== "number" || typeof longitude !== "number") {
+          return res.status(400).json({ error: "Invalid location data" });
+        }
+
+        // Save to database
+        await storage.updateDriverLocation(userId, latitude, longitude);
+
+        res.json({ success: true, message: "Location updated" });
+      } catch (error) {
+        console.error("Failed to update location:", error);
+        res.status(500).json({ error: "Failed to update location" });
+      }
+    }
+  );
+
+  app.get("/api/driver/active-locations/:tenantId",
+    authenticate,
+    requireRole("restaurant_owner"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { tenantId } = req.params;
+        
+        // Get all active drivers' locations
+        const activeDrivers = await storage.getActiveDriversLocations(tenantId);
+        
+        res.json(activeDrivers);
+      } catch (error) {
+        console.error("Failed to fetch active locations:", error);
+        res.status(500).json({ error: "Failed to fetch locations" });
+      }
+    }
+  );
+
+  // ============================================================================
   // INTEGRATION SETTINGS ROUTES
   // ============================================================================
 

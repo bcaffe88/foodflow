@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { LogOut, MapPin, Clock, DollarSign, TrendingUp } from "lucide-react";
+import { LogOut, MapPin, Clock, DollarSign, TrendingUp, Wifi, WifiOff } from "lucide-react";
 import type { Order, DriverProfile } from "@shared/schema";
 
 interface DriverData extends DriverProfile {
@@ -20,6 +20,8 @@ export default function DriverDashboard() {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     // Verificar autenticação
@@ -48,10 +50,108 @@ export default function DriverDashboard() {
 
   useEffect(() => {
     if (isOnline) {
-      const interval = setInterval(loadAvailableOrders, 5000);
-      return () => clearInterval(interval);
+      connectWebSocket();
+      startGPSTracking();
+    } else {
+      disconnectWebSocket();
+      stopGPSTracking();
     }
+
+    return () => {
+      disconnectWebSocket();
+      stopGPSTracking();
+    };
   }, [isOnline]);
+
+  const connectWebSocket = () => {
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws/driver`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setWsConnected(true);
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        ws.send(JSON.stringify({
+          action: "auth",
+          userId: user.id,
+          tenantId: user.tenantId,
+        }));
+        toast({ title: "Conectado", description: "Você está online e recebendo pedidos em tempo real", variant: "default" });
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.action === "orders_update") {
+            setAvailableOrders(message.orders || []);
+          } else if (message.action === "new_order") {
+            setAvailableOrders((prev) => [message.order, ...prev]);
+            toast({ title: "Novo pedido!", description: "Um novo pedido está disponível", variant: "default" });
+          }
+        } catch (error) {
+          console.error("WS message parse error:", error);
+        }
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+      };
+
+      ws.onerror = () => {
+        setWsConnected(false);
+      };
+    } catch (error) {
+      console.error("WebSocket connection error:", error);
+      toast({ title: "Erro", description: "Falha ao conectar WebSocket, usando polling", variant: "destructive" });
+      // Fallback to polling
+      const interval = setInterval(loadAvailableOrders, 5000);
+      wsRef.current = { close: () => clearInterval(interval) } as any;
+    }
+  };
+
+  const disconnectWebSocket = () => {
+    if (wsRef.current && wsRef.current.close) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  };
+
+  const startGPSTracking = () => {
+    if (!navigator.geolocation) {
+      console.warn("Geolocation not available");
+      return;
+    }
+
+    // Update location every 10 seconds
+    const interval = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+
+          // Send to server via WebSocket if available, otherwise HTTP
+          if (wsRef.current && wsConnected) {
+            wsRef.current.send(JSON.stringify({
+              action: "location",
+              data: { lat: latitude, lng: longitude },
+            }));
+          } else {
+            apiRequest("POST", "/api/driver/location", { latitude, longitude }).catch(() => {});
+          }
+        },
+        (error) => {
+          console.warn("Geolocation error:", error);
+        }
+      );
+    }, 10000);
+
+    return () => clearInterval(interval);
+  };
+
+  const stopGPSTracking = () => {
+    // Already handled by effect cleanup
+  };
 
   const loadDriverData = async () => {
     try {

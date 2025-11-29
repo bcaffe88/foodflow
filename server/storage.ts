@@ -1003,3 +1003,39 @@ export async function paginate<T>(
     pages: Math.ceil((count || 0) / limit),
   };
 }
+
+  // GPS Tracking
+  async updateDriverLocation(driverId: string, latitude: number, longitude: number): Promise<void> {
+    const profileData = await this.getDriverProfile(driverId);
+    if (profileData) {
+      await db.update(driverProfiles).set({
+        lastLocationLat: latitude,
+        lastLocationLng: longitude,
+      }).where(eq(driverProfiles.userId, driverId));
+    }
+  }
+
+  async getActiveDriversLocations(tenantId: string): Promise<any[]> {
+    const driverUsers = await db.select().from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.role, "driver")));
+    
+    const profiles = await Promise.all(
+      driverUsers.map((u) => this.getDriverProfile(u.id))
+    );
+    
+    return profiles.filter((p) => p && p.isOnline).map((p) => ({
+      driverId: p?.userId,
+      name: p?.name,
+      lat: p?.lastLocationLat,
+      lng: p?.lastLocationLng,
+      onlineStatus: p?.isOnline,
+    }));
+  }
+
+  async getAvailableOrdersByTenant(tenantId: string, status: string): Promise<Order[]> {
+    return db.select().from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.status, status)));
+  }
+}
+
+export const storage = new DatabaseStorage();
