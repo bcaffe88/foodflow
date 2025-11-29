@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Header from "@/components/Header";
@@ -12,6 +13,7 @@ import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { mockProductsData, mockCategoriesData } from "@/lib/mockProducts";
+import { Menu } from "lucide-react";
 import type { CartItem, Tenant, Product, Category } from "@shared/schema";
 
 interface ApiProduct {
@@ -209,7 +211,7 @@ function StorefrontView({ slug }: { slug: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header cartItemCount={cartItems.length} onCartClick={() => setCartOpen(true)} />
       
       {/* Hero Section */}
@@ -229,31 +231,42 @@ function StorefrontView({ slug }: { slug: string }) {
       )}
 
       {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 md:px-4 py-8 md:py-12">
         {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Carregando cardápio...</p>
+          <div className="text-center py-12 flex items-center justify-center">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">Nenhum produto disponível nesta categoria</p>
+            <p className="text-muted-foreground text-xs md:text-base">Nenhum produto disponível nesta categoria</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {filteredProducts.map(product => (
-              <ProductCard
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
+          >
+            {filteredProducts.map((product, idx) => (
+              <motion.div
                 key={product.id}
-                id={product.id}
-                name={product.name}
-                description={product.description || ""}
-                price={product.price}
-                image={product.image || "https://via.placeholder.com/400"}
-                onAddToCart={handleAddToCart}
-              />
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                data-testid={`product-${product.id}`}
+              >
+                <ProductCard
+                  id={product.id}
+                  name={product.name}
+                  description={product.description || ""}
+                  price={product.price}
+                  image={product.image || "https://via.placeholder.com/400"}
+                  onAddToCart={handleAddToCart}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
-      </div>
+      </main>
 
       {/* Cart & Checkout */}
       <CartSheet

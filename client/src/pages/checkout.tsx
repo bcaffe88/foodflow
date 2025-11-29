@@ -2,11 +2,13 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { AddressSelector } from "@/components/address-selector";
+import { CreditCard, ArrowLeft, MapPin } from "lucide-react";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
@@ -93,27 +95,35 @@ function CheckoutForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
       <div>
-        <label className="text-sm font-medium mb-2 block">📍 Endereço de Entrega</label>
+        <label className="text-xs md:text-sm font-medium mb-2 block flex items-center gap-2">
+          <MapPin className="h-4 w-4" />
+          Endereço de Entrega
+        </label>
         <AddressSelector
           onAddressSelect={handleAddressSelect}
-          placeholder="Digite seu endereço completo..."
+          placeholder="Digite seu endereço..."
           value={selectedAddress?.address || ""}
+          data-testid="input-address"
         />
         {selectedAddress && (
-          <p className="text-xs text-green-600 mt-2">✓ Endereço confirmado</p>
+          <p className="text-xs text-green-600 mt-2" data-testid="status-address-confirmed">✓ Endereço confirmado</p>
         )}
       </div>
       
-      <PaymentElement />
+      <div>
+        <label className="text-xs md:text-sm font-medium mb-2 block">Dados do Cartão</label>
+        <PaymentElement />
+      </div>
       
       <Button
         type="submit"
-        className="w-full"
+        className="w-full text-xs md:text-sm"
         disabled={!stripe || !elements || isLoading || !selectedAddress}
+        data-testid="button-pay"
       >
-        {isLoading ? "Processando..." : "Pagar"}
+        {isLoading ? "Processando..." : "Confirmar Pagamento"}
       </Button>
     </form>
   );
@@ -196,28 +206,39 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-md mx-auto py-12">
-        <div className="flex items-center gap-4 mb-8">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="bg-card border-b sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto px-4 py-3 md:py-4 flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={handleGoBack}
-            data-testid="button-back-checkout"
+            data-testid="button-back"
+            className="h-9 w-9"
           >
-            ← Voltar
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Pagamento Stripe</h1>
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-5 md:h-6 w-5 md:w-6 text-primary" />
+            <h1 className="text-lg md:text-xl font-bold truncate">Finalizar Pagamento</h1>
+          </div>
         </div>
-        <Card className="p-6">
-          <Elements
-            stripe={stripePromise}
-            options={{ clientSecret }}
-          >
-            <CheckoutForm clientSecret={clientSecret} orderId={orderId} />
-          </Elements>
-        </Card>
-      </div>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center p-4 py-6 md:py-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+          <Card className="p-6 md:p-8">
+            <p className="text-muted-foreground text-center mb-6 text-xs md:text-sm">Preencha seus dados para confirmar o pedido</p>
+            <Elements
+              stripe={stripePromise}
+              options={{ clientSecret }}
+            >
+              <CheckoutForm clientSecret={clientSecret} orderId={orderId} />
+            </Elements>
+          </Card>
+        </motion.div>
+      </main>
     </div>
   );
 }

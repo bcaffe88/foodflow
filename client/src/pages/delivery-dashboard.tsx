@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Truck, MapPin, Clock, DollarSign, Phone, TrendingUp, LogOut } from "lucide-react";
+import { Truck, MapPin, Clock, DollarSign, Phone, TrendingUp, LogOut, ArrowLeft, BarChart3 } from "lucide-react";
 
 interface DeliveryOrder {
   id: string;
