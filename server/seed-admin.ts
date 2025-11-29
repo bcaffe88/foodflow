@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users } from "@shared/schema";
+import { users, tenants } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hash } from "bcryptjs";
 
@@ -11,25 +11,45 @@ export async function seedAdminUser() {
     }
     
     // Check if admin already exists
-    const existing = await db.select().from(users).where(eq(users.email, "admin@foodflow.com")).limit(1).then((r: any) => r[0]);
+    const existing = await db.select().from(users).where(eq(users.email, "admin@wilsonpizza.com")).limit(1).then((r: any) => r[0]);
     if (existing) {
+      console.log("[Seed] Admin user already exists");
       return;
     }
 
-    // Hash password
-    const hashedPassword = await hash("Admin123!", 10);
+    // Get Wilson Pizza tenant (try both slugs for backward compatibility)
+    let tenant = await db.select().from(tenants).where(eq(tenants.slug, "wilsonpizza")).limit(1).then((r: any) => r[0]);
+    
+    if (!tenant) {
+      // Try alternate slug for backward compatibility
+      tenant = await db.select().from(tenants).where(eq(tenants.slug, "wilson-pizza")).limit(1).then((r: any) => r[0]);
+    }
+    
+    if (!tenant) {
+      console.error("[Seed] Wilson Pizza restaurant not found - cannot link admin");
+      return;
+    }
 
-    // Create admin user
+    console.log("[Seed] Found Wilson Pizza restaurant, creating admin user...");
+
+    // Hash password
+    const hashedPassword = await hash("admin123", 10);
+
+    // Create admin user linked to Wilson Pizza tenant
     const admin = await db.insert(users).values({
-      email: "admin@foodflow.com",
+      email: "admin@wilsonpizza.com",
       password: hashedPassword,
-      name: "Admin FoodFlow",
-      phone: "11999999999",
+      name: "Admin Wilson Pizza",
+      phone: "11987654321",
       role: "platform_admin",
+      tenantId: tenant.id,
       isActive: true,
     } as any).returning().then((r: any) => r[0]);
 
+    console.log("[Seed] Admin user created and linked to Wilson Pizza tenant:", admin.email);
+
   } catch (error) {
+    console.error("[Seed] Admin user seeding error:", error);
     // Silently fail in development
     if (process.env.NODE_ENV === "development") {
       return;
