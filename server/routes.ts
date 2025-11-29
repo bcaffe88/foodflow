@@ -167,6 +167,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get menu by restaurant ID (alternative to slug)
+  app.get("/api/storefront/restaurants/:id/menu", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const tenant = await storage.getTenant(id);
+      if (!tenant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+      const products = await storage.getProductsByTenant(tenant.id);
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load menu" });
+    }
+  });
+
   // Create order (public or authenticated)
   app.post("/api/storefront/:slug/orders", optionalAuth, async (req: AuthRequest, res) => {
     try {
@@ -353,6 +368,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Get customer orders error:", error);
         res.status(500).json({ error: "Failed to load orders" });
+      }
+    }
+  );
+
+  // Create order as authenticated customer
+  app.post("/api/customer/orders",
+    authenticate,
+    async (req: AuthRequest, res) => {
+      try {
+        const orderSchema = z.object({
+          restaurantId: z.string(),
+          items: z.array(z.object({
+            productId: z.string(),
+            quantity: z.number().int().min(1),
+            price: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
+            name: z.string().optional(),
+          })),
+          deliveryAddress: z.string(),
+          deliveryLatitude: z.string().optional(),
+          deliveryLongitude: z.string().optional(),
+          orderNotes: z.string().optional(),
+        });
+
+        const data = orderSchema.parse(req.body);
+        const customerId = req.user!.userId;
+        
+        const tenant = await storage.getTenant(data.restaurantId);
+        if (!tenant) {
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+
+        const totalPrice = data.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        const user = req.user!;
+        const order = await storage.createOrder({
+          tenantId: data.restaurantId,
+          customerId: customerId,
+          customerName: (user as any).name || "Customer",
+          customerPhone: (user as any).phone || "",
+          deliveryAddress: data.deliveryAddress,
+          addressLatitude: data.deliveryLatitude,
+          addressLongitude: data.deliveryLongitude,
+          total: totalPrice.toString(),
+          status: "pending",
+          orderNotes: data.orderNotes,
+        } as any);
+
+        res.status(201).json(order);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: error.errors });
+        }
+        console.error("Create customer order error:", error);
+        res.status(500).json({ error: "Failed to create order" });
       }
     }
   );
@@ -770,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  // Update order status
+  // Update order status (with /status suffix)
   app.patch("/api/restaurant/orders/:id/status",
     authenticate,
     requireRole("restaurant_owner"),
@@ -1014,6 +1083,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(pending);
       } catch (error) {
         res.status(500).json({ error: "Failed to load pending restaurants" });
+      }
+    }
+  );
+
+  // Get all users (admin only)
+  app.get("/api/admin/users",
+    authenticate,
+    requireRole("platform_admin"),
+    async (req: AuthRequest, res) => {
+      try {
+        // For now, return empty array since storage doesn't have getAllUsers
+        res.json([]);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to load users" });
+      }
+    }
+  );
+
+  // Create user (admin only)
+  app.post("/api/admin/users",
+    authenticate,
+    requireRole("platform_admin"),
+    async (req: AuthRequest, res) => {
+      try {
+        const userSchema = z.object({
+          email: z.string().email(),
+          password: z.string().min(6),
+          name: z.string(),
+          phone: z.string().optional(),
+          role: z.enum(["customer", "restaurant_owner", "driver", "platform_admin"]),
+          tenantId: z.string().optional(),
+        });
+
+        const data = userSchema.parse(req.body);
+        const hashedPassword = await import("bcryptjs").then(m => m.hash(data.password, 10));
+
+        const user = await storage.createUser({
+          email: data.email,
+          password: hashedPassword,
+          name: data.name,
+          phone: data.phone,
+          role: data.role as any,
+          tenantId: data.tenantId,
+          isActive: true,
+        } as any);
+
+        res.status(201).json(user);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: error.errors });
+        }
+        console.error("Create user error:", error);
+        res.status(500).json({ error: "Failed to create user" });
       }
     }
   );
