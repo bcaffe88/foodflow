@@ -99,14 +99,14 @@ export function AddressSelector({
         <Card className="absolute top-full left-0 right-0 mt-2 z-50 p-0 max-h-60 overflow-y-auto">
           {suggestions.map((suggestion) => (
             <button
-              key={suggestion.place_id}
+              key={suggestion.osm_id}
               onClick={() => handleSelectSuggestion(suggestion)}
               className="w-full text-left px-4 py-3 hover:bg-muted transition-colors border-b last:border-0 flex items-start gap-2"
-              data-testid={`button-suggestion-${suggestion.place_id}`}
+              data-testid={`button-suggestion-${suggestion.osm_id}`}
             >
               <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium">{suggestion.description}</p>
+                <p className="text-sm font-medium">{suggestion.display_name}</p>
               </div>
             </button>
           ))}
