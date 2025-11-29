@@ -18,9 +18,8 @@ const app = express();
 // Ensure app env is set correctly based on NODE_ENV
 const nodeEnv = process.env.NODE_ENV || 'development';
 app.set('env', nodeEnv);
-if (nodeEnv === 'production') {
-  app.set('trust proxy', 1);
-}
+// Trust proxy for rate limiting and X-Forwarded-For headers (both dev and prod)
+app.set('trust proxy', 1);
 
 declare module 'http' {
   interface IncomingMessage {
@@ -40,8 +39,10 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Security headers
-app.use(helmet());
+// Security headers (disable in dev for Vite HMR)
+if (nodeEnv === 'production') {
+  app.use(helmet());
+}
 
 // Middlewares de segurança
 app.use(rateLimit);
