@@ -292,6 +292,18 @@ export class MemStorage {
     return Array.from(this.products.values()).filter((p: any) => p.categoryId === categoryId);
   }
 
+  async updateProduct(id: string, data: any) {
+    const product = this.products.get(id);
+    if (product) {
+      Object.assign(product, data);
+    }
+    return product;
+  }
+
+  async deleteProduct(id: string) {
+    this.products.delete(id);
+  }
+
   // ========== ORDERS ==========
   async createOrder(data: any) {
     const order = { ...data, id: generateId("order") };
