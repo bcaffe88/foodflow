@@ -24,6 +24,8 @@ export default function ManageProducts() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [llmLoading, setLlmLoading] = useState(false);
+  const [showLLMGenerator, setShowLLMGenerator] = useState(false);
+  const [llmFormData, setLlmFormData] = useState({ establishmentType: "", category: "" });
 
   // Verificar autenticação
   useEffect(() => {
@@ -150,15 +152,62 @@ export default function ManageProducts() {
     }
   };
 
+  const handleGenerateProducts = async () => {
+    if (!llmFormData.establishmentType.trim() || !llmFormData.category.trim()) {
+      toast({ 
+        title: "Erro", 
+        description: "Preencha tipo de estabelecimento e categoria", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setLlmLoading(true);
+    try {
+      const response = await fetch("/api/restaurant/products/generate-llm-from-category", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          establishmentType: llmFormData.establishmentType,
+          category: llmFormData.category,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Falha ao gerar produtos");
+      const data = await response.json();
+      
+      toast({ 
+        title: "Sucesso!", 
+        description: `${data.productsCount} produtos criados!` 
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/restaurant/products"] });
+      setShowLLMGenerator(false);
+      setLlmFormData({ establishmentType: "", category: "" });
+    } catch (error: any) {
+      toast({ 
+        title: "Erro", 
+        description: error.message || "Falha ao gerar produtos", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLlmLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Gerenciar Produtos</h1>
         <Button
           onClick={() => {
-            setEditingId(null);
-            form.reset();
-            setShowForm(!showForm);
+            if (editingId) {
+              setEditingId(null);
+              form.reset();
+              setShowForm(!showForm);
+            } else {
+              setShowLLMGenerator(true);
+            }
           }}
           data-testid="button-add-product"
         >
@@ -167,12 +216,73 @@ export default function ManageProducts() {
         </Button>
       </div>
 
-      {/* LLM Product Generator */}
-      <div className="mb-8">
-        <LLMProductGenerator onProductsGenerated={() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/restaurant/products"] });
-        }} />
-      </div>
+      {/* LLM Generator - Dialog for creating new products */}
+      {showLLMGenerator && (
+        <Card className="mb-8 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-600" />
+              Gerar Produtos com IA
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Estabelecimento</label>
+              <Input
+                placeholder="Ex: Pizzaria, Restaurante de Sushi, Padaria"
+                value={llmFormData.establishmentType}
+                onChange={(e) => setLlmFormData({ ...llmFormData, establishmentType: e.target.value })}
+                disabled={llmLoading}
+                data-testid="input-establishment-type"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Categoria de Produtos</label>
+              <Input
+                placeholder="Ex: Prato Principal, Bebida, Sobremesa, Acompanhamento"
+                value={llmFormData.category}
+                onChange={(e) => setLlmFormData({ ...llmFormData, category: e.target.value })}
+                disabled={llmLoading}
+                data-testid="input-product-category"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleGenerateProducts}
+                disabled={llmLoading || !llmFormData.establishmentType.trim() || !llmFormData.category.trim()}
+                className="gap-2"
+                data-testid="button-generate-products"
+              >
+                {llmLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Gerando até 10 produtos...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Gerar até 10 Produtos
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowLLMGenerator(false);
+                  setLlmFormData({ establishmentType: "", category: "" });
+                  setShowForm(true);
+                }}
+                disabled={llmLoading}
+                data-testid="button-create-manual"
+              >
+                Criar Manualmente
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showForm && (
         <Card className="mb-8">
