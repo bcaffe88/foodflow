@@ -1,19 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAvailableAgents, useExecuteAgentTask } from "@/hooks/use-agent-orchestrator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Lightbulb } from "lucide-react";
+import { Loader2, Send, Lightbulb, TrendingUp, Users, Package } from "lucide-react";
+import type { ProjectContext } from "@shared/agent-context";
 
 export default function AgentConsole() {
   const { toast } = useToast();
   const [taskInput, setTaskInput] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [context, setContext] = useState<ProjectContext | null>(null);
+  const [loadingContext, setLoadingContext] = useState(false);
 
   const { data: agentsData, isLoading: loadingAgents } = useAvailableAgents();
   const { execute, isPending: executing } = useExecuteAgentTask();
+
+  // Load project context on mount
+  useEffect(() => {
+    const loadContext = async () => {
+      try {
+        setLoadingContext(true);
+        const res = await fetch("/api/agents/context", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setContext(data.context);
+        }
+      } catch (error) {
+        console.error("Failed to load context:", error);
+      } finally {
+        setLoadingContext(false);
+      }
+    };
+    loadContext();
+  }, []);
 
   const handleExecuteTask = async () => {
     if (!taskInput.trim()) {
@@ -59,6 +81,72 @@ export default function AgentConsole() {
             Orquestre 16+ agentes especializados para suas tarefas. Roteia automaticamente ou escolha um agente específico.
           </p>
         </div>
+
+        {/* Project Context Cards */}
+        {context && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Stats Card */}
+            <Card className="p-4 space-y-2" data-testid="card-project-stats">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-sm" data-testid="text-stats-title">Métricas</h3>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Pedidos:</span>
+                  <span className="font-medium" data-testid="text-total-orders">{context.stats.totalOrders}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Motoristas:</span>
+                  <span className="font-medium" data-testid="text-total-drivers">{context.stats.totalDrivers}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tempo médio:</span>
+                  <span className="font-medium" data-testid="text-avg-delivery">{context.stats.avgDeliveryTime}min</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Drivers Card */}
+            <Card className="p-4 space-y-2" data-testid="card-drivers-status">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-600" />
+                <h3 className="font-semibold text-sm" data-testid="text-drivers-title">Motoristas Online</h3>
+              </div>
+              <div className="space-y-1 text-sm">
+                {context.drivers.slice(0, 3).map((driver) => (
+                  <div key={driver.id} className="flex justify-between" data-testid={`driver-${driver.id}`}>
+                    <span className="text-muted-foreground truncate">{driver.name}</span>
+                    <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      {driver.status}
+                    </span>
+                  </div>
+                ))}
+                {context.drivers.length > 3 && (
+                  <div className="text-xs text-muted-foreground pt-1">
+                    +{context.drivers.length - 3} mais
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Top Products Card */}
+            <Card className="p-4 space-y-2" data-testid="card-top-products">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-orange-600" />
+                <h3 className="font-semibold text-sm" data-testid="text-top-products-title">Top Produtos</h3>
+              </div>
+              <div className="space-y-1 text-sm">
+                {context.topProducts.slice(0, 3).map((product) => (
+                  <div key={product.name} className="flex justify-between" data-testid={`product-${product.name}`}>
+                    <span className="text-muted-foreground truncate">{product.name}</span>
+                    <span className="font-medium">{product.sales}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left: Agents List */}
