@@ -70,8 +70,7 @@ export async function sendOrderConfirmation(
   customerName: string,
   orderId: string,
   total: number,
-  restaurantName: string,
-  estimatedDeliveryTime?: number
+  restaurantName: string
 ): Promise<boolean> {
   const html = `
     <h2>Pedido Confirmado! ✅</h2>
@@ -81,7 +80,6 @@ export async function sendOrderConfirmation(
     <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
       <p><strong>ID do Pedido:</strong> ${orderId}</p>
       <p><strong>Total:</strong> R$ ${(total).toFixed(2)}</p>
-      ${estimatedDeliveryTime ? `<p><strong>Tempo Estimado:</strong> ${estimatedDeliveryTime} minutos</p>` : ''}
     </div>
     
     <p>Você receberá atualizações em tempo real sobre seu pedido.</p>
