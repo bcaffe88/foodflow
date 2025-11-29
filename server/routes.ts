@@ -2313,6 +2313,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================================
+  // FIREBASE CLOUD MESSAGING (FCM) - PUSH NOTIFICATIONS (FREE TIER)
+  // ============================================================================
+
+  // Import FCM service
+  const { initializeFirebase, sendNotification, sendBroadcast, notifyNewOrder, notifyOrderStatus } = await import("./services/fcm-service.js");
+
+  // Initialize Firebase on startup
+  initializeFirebase();
+
+  // Register device token for push notifications
+  app.post("/api/drivers/register-device", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { userId, token, platform } = req.body;
+
+      if (!userId || !token) {
+        return res.status(400).json({ error: "Missing userId or device token" });
+      }
+
+      // In production, store this in database for device management
+      // For now, accept and acknowledge
+      console.log(`Device registered: ${userId} (${platform})`);
+
+      res.json({
+        success: true,
+        message: "Device registered for push notifications",
+        userId,
+        platform
+      });
+    } catch (error) {
+      console.error("Register device error:", error);
+      res.status(500).json({ error: "Device registration failed" });
+    }
+  });
+
+  // Send notification to driver about new order
+  app.post("/api/orders/notify-driver", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { driverId, deviceToken, orderId, customerName, deliveryAddress } = req.body;
+
+      if (!deviceToken || !orderId) {
+        return res.status(400).json({ error: "Missing deviceToken or orderId" });
+      }
+
+      const success = await notifyNewOrder(
+        deviceToken,
+        orderId,
+        customerName || "Cliente",
+        deliveryAddress || "Endereço de entrega"
+      );
+
+      res.json({
+        success,
+        message: success ? "Notification sent to driver" : "Failed to send notification"
+      });
+    } catch (error) {
+      console.error("Notify driver error:", error);
+      res.status(500).json({ error: "Failed to send notification" });
+    }
+  });
+
+  // Broadcast notification to all drivers (e.g., system alerts, promotions)
+  app.post("/api/notifications/broadcast-drivers", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { deviceTokens, title, body, data } = req.body;
+
+      if (!Array.isArray(deviceTokens) || deviceTokens.length === 0) {
+        return res.status(400).json({ error: "No device tokens provided" });
+      }
+
+      // Check permissions (only admin or restaurant owner)
+      if (req.user?.role !== 'platform_admin' && req.user?.role !== 'restaurant_owner') {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+
+      const result = await sendBroadcast(deviceTokens, {
+        title,
+        body,
+        data
+      });
+
+      res.json({
+        success: true,
+        sent: result.success,
+        failed: result.failed,
+        total: deviceTokens.length
+      });
+    } catch (error) {
+      console.error("Broadcast error:", error);
+      res.status(500).json({ error: "Broadcast failed" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
