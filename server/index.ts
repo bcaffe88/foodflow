@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { log } from "./logger";
 import { serveStaticFixed } from "./static-server";
@@ -8,6 +9,9 @@ import { seedRestaurantOwner } from "./seed-restaurant";
 import { runMigrations } from "./migrate";
 import { rateLimit, csrfProtection } from "./middleware/security";
 import { initRedis, closeRedis } from "./middleware/cache";
+import { apiLimiter } from "./middleware/rate-limit";
+import { errorHandler, notFoundHandler } from "./middleware/error-handler";
+import { initializeEmail } from "./services/email-service";
 
 const app = express();
 
@@ -36,9 +40,16 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
+// Security headers
+app.use(helmet());
+
 // Middlewares de segurança
 app.use(rateLimit);
+app.use(apiLimiter);
 app.use(csrfProtection);
+
+// Initialize Email Service
+initializeEmail();
 
 // Security headers middleware
 app.use((req, res, next) => {
