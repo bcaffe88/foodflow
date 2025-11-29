@@ -2238,6 +2238,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================================
+  // OSRM ETA CALCULATION (OPEN SOURCE - NO API COSTS)
+  // ============================================================================
+
+  // Import OSRM service
+  const { calculateETA, calculateDeliveryMatrix } = await import("./services/osrm-service.js");
+
+  // Calculate ETA for single order
+  app.post("/api/orders/:id/calculate-eta", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { restaurantLat, restaurantLng, customerLat, customerLng } = req.body;
+
+      if (!restaurantLat || !restaurantLng || !customerLat || !customerLng) {
+        return res.status(400).json({ error: "Missing coordinates (restaurantLat, restaurantLng, customerLat, customerLng)" });
+      }
+
+      const eta = await calculateETA(
+        parseFloat(String(restaurantLat)),
+        parseFloat(String(restaurantLng)),
+        parseFloat(String(customerLat)),
+        parseFloat(String(customerLng))
+      );
+
+      // Update order with estimated delivery time
+      const updated = await storage.updateOrder(id, {
+        estimatedDeliveryTime: eta.durationMinutes
+      });
+
+      res.json({
+        success: true,
+        eta: eta,
+        order: updated
+      });
+    } catch (error) {
+      console.error("ETA calculation error:", error);
+      res.status(500).json({ error: "Failed to calculate ETA" });
+    }
+  });
+
+  // Calculate ETA for multiple destinations (batch)
+  app.post("/api/orders/batch-eta", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { restaurantLat, restaurantLng, deliveryAddresses } = req.body;
+
+      if (!restaurantLat || !restaurantLng || !Array.isArray(deliveryAddresses) || deliveryAddresses.length === 0) {
+        return res.status(400).json({ error: "Missing coordinates or empty delivery addresses" });
+      }
+
+      // Filter valid addresses
+      const validAddresses = deliveryAddresses.filter(addr => addr.lat && addr.lng);
+
+      if (validAddresses.length === 0) {
+        return res.status(400).json({ error: "No valid delivery addresses" });
+      }
+
+      const durations = await calculateDeliveryMatrix(
+        parseFloat(String(restaurantLat)),
+        parseFloat(String(restaurantLng)),
+        validAddresses
+      );
+
+      const etaMinutes = durations.map(d => Math.round(d / 60));
+
+      res.json({
+        success: true,
+        etaMinutes: etaMinutes,
+        count: etaMinutes.length
+      });
+    } catch (error) {
+      console.error("Batch ETA error:", error);
+      res.status(500).json({ error: "Failed to calculate batch ETA" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

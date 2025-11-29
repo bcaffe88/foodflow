@@ -1,0 +1,24 @@
+# OSRM (Open Source Routing Machine) Docker Image
+# Used for calculating delivery ETAs from restaurant to customer addresses
+# Based on OpenStreetMap data (completely free)
+
+FROM ghcr.io/project-osrm/osrm-backend:latest
+
+# Download map data for Brazil (can be changed to other regions)
+# Available at: https://download.geofabrik.de/
+RUN wget -O /tmp/brazil-latest.osm.pbf http://download.geofabrik.de/south-america/brazil-latest.osm.pbf
+
+# Pre-process map data
+RUN osrm-extract -p /opt/car.lua /tmp/brazil-latest.osm.pbf && \
+    osrm-partition /tmp/brazil-latest.osrm && \
+    osrm-customize /tmp/brazil-latest.osrm
+
+# Clean up temp files
+RUN rm /tmp/brazil-latest.osm.pbf
+
+# Expose port for routing API
+EXPOSE 5000
+
+# Start OSRM routing server
+# --algorithm mld = Machine Learning Directed (fastest algorithm)
+CMD ["osrm-routed", "--algorithm", "mld", "/tmp/brazil-latest.osrm"]

@@ -159,6 +159,7 @@ export const orders = pgTable("orders", {
   paymentMethod: text("payment_method").notNull().default("cash"),
   needsChange: boolean("needs_change").default(false),
   changeAmount: decimal("change_amount", { precision: 10, scale: 2 }),
+  estimatedDeliveryTime: integer("estimated_delivery_time"), // Minutes from OSRM calculation
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
