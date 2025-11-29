@@ -111,22 +111,62 @@ export class WhatsAppNotificationService {
   async notifyRestaurant(
     restaurantPhone: string,
     orderCount: number,
-    lastOrderTime: string
+    lastOrderTime: string,
+    orderSummary?: string
   ): Promise<boolean> {
     try {
       log(`[WhatsApp] Notifying restaurant ${restaurantPhone} about new order`);
 
-      const message = `🔔 Novo pedido recebido!\n\nTotal de pedidos: ${orderCount}\nÚltimo pedido: ${lastOrderTime}`;
+      const message = `🔔 NOVO PEDIDO!\n\nTotal de pedidos em fila: ${orderCount}\nHora do último: ${lastOrderTime}\n\n${orderSummary || ''}`;
 
-      console.log(`[WhatsApp Restaurant Message]`, {
+      // Log para debug
+      console.log(`[WhatsApp Restaurant Message - KITCHEN QUEUE]`, {
         to: restaurantPhone,
         message: message,
         timestamp: new Date().toISOString(),
+        orderCount
       });
+
+      // TODO: Integrar com Twilio/WhatsApp Business API
+      // await this.sendViaWhatsAppAPI(restaurantPhone, message);
 
       return true;
     } catch (error) {
       log(`[WhatsApp] Error notifying restaurant: ${error}`);
+      return false;
+    }
+  }
+
+  async sendFormattedKitchenOrder(
+    restaurantPhone: string,
+    orderId: string,
+    items: Array<{ name: string; quantity: number; notes?: string }>,
+    totalPrice: string,
+    deliveryAddress: string,
+    customerPhone: string
+  ): Promise<boolean> {
+    try {
+      log(`[WhatsApp] Sending formatted kitchen order ${orderId}`);
+
+      const itemsList = items
+        .map((item) => `• ${item.quantity}x ${item.name}${item.notes ? ` (${item.notes})` : ""}`)
+        .join("\n");
+
+      const message = `🍕 NOVO PEDIDO - ${orderId.slice(0, 8).toUpperCase()}\n\n${itemsList}\n\n💰 Total: R$ ${totalPrice}\n📍 Endereço: ${deliveryAddress}\n📱 Cliente: ${customerPhone}\n\nConfirmar: /confirm ${orderId}`;
+
+      console.log(`[WhatsApp Kitchen Order - FORMATTED]`, {
+        to: restaurantPhone,
+        orderId,
+        message: message,
+        timestamp: new Date().toISOString(),
+      });
+
+      // TODO: Integrar com Twilio/WhatsApp Business API
+      // await this.sendViaWhatsAppAPI(restaurantPhone, message);
+
+      return true;
+    } catch (error) {
+      log(`[WhatsApp] Error sending formatted kitchen order: ${error}`);
       return false;
     }
   }

@@ -126,11 +126,12 @@ export default function DriverMap() {
   return (
     <div className="w-full h-screen flex flex-col" data-testid="page-driver-map">
       <div className="flex items-center justify-between p-4 border-b bg-white shadow-sm">
-        <h1 className="text-2xl font-bold" data-testid="text-driver-map-title">
-          🗺️ Mapa de Entregadores em Tempo Real
+        <h1 className="text-2xl font-bold text-base md:text-2xl" data-testid="text-driver-map-title">
+          🗺️ Mapa de Entregadores
         </h1>
         <Button 
           variant="outline" 
+          size="sm"
           onClick={() => setLocation('/restaurant/dashboard')}
           data-testid="button-back-dashboard"
         >
@@ -138,17 +139,18 @@ export default function DriverMap() {
         </Button>
       </div>
 
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden bg-slate-50">
+      {/* Mobile: stack vertically, Desktop: flex row */}
+      <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 overflow-hidden bg-slate-50">
         {/* Leaflet Map Container */}
         <div
           ref={mapContainer}
-          className="flex-1 rounded-lg border border-slate-200 bg-white shadow-md overflow-hidden"
+          className="flex-1 rounded-lg border border-slate-200 bg-white shadow-md overflow-hidden h-96 md:h-auto"
           data-testid="container-map-leaflet"
           style={{ minHeight: 0 }}
         />
 
-        {/* Drivers List Panel */}
-        <div className="w-80 border border-slate-200 rounded-lg bg-white shadow-md flex flex-col overflow-hidden" data-testid="panel-drivers-list">
+        {/* Drivers List Panel - Mobile: hidden, Desktop: visible */}
+        <div className="hidden md:flex w-80 border border-slate-200 rounded-lg bg-white shadow-md flex-col overflow-hidden" data-testid="panel-drivers-list">
           <div className="p-4 border-b border-slate-200 bg-slate-50 sticky top-0">
             <h2 className="font-semibold text-sm">
               🟢 Entregadores Online ({drivers.filter(d => d.onlineStatus).length}/{drivers.length})
@@ -199,6 +201,38 @@ export default function DriverMap() {
 
           <div className="p-3 border-t border-slate-200 bg-slate-50 text-xs text-gray-600">
             ⏱️ Atualiza a cada 10 segundos
+          </div>
+        </div>
+
+        {/* Mobile Drivers List - shown below map on mobile */}
+        <div className="md:hidden border border-slate-200 rounded-lg bg-white shadow-md flex flex-col overflow-hidden h-48" data-testid="panel-drivers-list-mobile">
+          <div className="p-3 border-b border-slate-200 bg-slate-50 sticky top-0">
+            <h2 className="font-semibold text-xs">
+              🟢 Entregadores ({drivers.filter(d => d.onlineStatus).length}/{drivers.length})
+            </h2>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {drivers.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-xs text-gray-500">Nenhum entregador online</p>
+              </div>
+            ) : (
+              drivers.map((driver) => (
+                <Card key={driver.driverId} className="p-2 hover-elevate active-elevate-2 cursor-pointer" data-testid={`card-driver-mobile-${driver.driverId}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate text-xs" data-testid={`text-driver-mobile-${driver.driverId}`}>{driver.name}</p>
+                      <p className="text-xs text-gray-500 mt-1 font-mono">
+                        {driver.lat && driver.lng ? `📍 ${parseFloat(String(driver.lat)).toFixed(4)}, ${parseFloat(String(driver.lng)).toFixed(4)}` : 'Sem localização'}
+                      </p>
+                    </div>
+                    <Badge variant={driver.onlineStatus ? 'default' : 'secondary'} className="text-xs whitespace-nowrap">
+                      {driver.onlineStatus ? '🟢' : '🔴'}
+                    </Badge>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>

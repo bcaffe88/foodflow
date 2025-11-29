@@ -269,32 +269,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const order = result.order;
 
-      // Send WhatsApp notification to restaurant
+      // Send WhatsApp notification to restaurant (Kitchen Queue + Formatted Order)
       try {
-        const whatsappPhone = tenant.phone?.replace(/\D/g, '');
-        if (whatsappPhone) {
-          const orderSummary = data.items
-            .map(item => `${item.quantity}x ${item.name} - R$ ${parseFloat(item.price).toFixed(2)}`)
-            .join('\n');
+        const whatsappPhone = tenant.whatsappPhone || tenant.phone;
+        if (whatsappPhone && whatsappPhone.length > 10) {
+          // Send formatted kitchen order to WhatsApp
+          const formattedItems = data.items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            notes: item.notes,
+          }));
           
-          const message = `🍽️ *Novo Pedido #${order.id}*\n\n` +
-            `📱 Cliente: ${data.customerName}\n` +
-            `📞 Telefone: ${data.customerPhone}\n` +
-            `📍 Endereço: ${data.deliveryAddress}\n` +
-            `${data.addressReference ? `Referência: ${data.addressReference}\n` : ''}` +
-            `\n📋 *Itens:*\n${orderSummary}\n\n` +
-            `💰 Subtotal: R$ ${parseFloat(data.subtotal).toFixed(2)}\n` +
-            `🚗 Entrega: R$ ${parseFloat(data.deliveryFee).toFixed(2)}\n` +
-            `*Total: R$ ${parseFloat(data.total).toFixed(2)}*\n\n` +
-            `${data.orderNotes ? `📝 Observações: ${data.orderNotes}\n\n` : ''}` +
-            `⏰ Pedido criado em: ${new Date().toLocaleString('pt-BR')}`;
-          
-          // Log WhatsApp message (será enviado via API externa)
-          console.log(`[WhatsApp] Enviando para ${whatsappPhone}:\n${message}`);
+          await whatsAppService.sendFormattedKitchenOrder(
+            whatsappPhone,
+            order.id,
+            formattedItems,
+            parseFloat(data.total).toFixed(2),
+            data.deliveryAddress,
+            data.customerPhone
+          );
         }
       } catch (whatsappError) {
-        console.error("WhatsApp notification error:", whatsappError);
         // Não retorna erro - pedido é criado mesmo se falhar o WhatsApp
+      }
+
+      // Send WhatsApp notification to customer
+      try {
+        await whatsAppService.sendOrderNotification({
+          type: "order.created",
+          orderId: order.id,
+          customerPhone: data.customerPhone,
+          customerName: data.customerName,
+          restaurantName: tenant.name,
+          orderDetails: {
+            items: data.items.map(i => `${i.quantity}x ${i.name}`),
+            total: parseFloat(data.total).toFixed(2),
+            address: data.deliveryAddress,
+          },
+        });
+      } catch (notificationError) {
+        // Silent fail
       }
 
       res.status(201).json(order);
@@ -2229,14 +2243,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update order with estimated delivery time
       const order = await storage.getOrder(id);
+      let updated = order;
       if (order) {
-        const updated = await storage.updateOrderStatus(id, order.status || "pending");
+        updated = await storage.updateOrderStatus(id, order.status || "pending");
       }
 
       res.json({
         success: true,
         eta: eta,
-        order: updated
+        order: updated || order
       });
     } catch (error) {
       console.error("ETA calculation error:", error);

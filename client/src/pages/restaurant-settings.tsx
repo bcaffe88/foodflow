@@ -86,20 +86,22 @@ export default function RestaurantSettingsPage() {
   const loadSettings = async () => {
     try {
       const data = await apiRequest("GET", "/api/restaurant/settings");
+      if (!data) throw new Error("Dados vazios");
+      
       setRestaurant(data);
       form.reset({
-        name: data.name || "",
-        address: data.address || "",
-        description: data.description || "",
-        logo: data.logo || "",
-        whatsappPhone: data.whatsappPhone || "",
-        stripePublicKey: data.stripePublicKey || "",
-        stripeSecretKey: data.stripeSecretKey || "",
-        n8nWebhookUrl: data.n8nWebhookUrl || "",
-        useOwnDriver: data.useOwnDriver ?? true,
-        deliveryFeeBusiness: String(data.deliveryFeeBusiness || "0"),
-        deliveryFeeCustomer: String(data.deliveryFeeCustomer || "0"),
-        operatingHours: data.operatingHours || {
+        name: data?.name || "",
+        address: data?.address || "",
+        description: data?.description || "",
+        logo: data?.logo || "",
+        whatsappPhone: data?.whatsappPhone || "55",
+        stripePublicKey: data?.stripePublicKey || "",
+        stripeSecretKey: data?.stripeSecretKey || "",
+        n8nWebhookUrl: data?.n8nWebhookUrl || "",
+        useOwnDriver: data?.useOwnDriver ?? true,
+        deliveryFeeBusiness: String(data?.deliveryFeeBusiness || "0"),
+        deliveryFeeCustomer: String(data?.deliveryFeeCustomer || "0"),
+        operatingHours: data?.operatingHours || {
           monday: { open: "10:00", close: "23:00", closed: false },
           tuesday: { open: "10:00", close: "23:00", closed: false },
           wednesday: { open: "10:00", close: "23:00", closed: false },
@@ -110,7 +112,30 @@ export default function RestaurantSettingsPage() {
         },
       });
     } catch (error) {
-      toast({ title: "Erro", description: "Falha ao carregar configurações", variant: "destructive" });
+      // Fallback com valores padrão se falhar
+      form.reset({
+        name: "Restaurante",
+        address: "",
+        description: "",
+        logo: "",
+        whatsappPhone: "55",
+        stripePublicKey: "",
+        stripeSecretKey: "",
+        n8nWebhookUrl: "",
+        useOwnDriver: true,
+        deliveryFeeBusiness: "0",
+        deliveryFeeCustomer: "0",
+        operatingHours: {
+          monday: { open: "10:00", close: "23:00", closed: false },
+          tuesday: { open: "10:00", close: "23:00", closed: false },
+          wednesday: { open: "10:00", close: "23:00", closed: false },
+          thursday: { open: "10:00", close: "23:00", closed: false },
+          friday: { open: "10:00", close: "23:00", closed: false },
+          saturday: { open: "10:00", close: "23:00", closed: false },
+          sunday: { open: "11:00", close: "22:00", closed: false },
+        },
+      });
+      toast({ title: "Aviso", description: "Usando valores padrão", variant: "default" });
     } finally {
       setIsLoading(false);
     }
