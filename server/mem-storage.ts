@@ -437,10 +437,33 @@ export class MemStorage {
     return Array.from(this.payments.values()).find(p => p.orderId === orderId);
   }
 
+  async getPaymentById(id: string) {
+    return this.payments.get(id);
+  }
+
+  async getPaymentsByTenant(tenantId: string, limit: number, offset: number) {
+    return Array.from(this.payments.values())
+      .filter(p => p.tenantId === tenantId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(offset, offset + limit);
+  }
+
+  async getPaymentCountByTenant(tenantId: string) {
+    return Array.from(this.payments.values()).filter(p => p.tenantId === tenantId).length;
+  }
+
   async updatePaymentStatus(id: string, status: string) {
     const payment = this.payments.get(id);
     if (!payment) return undefined;
     const updated = { ...payment, status };
+    this.payments.set(id, updated);
+    return updated;
+  }
+
+  async updatePaymentStripeId(id: string, stripeId: string) {
+    const payment = this.payments.get(id);
+    if (!payment) return undefined;
+    const updated = { ...payment, stripePaymentIntentId: stripeId };
     this.payments.set(id, updated);
     return updated;
   }

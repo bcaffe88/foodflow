@@ -80,7 +80,11 @@ export interface IStorage {
   // Payments
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentByOrder(orderId: string): Promise<Payment | undefined>;
+  getPaymentById(id: string): Promise<Payment | undefined>;
+  getPaymentsByTenant(tenantId: string, limit: number, offset: number): Promise<Payment[]>;
+  getPaymentCountByTenant(tenantId: string): Promise<number>;
   updatePaymentStatus(id: string, status: string): Promise<Payment | undefined>;
+  updatePaymentStripeId(id: string, stripeId: string): Promise<Payment | undefined>;
 
   // Commissions
   createCommission(commission: InsertCommission): Promise<Commission>;
@@ -407,8 +411,27 @@ export class DatabaseStorage implements IStorage {
     return payment;
   }
 
+  async getPaymentById(id: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
+  async getPaymentsByTenant(tenantId: string, limit: number, offset: number): Promise<Payment[]> {
+    return db.select().from(payments).where(eq(payments.tenantId, tenantId)).orderBy(desc(payments.createdAt)).limit(limit).offset(offset);
+  }
+
+  async getPaymentCountByTenant(tenantId: string): Promise<number> {
+    const [result] = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(payments).where(eq(payments.tenantId, tenantId));
+    return result?.count || 0;
+  }
+
   async updatePaymentStatus(id: string, status: string): Promise<Payment | undefined> {
     const [payment] = await db.update(payments).set({ status: status as any }).where(eq(payments.id, id)).returning();
+    return payment;
+  }
+
+  async updatePaymentStripeId(id: string, stripeId: string): Promise<Payment | undefined> {
+    const [payment] = await db.update(payments).set({ stripePaymentIntentId: stripeId }).where(eq(payments.id, id)).returning();
     return payment;
   }
 
@@ -1034,10 +1057,38 @@ export class SmartStorage implements IStorage {
     );
   }
 
+  async getPaymentById(id: string): Promise<Payment | undefined> {
+    return this.tryDb(
+      () => this.dbStorage.getPaymentById(id),
+      () => this.memStorage.getPaymentById(id)
+    );
+  }
+
+  async getPaymentsByTenant(tenantId: string, limit: number, offset: number): Promise<Payment[]> {
+    return this.tryDb(
+      () => this.dbStorage.getPaymentsByTenant(tenantId, limit, offset),
+      () => this.memStorage.getPaymentsByTenant(tenantId, limit, offset)
+    );
+  }
+
+  async getPaymentCountByTenant(tenantId: string): Promise<number> {
+    return this.tryDb(
+      () => this.dbStorage.getPaymentCountByTenant(tenantId),
+      () => this.memStorage.getPaymentCountByTenant(tenantId)
+    );
+  }
+
   async updatePaymentStatus(id: string, status: string): Promise<Payment | undefined> {
     return this.tryDb(
       () => this.dbStorage.updatePaymentStatus(id, status),
       () => this.memStorage.updatePaymentStatus(id, status)
+    );
+  }
+
+  async updatePaymentStripeId(id: string, stripeId: string): Promise<Payment | undefined> {
+    return this.tryDb(
+      () => this.dbStorage.updatePaymentStripeId(id, stripeId),
+      () => this.memStorage.updatePaymentStripeId(id, stripeId)
     );
   }
 

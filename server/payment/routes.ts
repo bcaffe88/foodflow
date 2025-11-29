@@ -1,11 +1,100 @@
 import type { Express, Request } from "express";
 import { stripe } from "./stripe";
 import { storage } from "../storage";
-import { authenticate, type AuthRequest } from "../auth/middleware";
+import { authenticate, requireRole, requireTenantAccess, type AuthRequest } from "../auth/middleware";
 import { logError } from "../middleware/security";
 import { z } from "zod";
 
 export function registerPaymentRoutes(app: Express) {
+  // Get tenant's Stripe configuration
+  app.get("/api/payments/stripe-config", authenticate, requireTenantAccess, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) return res.status(401).json({ error: "Unauthorized" });
+
+      const tenant = await storage.getTenantById(tenantId);
+      if (!tenant) return res.status(404).json({ error: "Tenant not found" });
+
+      res.json({
+        hasStripeConfig: !!tenant.stripePublicKey && !!tenant.stripeSecretKey,
+        publicKey: tenant.stripePublicKey || null,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Stripe config" });
+    }
+  });
+
+  // Update tenant's Stripe configuration (admin only)
+  app.post("/api/payments/stripe-config", authenticate, requireRole("restaurant_owner"), async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) return res.status(401).json({ error: "Unauthorized" });
+
+      const schema = z.object({
+        stripePublicKey: z.string().min(1),
+        stripeSecretKey: z.string().min(1),
+      });
+
+      const data = schema.parse(req.body);
+      
+      // Update tenant with Stripe keys
+      const tenant = await storage.getTenantById(tenantId);
+      if (!tenant) return res.status(404).json({ error: "Tenant not found" });
+
+      await storage.updateTenant(tenantId, {
+        stripePublicKey: data.stripePublicKey,
+        stripeSecretKey: data.stripeSecretKey,
+      });
+
+      res.json({ success: true, message: "Stripe configuration updated" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to update Stripe config" });
+    }
+  });
+
+  // Get tenant payments/transactions list
+  app.get("/api/payments/transactions", authenticate, requireTenantAccess, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) return res.status(401).json({ error: "Unauthorized" });
+
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const payments = await storage.getPaymentsByTenant(tenantId, limit, offset);
+      const total = await storage.getPaymentCountByTenant(tenantId);
+
+      res.json({
+        payments,
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + limit < total,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+  });
+
+  // Get payment details by ID
+  app.get("/api/payments/:paymentId", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const payment = await storage.getPaymentById(req.params.paymentId);
+      if (!payment) return res.status(404).json({ error: "Payment not found" });
+
+      const tenantId = req.user?.tenantId;
+      if (tenantId && payment.tenantId !== tenantId && req.user?.role !== "platform_admin") {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      res.json(payment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payment" });
+    }
+  });
+
   // Create payment intent (PUBLIC - for storefront checkout)
   app.post("/api/payments/create-intent", async (req: Request, res) => {
     try {
@@ -49,6 +138,10 @@ export function registerPaymentRoutes(app: Express) {
         currency: data.currency.toLowerCase(),
         receipt_email: data.customerEmail,
         payment_method_types: paymentMethodTypes as any,
+        metadata: {
+          tenantId: data.tenantSlug || "default",
+          currency: data.currency,
+        },
       });
 
       res.json({
@@ -143,7 +236,9 @@ export function registerPaymentRoutes(app: Express) {
           if (orderId) {
             const payment = await storage.getPaymentByOrder(orderId);
             if (payment) {
+              // Update payment with Stripe intent ID
               await storage.updatePaymentStatus(payment.id, "completed");
+              await storage.updatePaymentStripeId(payment.id, paymentIntent.id);
               // Mark order as confirmed when payment succeeds
               await storage.updateOrderStatus(orderId, "confirmed");
               console.log(`[Webhook] Updated order ${orderId} to confirmed status`);

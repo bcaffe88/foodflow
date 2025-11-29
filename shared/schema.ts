@@ -186,13 +186,17 @@ export const orderItems = pgTable("order_items", {
 // Payments
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
   orderId: varchar("order_id").notNull().references(() => orders.id),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   status: paymentStatusEnum("status").notNull().default("pending"),
   paymentMethod: text("payment_method"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  idx_tenant: index("idx_payments_tenant").on(table.tenantId),
+  idx_status: index("idx_payments_status").on(table.status),
+}));
 
 // Commissions
 export const commissions = pgTable("commissions", {
