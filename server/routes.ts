@@ -1178,6 +1178,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // ============================================================================
+  // WEBHOOK ROUTES (iFood/UberEats)
+  // ============================================================================
+
+  app.post("/api/webhooks/ifood/:tenantId",
+    async (req: AuthRequest, res) => {
+      try {
+        const { tenantId } = req.params;
+        const payload = req.body;
+        const signature = req.headers["x-ifood-signature"] as string;
+
+        // Verify webhook authenticity
+        if (!signature) {
+          return res.status(401).json({ error: "Missing signature" });
+        }
+
+        const { processIFoodWebhook } = await import("./webhook/ifood-ubereats");
+        const result = await processIFoodWebhook(payload, tenantId, storage);
+
+        res.json({
+          status: "received",
+          orderId: result.orderId,
+          externalId: result.externalId,
+        });
+      } catch (error) {
+        console.error("iFood webhook error:", error);
+        res.status(500).json({ error: "Webhook processing failed" });
+      }
+    }
+  );
+
+  app.post("/api/webhooks/ubereats/:tenantId",
+    async (req: AuthRequest, res) => {
+      try {
+        const { tenantId } = req.params;
+        const payload = req.body;
+        const signature = req.headers["x-uber-signature"] as string;
+
+        if (!signature) {
+          return res.status(401).json({ error: "Missing signature" });
+        }
+
+        const { processUberEatsWebhook } = await import("./webhook/ifood-ubereats");
+        const result = await processUberEatsWebhook(payload, tenantId, storage);
+
+        res.json({
+          status: "received",
+          orderId: result.orderId,
+          externalId: result.externalId,
+        });
+      } catch (error) {
+        console.error("UberEats webhook error:", error);
+        res.status(500).json({ error: "Webhook processing failed" });
+      }
+    }
+  );
+
+  // ============================================================================
   // ADDRESS & GEOCODING ROUTES
   // ============================================================================
 
@@ -1280,6 +1337,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Failed to update kitchen order status:", error);
         res.status(500).json({ error: "Failed to update order status" });
+      }
+    }
+  );
+
+  // ============================================================================
+  // INTEGRATION SETTINGS ROUTES
+  // ============================================================================
+
+  app.get("/api/admin/integration-settings/:tenantId",
+    authenticate,
+    requireRole("restaurant_owner"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { tenantId } = req.params;
+        const tenant = await storage.getTenant(tenantId);
+
+        if (!tenant) {
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+
+        res.json({
+          tenantId: tenant.id,
+          ifoodWebhookUrl: `${process.env.APP_URL || "http://localhost:5000"}/api/webhooks/ifood/${tenantId}`,
+          ubereatsWebhookUrl: `${process.env.APP_URL || "http://localhost:5000"}/api/webhooks/ubereats/${tenantId}`,
+          n8nWebhookUrl: tenant.n8nWebhookUrl || "",
+          instructions: {
+            ifood: "Configure this URL in your iFood restaurant dashboard under Settings > Integrations > Webhooks",
+            ubereats: "Configure this URL in your UberEats business console under Integration > Webhooks",
+          },
+        });
+      } catch (error) {
+        console.error("Failed to fetch integration settings:", error);
+        res.status(500).json({ error: "Failed to load settings" });
       }
     }
   );
