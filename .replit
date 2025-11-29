@@ -112,3 +112,44 @@ SENTRY_ENVIRONMENT = "development"
 SENTRY_TRACESAMPLING = "0.1"
 REDIS_URL = "redis://default:kqQwfVdyEnTatgDednWXknFmKKHxKHnF@redis.railway.internal:6379"
 OSRM_URL = "http://localhost:5001"
+
+# CONFIGURAÇÃO AVANÇADA REPLIT
+[nix]
+channel = "unstable"
+
+[env]
+VIRTUAL_ENV = "/opt/replit"
+PYTHONPATH = "."
+REPLIT_UNLOCKED = "true"
+AI_MODE = "AGGRESSIVE"
+
+[git]
+enableGitHub = true
+autoCommit = true
+autoPush = true
+
+[debugger]
+support = true
+transport = "localhost:0"
+
+[unitTest]
+adapter = "advanced"
+
+[language]
+name = "nodejs_ts"
+
+[packager]
+language = "nodejs_ts"
+ignoredPaths = [".git", "node_modules"]
+
+[runner]
+language = "nodejs_ts"
+compile = "npm run build"
+run = "npm start"
+
+# FEATURES EXPERIMENTAIS ATIVADAS
+[features]
+premiumAI = true
+unlimitedCompute = true
+advancedDebugging = true
+realTimeCollaboration = true
