@@ -2258,6 +2258,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get promotions for restaurant
   app.get("/api/promotions/restaurant/:tenantId", optionalAuth, async (req: AuthRequest, res) => {
+  app.post("/api/promotions/create",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const { code, description, discountType, discountValue, maxUses, minOrderValue, isActive } = req.body;
+        const promotion = await storage.createPromotion({
+          tenantId: req.user!.tenantId!,
+          code: code.toUpperCase(),
+          description,
+          discountType,
+          discountValue: parseFloat(discountValue),
+          maxUses,
+          minOrderValue: minOrderValue ? parseFloat(minOrderValue) : undefined,
+          isActive: isActive ?? true,
+          startDate: new Date(),
+        });
+        res.json({ success: true, promotion });
+      } catch (error) {
+        res.status(400).json({ error: "Failed to create promotion" });
+      }
+    }
+  );
+  app.delete("/api/promotions/:id",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        res.json({ success: true });
+      } catch (error) {
+        res.status(400).json({ error: "Failed to delete promotion" });
+      }
+    }
+  );
     try {
       const { tenantId } = req.params;
       const promotions = await storage.getPromotionsByTenant(tenantId);

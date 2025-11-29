@@ -29,6 +29,7 @@ import CustomerOrderTracking from "@/pages/customer-order-tracking";
 import DriverMap from "@/pages/driver-map";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import AdminWebhookConfig from "@/pages/admin-webhook-config";
+import RestaurantPromotions from "@/pages/restaurant-promotions";
 
 function Router() {
   return (
@@ -50,6 +51,7 @@ function Router() {
         <Route path="/restaurant/settings" component={RestaurantSettings} />
         <Route path="/restaurant/driver-map" component={DriverMap} />
         <Route path="/restaurant/analytics" component={AnalyticsDashboard} />
+        <Route path="/restaurant/promotions" component={RestaurantPromotions} />
         <Route path="/driver/dashboard" component={DeliveryDashboard} />
         <Route path="/kitchen/dashboard" component={KitchenDashboard} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
