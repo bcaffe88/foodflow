@@ -33,16 +33,47 @@ export class MemStorage {
     };
     this.tenants.set(wilsonTenant.id, wilsonTenant);
 
-    // 2. Wilson owner user (password: wilson123 - bcrypt hash)
-    const wilsonOwner = {
-      id: generateId("user"),
-      email: "wilson@wilsonpizza.com",
-      passwordHash: "$2b$10$NNEqvJrQOX9p2c7p0m7I9e4y4K5kZ2L6p7N9q8R3s2T1u0V9w8X7Y6", // bcrypt of wilson123
-      role: "restaurant_owner",
-      tenantId: "wilson-001",
-      isActive: true,
-    };
-    this.users.set(wilsonOwner.id, wilsonOwner);
+    // 2. All users (admin, restaurant owner, customer, driver)
+    const users = [
+      {
+        id: generateId("user"),
+        email: "admin@foodflow.com",
+        passwordHash: "$2b$10$i88b3J9NpRHGSvvqfxe4nOS.1LFD.DIr7lPXPHoXC4NSGwgCfn3u.", // bcrypt of Admin123!
+        role: "platform_admin",
+        name: "Admin FoodFlow",
+        phone: "11999999999",
+        isActive: true,
+      },
+      {
+        id: generateId("user"),
+        email: "wilson@wilsonpizza.com",
+        passwordHash: "$2b$10$Ap/uIBT0L.34JmT4v6WkcegdPkKGgLDVurWtB9wtQ0sz3bfgYfzR.", // bcrypt of wilson123
+        role: "restaurant_owner",
+        name: "Wilson",
+        phone: "11999999999",
+        tenantId: "wilson-001",
+        isActive: true,
+      },
+      {
+        id: generateId("user"),
+        email: "customer@example.com",
+        passwordHash: "$2b$10$uK8OT2kXAfSYKL9hfeJB2eD69ataGrGqcSZqV3.UJcBESMy2YYbia", // bcrypt of password
+        role: "customer",
+        name: "João Cliente",
+        phone: "11988776655",
+        isActive: true,
+      },
+      {
+        id: generateId("user"),
+        email: "driver@example.com",
+        passwordHash: "$2b$10$uK8OT2kXAfSYKL9hfeJB2eD69ataGrGqcSZqV3.UJcBESMy2YYbia", // bcrypt of password
+        role: "driver",
+        name: "Carlos Entregador",
+        phone: "11987654321",
+        isActive: true,
+      },
+    ];
+    users.forEach(user => this.users.set(user.id, user));
 
     // 3. Categories
     const categories = [
