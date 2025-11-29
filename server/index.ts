@@ -44,9 +44,11 @@ if (nodeEnv === 'production') {
   app.use(helmet());
 }
 
-// Middlewares de segurança
-app.use(rateLimit);
-app.use(apiLimiter);
+// Middlewares de segurança (disable rate limiting in dev for testing)
+if (nodeEnv === 'production') {
+  app.use(rateLimit);
+  app.use(apiLimiter);
+}
 app.use(csrfProtection);
 
 // Initialize Email Service

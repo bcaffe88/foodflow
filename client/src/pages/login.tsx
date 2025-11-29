@@ -33,7 +33,7 @@ export default function LoginPage() {
       localStorage.setItem("refreshToken", res.refreshToken);
       localStorage.setItem("user", JSON.stringify(res.user));
 
-      toast({ title: "✅ Login realizado!", description: "Bem-vindo de volta!" });
+      toast({ title: "✓ Bem-vindo!", description: "Acesso autorizado com sucesso" });
 
       if (res.user.role === "restaurant_owner") {
         navigate("/restaurant/dashboard");
@@ -46,8 +46,8 @@ export default function LoginPage() {
       }
     } catch (error) {
       toast({
-        title: "❌ Erro ao fazer login",
-        description: "Email ou senha incorretos",
+        title: "Acesso negado",
+        description: "Email ou senha não conferem. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -88,44 +88,44 @@ export default function LoginPage() {
       >
         <Card className="p-0 overflow-hidden border-0 shadow-xl bg-background/80 backdrop-blur-xl">
           {/* Header */}
-          <div className="p-8 pb-6 bg-gradient-to-r from-primary/10 to-secondary/10 border-b">
+          <div className="p-6 md:p-8 pb-4 md:pb-6 bg-gradient-to-r from-primary/10 to-secondary/10 border-b">
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-2 mb-6"
+              className="flex items-center gap-2 mb-4 md:mb-6"
             >
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleGoBack}
                 data-testid="button-back-login"
-                className="h-8"
+                className="h-7 md:h-8 text-xs md:text-sm"
               >
                 ← Voltar
               </Button>
             </motion.div>
             
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                <ShoppingCart className="h-5 w-5 text-primary-foreground" />
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="h-8 md:h-10 w-8 md:w-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                <ShoppingCart className="h-4 md:h-5 w-4 md:w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Entrar</h1>
-                <p className="text-sm text-muted-foreground">Acesse sua conta FoodFlow</p>
+                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Acesso Premium</h1>
+                <p className="text-xs md:text-sm text-muted-foreground">Entre em sua conta FoodFlow</p>
               </div>
             </div>
           </div>
 
-          <div className="p-8">
+          <div className="p-6 md:p-8">
             {/* Role Tabs */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="space-y-4 mb-6"
+              className="space-y-3 md:space-y-4 mb-6 md:mb-8"
             >
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo de Conta</p>
-              <div className="grid grid-cols-4 gap-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo de Perfil</p>
+              <div className="grid grid-cols-4 gap-1 md:gap-2">
                 {[
                   { id: "customer", label: "Cliente", icon: "🍽️" },
                   { id: "owner", label: "Dono", icon: "🏪" },
@@ -142,29 +142,29 @@ export default function LoginPage() {
                       setEmail(account.email);
                       setPassword(account.password);
                     }}
-                    className={`py-3 px-2 rounded-lg text-xs font-medium transition-all duration-300 flex flex-col items-center gap-1 ${
+                    className={`py-2 md:py-3 px-1.5 md:px-2 rounded-lg text-xs font-medium transition-all duration-300 flex flex-col items-center gap-1 ${
                       activeTab === tab.id
                         ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg"
                         : "bg-muted text-muted-foreground hover:bg-muted/80 border border-border/50"
                     }`}
                     data-testid={`button-tab-${tab.id}`}
                   >
-                    <span className="text-lg">{tab.icon}</span>
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="text-base md:text-lg">{tab.icon}</span>
+                    <span className="hidden sm:inline text-xs">{tab.label}</span>
                   </motion.button>
                 ))}
               </div>
             </motion.div>
 
             {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                <div className="relative mt-2">
+                <Label htmlFor="email" className="text-xs md:text-sm font-medium">Email</Label>
+                <div className="relative mt-1.5 md:mt-2">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
@@ -173,7 +173,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className="pl-10 h-11 border-border/50 focus:border-primary"
+                    className="pl-10 h-10 md:h-11 text-sm border-border/50 focus:border-primary"
                     data-testid="input-email"
                   />
                 </div>
@@ -184,8 +184,8 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
-                <div className="relative mt-2">
+                <Label htmlFor="password" className="text-xs md:text-sm font-medium">Senha</Label>
+                <div className="relative mt-1.5 md:mt-2">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
@@ -194,7 +194,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    className="pl-10 h-11 border-border/50 focus:border-primary"
+                    className="pl-10 h-10 md:h-11 text-sm border-border/50 focus:border-primary"
                     data-testid="input-password"
                   />
                 </div>
@@ -208,11 +208,11 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                  className="w-full h-10 md:h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm md:text-base"
                   data-testid="button-submit-login"
                 >
-                  {isLoading ? "Entrando..." : "Entrar"}
-                  <LogIn className="ml-2 h-4 w-4" />
+                  {isLoading ? "Autenticando..." : "Entrar"}
+                  <LogIn className="ml-2 h-3 md:h-4 w-3 md:w-4" />
                 </Button>
               </motion.div>
 
@@ -222,8 +222,8 @@ export default function LoginPage() {
                 transition={{ delay: 0.5 }}
                 className="text-center pt-2"
               >
-                <p className="text-sm text-muted-foreground">
-                  Não tem conta?{" "}
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  Sem conta?{" "}
                   <button
                     onClick={() => navigate("/register")}
                     className="text-primary hover:text-primary/80 underline font-medium"
@@ -240,14 +240,14 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="mt-8 pt-6 border-t border-border/50"
+              className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-border/50"
             >
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Demo - Contas de Teste</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p className="flex justify-between"><span>Cliente:</span> <span className="font-mono">customer@example.com</span></p>
-                <p className="flex justify-between"><span>Dono:</span> <span className="font-mono">wilson@wilsonpizza.com</span></p>
-                <p className="flex justify-between"><span>Motorista:</span> <span className="font-mono">driver@example.com</span></p>
-                <p className="flex justify-between"><span>Admin:</span> <span className="font-mono">admin@foodflow.com</span></p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 md:mb-3">Contas de Teste</p>
+              <div className="space-y-1.5 md:space-y-2 text-xs text-muted-foreground">
+                <p className="flex justify-between gap-2"><span>Cliente:</span> <span className="font-mono text-right truncate">customer@ex.com</span></p>
+                <p className="flex justify-between gap-2"><span>Dono:</span> <span className="font-mono text-right truncate">wilson@pizza.com</span></p>
+                <p className="flex justify-between gap-2"><span>Motorista:</span> <span className="font-mono text-right truncate">driver@ex.com</span></p>
+                <p className="flex justify-between gap-2"><span>Admin:</span> <span className="font-mono text-right truncate">admin@ff.com</span></p>
               </div>
             </motion.div>
           </div>

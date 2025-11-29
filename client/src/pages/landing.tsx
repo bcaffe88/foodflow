@@ -9,7 +9,7 @@ export default function Landing() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    document.title = "FoodFlow - Plataforma de Delivery de Comida | Rápido e Confiável";
+    document.title = "FoodFlow - Plataforma Premium de Delivery | Experiência Sofisticada";
     document.documentElement.lang = "pt-BR";
   }, []);
 
@@ -45,20 +45,21 @@ export default function Landing() {
             </span>
           </motion.div>
           
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-2 md:gap-3">
             <Button
               variant="ghost"
               onClick={() => navigate("/login")}
               data-testid="button-login"
+              className="text-sm md:text-base"
             >
               Entrar
             </Button>
             <Button
-              className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
+              className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
               onClick={() => navigate("/register")}
               data-testid="button-signup"
             >
-              Começar Agora
+              Começar
             </Button>
           </div>
         </div>
@@ -79,13 +80,13 @@ export default function Landing() {
         >
           <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
             <Flame className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Entrega Rápida e Segura</span>
+            <span className="text-sm font-medium text-primary">Entrega Premium e Segura</span>
           </div>
           
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tight">
-            Comida Rápida,<br />
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tight">
+            Comida Excepcional,<br />
             <span className="bg-gradient-to-r from-primary via-primary/80 to-secondary bg-clip-text text-transparent">
-              Entregue Melhor
+              Entregue com Excelência
             </span>
           </h1>
         </motion.div>
@@ -94,17 +95,16 @@ export default function Landing() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
+          className="text-base md:text-lg text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
         >
-          A plataforma completa de delivery que conecta clientes, restaurantes e motoristas. 
-          Peça suas refeições favoritas e receba em minutos, rastreando cada entrega em tempo real.
+          A plataforma sofisticada de delivery que une clientes, restaurantes parceiros e motoristas profissionais. Peça suas delícias e as receba em minutos, acompanhando cada entrega em tempo real com precisão.
         </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex gap-4 justify-center mb-16 flex-wrap"
+          className="flex gap-3 md:gap-4 justify-center mb-16 flex-wrap"
         >
           <Button
             size="lg"
@@ -112,7 +112,7 @@ export default function Landing() {
             onClick={() => navigate("/restaurants")}
             data-testid="button-explore"
           >
-            Explorar Restaurantes
+            Explorar
             <Utensils className="ml-2 h-4 w-4" />
           </Button>
           <Button
@@ -122,7 +122,7 @@ export default function Landing() {
             onClick={() => navigate("/register-restaurant")}
             data-testid="button-partner"
           >
-            Seja um Parceiro
+            Parceiro
             <MapPin className="ml-2 h-4 w-4" />
           </Button>
         </motion.div>
@@ -132,12 +132,12 @@ export default function Landing() {
           initial="initial"
           animate="animate"
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mt-20 pt-12 border-t border-border/50"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12 mt-20 pt-12 border-t border-border/50"
         >
           {[
-            { value: "5.000+", label: "Restaurantes Ativos", icon: Utensils },
+            { value: "5.000+", label: "Restaurantes Premium", icon: Utensils },
             { value: "500K+", label: "Clientes Satisfeitos", icon: Users },
-            { value: "25 min", label: "Entrega Média", icon: Clock },
+            { value: "18 min", label: "Entrega Média", icon: Clock },
           ].map((stat, idx) => (
             <motion.div
               key={idx}
@@ -148,7 +148,7 @@ export default function Landing() {
                 <stat.icon className="h-6 w-6 text-primary" />
               </div>
               <p className="text-3xl md:text-4xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-sm md:text-base text-muted-foreground mt-1">{stat.label}</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -160,9 +160,9 @@ export default function Landing() {
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-4xl md:text-5xl font-bold text-center mb-16 md:mb-20"
+          className="text-3xl md:text-5xl font-bold text-center mb-16 md:mb-20"
         >
-          Como Funciona
+          Jornada Sofisticada
         </motion.h2>
 
         <motion.div
@@ -170,28 +170,28 @@ export default function Landing() {
           whileInView="animate"
           viewport={{ once: true }}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
         >
           {[
-            { step: "1", icon: ShoppingCart, title: "Escolha", description: "Procure seu restaurante favorito na plataforma" },
-            { step: "2", icon: Utensils, title: "Selecione", description: "Escolha seus pratos e customize à vontade" },
-            { step: "3", icon: Bike, title: "Entrega", description: "Acompanhe o motorista em tempo real no mapa" },
-            { step: "4", icon: CheckCircle, title: "Aproveite", description: "Receba quente e desfrute com qualidade" },
+            { step: "1", icon: ShoppingCart, title: "Descobrir", description: "Explore seleção refinada de restaurantes" },
+            { step: "2", icon: Utensils, title: "Selecionar", description: "Customize sua refeição perfeitamente" },
+            { step: "3", icon: Bike, title: "Rastrear", description: "Acompanhe entregador ao vivo no mapa" },
+            { step: "4", icon: CheckCircle, title: "Desfrutar", description: "Receba quente com qualidade garantida" },
           ].map((item, idx) => (
             <motion.div
               key={idx}
               variants={fadeInUp}
               className="relative"
             >
-              <Card className="p-8 text-center h-full hover-elevate border-2 border-transparent hover:border-primary/20 transition-all group">
+              <Card className="p-6 md:p-8 text-center h-full hover-elevate border-2 border-transparent hover:border-primary/20 transition-all group">
                 <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 mb-6 group-hover:from-primary/30 group-hover:to-primary/20 transition-all">
                   <item.icon className="h-7 w-7 text-primary" />
                 </div>
                 <div className="absolute -top-4 -left-4 h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 text-white flex items-center justify-center text-sm font-bold shadow-lg">
                   {item.step}
                 </div>
-                <h3 className="font-bold text-xl mb-3 group-hover:text-primary transition-colors">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                <h3 className="font-bold text-lg md:text-xl mb-2 group-hover:text-primary transition-colors">{item.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </Card>
             </motion.div>
           ))}
@@ -204,9 +204,9 @@ export default function Landing() {
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-4xl md:text-5xl font-bold text-center mb-16 md:mb-20"
+          className="text-3xl md:text-5xl font-bold text-center mb-16 md:mb-20"
         >
-          Por Que Escolher FoodFlow?
+          Por Que FoodFlow Diferencia?
         </motion.h2>
 
         <motion.div
@@ -214,26 +214,26 @@ export default function Landing() {
           whileInView="animate"
           viewport={{ once: true }}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
         >
           {[
-            { icon: ShoppingCart, title: "Pedidos Simples", desc: "Interface intuitiva para buscas rápidas e comparações fáceis" },
-            { icon: Bike, title: "Entrega Rápida", desc: "Rastreamento real-time e motoristas certificados" },
-            { icon: Utensils, title: "Variedade Infinita", desc: "Centenas de restaurantes com todas as culinárias" },
-            { icon: TrendingUp, title: "Para Restaurantes", desc: "Ferramenta poderosa para crescimento dos negócios" },
-            { icon: Users, title: "Comunidade Forte", desc: "Rede crescente de amantes de comida" },
-            { icon: Zap, title: "Tecnologia", desc: "Múltiplas formas de pagamento seguro e integrado" },
+            { icon: ShoppingCart, title: "Intuição Premiada", desc: "Interface que agrada à primeira vista" },
+            { icon: Bike, title: "Velocidade Sofisticada", desc: "Rastreamento real-time profissional" },
+            { icon: Utensils, title: "Seleção Refinada", desc: "Centenas de restaurantes exclusivos" },
+            { icon: TrendingUp, title: "Para Restaurantes", desc: "Crescimento sustentável e lucrativo" },
+            { icon: Users, title: "Comunidade Premium", desc: "Rede de apreciadores de qualidade" },
+            { icon: Zap, title: "Tecnologia Avançada", desc: "Múltiplas formas de pagamento seguro" },
           ].map((feature, idx) => (
             <motion.div
               key={idx}
               variants={fadeInUp}
             >
-              <Card className="p-8 h-full hover-elevate border-2 border-transparent hover:border-primary/20 transition-all group">
+              <Card className="p-6 md:p-8 h-full hover-elevate border-2 border-transparent hover:border-primary/20 transition-all group">
                 <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-6 group-hover:from-primary/30 group-hover:to-primary/20 transition-all">
                   <feature.icon className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-bold mb-3 text-lg group-hover:text-primary transition-colors">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+                <h3 className="font-bold mb-2 md:mb-3 text-base md:text-lg group-hover:text-primary transition-colors">{feature.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
               </Card>
             </motion.div>
           ))}
@@ -247,11 +247,11 @@ export default function Landing() {
           whileInView="animate"
           viewport={{ once: true }}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12"
         >
           {[
-            { icon: Shield, label: "Segurança 100%", value: "SSL Certificado" },
-            { icon: Award, label: "Avaliação Média", value: "4.9/5 Estrelas" },
+            { icon: Shield, label: "Segurança Certificada", value: "SSL & PCI" },
+            { icon: Award, label: "Avaliação Média", value: "4.9/5 ⭐" },
             { icon: Users, label: "Usuários Verificados", value: "500K+ Ativos" },
           ].map((proof, idx) => (
             <motion.div
@@ -262,7 +262,7 @@ export default function Landing() {
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 mb-6 mx-auto group-hover:from-primary/30 group-hover:to-primary/20 transition-all">
                 <proof.icon className="h-8 w-8 text-primary" />
               </div>
-              <p className="text-sm md:text-base text-muted-foreground mb-2">{proof.label}</p>
+              <p className="text-xs md:text-sm text-muted-foreground mb-2">{proof.label}</p>
               <p className="text-2xl md:text-3xl font-bold text-foreground">{proof.value}</p>
             </motion.div>
           ))}
@@ -276,17 +276,17 @@ export default function Landing() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <Card className="p-12 md:p-16 bg-gradient-to-br from-primary/10 to-secondary/5 border border-primary/20 shadow-xl">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-center leading-tight">
-              Pronto para começar?
+          <Card className="p-8 md:p-16 bg-gradient-to-br from-primary/10 to-secondary/5 border border-primary/20 shadow-xl">
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-center leading-tight">
+              Pronto para Experiência Premium?
             </h2>
-            <p className="text-muted-foreground mb-12 max-w-2xl mx-auto text-center text-lg leading-relaxed">
-              Junte-se a milhares de usuários que já descobriram a melhor forma de pedir comida. Escolha seu papel: cliente, restaurante ou motorista.
+            <p className="text-muted-foreground mb-12 max-w-2xl mx-auto text-center text-base md:text-lg leading-relaxed">
+              Junte-se a milhares de usuários discerninentes. Escolha seu papel: cliente sofisticado, restaurante exclusivo ou motorista profissional.
             </p>
-            <div className="flex gap-4 md:gap-6 justify-center flex-wrap">
+            <div className="flex gap-2 md:gap-4 justify-center flex-wrap">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all flex-1 md:flex-none"
+                className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
                 onClick={() => navigate("/restaurants")}
                 data-testid="button-order-now"
               >
@@ -296,21 +296,21 @@ export default function Landing() {
               <Button
                 size="lg"
                 variant="outline"
-                className="flex-1 md:flex-none shadow-md hover:shadow-lg transition-all"
+                className="shadow-md hover:shadow-lg transition-all"
                 onClick={() => navigate("/register-driver")}
                 data-testid="button-drive"
               >
-                Seja Motorista
+                Motorista
                 <Bike className="ml-2 h-4 w-4" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="flex-1 md:flex-none shadow-md hover:shadow-lg transition-all"
+                className="shadow-md hover:shadow-lg transition-all"
                 onClick={() => navigate("/register-restaurant")}
                 data-testid="button-register-restaurant-landing"
               >
-                Abra Restaurante
+                Restaurante
                 <Utensils className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -321,40 +321,40 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t bg-gradient-to-b from-background to-background/50 py-12 md:py-16 mt-20">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-12 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                   <ShoppingCart className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <span className="font-bold">FoodFlow</span>
+                <span className="font-bold text-sm md:text-base">FoodFlow</span>
               </div>
-              <p className="text-sm text-muted-foreground">A melhor plataforma de delivery</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Premium Delivery</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Clientes</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-semibold mb-3 text-sm">Para Clientes</h4>
+              <ul className="space-y-2 text-xs md:text-sm text-muted-foreground">
                 <li><button onClick={() => navigate("/restaurants")} className="hover:text-foreground transition">Restaurantes</button></li>
                 <li><button onClick={() => navigate("/customer/orders")} className="hover:text-foreground transition">Pedidos</button></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Parceiros</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-semibold mb-3 text-sm">Parceiros</h4>
+              <ul className="space-y-2 text-xs md:text-sm text-muted-foreground">
                 <li><button onClick={() => navigate("/register-restaurant")} className="hover:text-foreground transition">Restaurantes</button></li>
                 <li><button onClick={() => navigate("/register-driver")} className="hover:text-foreground transition">Motoristas</button></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Empresa</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-semibold mb-3 text-sm">Empresa</h4>
+              <ul className="space-y-2 text-xs md:text-sm text-muted-foreground">
                 <li><a href="#" className="hover:text-foreground transition">Sobre</a></li>
                 <li><a href="#" className="hover:text-foreground transition">Contato</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t pt-8 text-center text-xs md:text-sm text-muted-foreground">
-            <p>&copy; 2025 FoodFlow. Todos os direitos reservados. | <a href="#" className="hover:text-foreground transition">Privacidade</a> | <a href="#" className="hover:text-foreground transition">Termos</a></p>
+            <p>&copy; 2025 FoodFlow Premium. Todos os direitos reservados. | <a href="#" className="hover:text-foreground transition">Privacidade</a> | <a href="#" className="hover:text-foreground transition">Termos</a></p>
           </div>
         </div>
       </footer>

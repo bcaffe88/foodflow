@@ -50,7 +50,7 @@ export default function RestaurantsPage() {
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
               <ShoppingCart className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-primary" data-testid="text-logo">
+            <span className="text-xl md:text-2xl font-bold text-primary" data-testid="text-logo">
               FoodFlow
             </span>
           </motion.div>
@@ -58,7 +58,7 @@ export default function RestaurantsPage() {
             variant="ghost"
             onClick={() => navigate("/")}
             data-testid="button-back-home"
-            className="ml-auto"
+            className="text-sm md:text-base"
           >
             ← Voltar
           </Button>
@@ -73,11 +73,11 @@ export default function RestaurantsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <h1 className="text-5xl md:text-6xl font-bold mb-4">
-            Restaurantes
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4">
+            Restaurantes Sofisticados
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground">
-            Escolha entre nossos parceiros favoritos e peça suas refeições agora
+          <p className="text-sm md:text-lg text-muted-foreground">
+            Explore nossa curação de parceiros gastronômicos. Qualidade e variedade em cada entrega.
           </p>
         </motion.div>
 
@@ -94,7 +94,7 @@ export default function RestaurantsPage() {
               placeholder="Busque por restaurante, culinária ou endereço..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-12 text-base shadow-md border-border/50"
+              className="pl-12 h-11 md:h-12 text-sm md:text-base shadow-md border-border/50"
               data-testid="input-search-restaurant"
             />
           </div>
@@ -105,7 +105,7 @@ export default function RestaurantsPage() {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-sm text-muted-foreground mb-8"
+            className="text-xs md:text-sm text-muted-foreground mb-8"
           >
             {filteredRestaurants.length} restaurante{filteredRestaurants.length !== 1 ? 's' : ''} encontrado{filteredRestaurants.length !== 1 ? 's' : ''}
           </motion.p>
@@ -113,25 +113,25 @@ export default function RestaurantsPage() {
 
         {/* Grid de Restaurantes */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-80 rounded-2xl" />
+              <Skeleton key={i} className="h-72 md:h-80 rounded-2xl" />
             ))}
           </div>
         ) : filteredRestaurants.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-16 px-4"
+            className="text-center py-12 md:py-16 px-4"
           >
-            <Search className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">
+            <Search className="h-12 md:h-16 w-12 md:w-16 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm md:text-lg">
               {searchTerm ? "Nenhum restaurante encontrado. Tente outro termo." : "Nenhum restaurante disponível no momento."}
             </p>
           </motion.div>
         ) : (
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
             initial="hidden"
             animate="visible"
             variants={{
@@ -153,7 +153,7 @@ export default function RestaurantsPage() {
                 }}
               >
                 <Card
-                  className="overflow-hidden hover-elevate cursor-pointer h-full flex flex-col border-2 border-transparent hover:border-primary/20 transition-all group shadow-md hover:shadow-xl"
+                  className="overflow-hidden hover-elevate cursor-pointer h-full flex flex-col border-2 border-transparent hover:border-primary/20 transition-all group shadow-md hover:shadow-lg"
                   onClick={() => navigate(`/r/${restaurant.slug}`)}
                   data-testid={`card-restaurant-${restaurant.id}`}
                 >
@@ -166,7 +166,7 @@ export default function RestaurantsPage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <div className="text-5xl font-bold text-primary/30 dark:text-primary/40">
+                      <div className="text-4xl md:text-5xl font-bold text-primary/30 dark:text-primary/40">
                         {restaurant.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -179,42 +179,42 @@ export default function RestaurantsPage() {
                   </div>
 
                   {/* Info */}
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="font-bold text-xl mb-2 group-hover:text-primary transition-colors" data-testid={`text-restaurant-name-${restaurant.id}`}>
+                  <div className="p-4 md:p-6 flex flex-col flex-1">
+                    <h3 className="font-bold text-lg md:text-xl mb-2 group-hover:text-primary transition-colors" data-testid={`text-restaurant-name-${restaurant.id}`}>
                       {restaurant.name}
                     </h3>
                     
                     {restaurant.description && (
-                      <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">
+                      <p className="text-xs md:text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">
                         {restaurant.description}
                       </p>
                     )}
 
                     {/* Meta Info */}
-                    <div className="space-y-2 mb-6 text-sm text-muted-foreground">
+                    <div className="space-y-1 md:space-y-2 mb-4 md:mb-6 text-xs md:text-sm text-muted-foreground">
                       {restaurant.address && (
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 flex-shrink-0 text-primary" />
+                          <MapPin className="h-3 md:h-4 w-3 md:w-4 flex-shrink-0 text-primary" />
                           <span className="line-clamp-1">{restaurant.address}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 flex-shrink-0 text-primary" />
-                        <span>25-30 min</span>
+                        <Clock className="h-3 md:h-4 w-3 md:w-4 flex-shrink-0 text-primary" />
+                        <span>18-25 min</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 flex-shrink-0 text-yellow-500" />
-                        <span>4.8 (200+ avaliações)</span>
+                        <Star className="h-3 md:h-4 w-3 md:w-4 flex-shrink-0 text-yellow-500" />
+                        <span>4.9 (200+ avaliações)</span>
                       </div>
                     </div>
 
                     <Button
-                      className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-md hover:shadow-lg transition-all mt-auto"
+                      className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-md hover:shadow-lg transition-all mt-auto text-sm md:text-base"
                       onClick={() => navigate(`/r/${restaurant.slug}`)}
                       data-testid={`button-select-${restaurant.id}`}
                     >
-                      Ver Cardápio
-                      <ShoppingCart className="ml-2 h-4 w-4" />
+                      Cardápio
+                      <ShoppingCart className="ml-2 h-3 md:h-4 w-3 md:w-4" />
                     </Button>
                   </div>
                 </Card>
