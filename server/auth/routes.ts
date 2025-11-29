@@ -97,7 +97,7 @@ export function registerAuthRoutes(app: Express) {
         return res.json({
           user: {
             id: "wilson-001",
-            email: "Wilson@wilsonpizza.com",
+            email: data.email.toLowerCase(),
             name: "Wilson",
             role: "restaurant_owner",
             tenantId: "wilson-001",
