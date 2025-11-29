@@ -1409,7 +1409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthRequest, res) => {
       try {
         const { latitude, longitude } = req.body;
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
 
         if (!userId || typeof latitude !== "number" || typeof longitude !== "number") {
           return res.status(400).json({ error: "Invalid location data" });
@@ -2157,6 +2157,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get tenant error:", error);
       res.status(500).json({ error: "Failed to load tenant" });
+    }
+  });
+
+  // ============================================================================
+  // AUTO-ASSIGNMENT, RATINGS & PROMOTIONS (NO EXTERNAL COSTS)
+  // ============================================================================
+
+  // Auto-assign best driver to order (based on GPS + rating)
+  app.post("/api/orders/:id/auto-assign-driver", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const order = await storage.getOrder(id);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      
+      const assigned = await storage.autoAssignDriver(id, order.tenantId);
+      if (!assigned) return res.status(400).json({ error: "No available drivers" });
+      
+      res.json({ success: true, order: assigned });
+    } catch (error) {
+      console.error("Auto-assign error:", error);
+      res.status(500).json({ error: "Auto-assignment failed" });
+    }
+  });
+
+  // Create rating/feedback for order
+  app.post("/api/ratings", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const { orderId, restaurantRating, driverRating, foodRating, restaurantComment, driverComment, foodComment, deliveryTime } = req.body;
+      
+      const order = await storage.getOrder(orderId);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      
+      const rating = await storage.createRating({
+        orderId,
+        customerId: req.user!.userId,
+        tenantId: order.tenantId,
+        driverId: order.driverId || undefined,
+        restaurantRating: restaurantRating || 5,
+        restaurantComment,
+        driverRating: driverRating || 5,
+        driverComment,
+        foodRating: foodRating || 5,
+        foodComment,
+        deliveryTime
+      });
+      
+      res.json({ success: true, rating });
+    } catch (error) {
+      console.error("Create rating error:", error);
+      res.status(500).json({ error: "Failed to save rating" });
+    }
+  });
+
+  // Validate coupon code
+  app.post("/api/promotions/validate", optionalAuth, async (req: AuthRequest, res) => {
+    try {
+      const { code, tenantId, orderValue } = req.body;
+      if (!code || !tenantId || orderValue === undefined) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const result = await storage.validatePromoCode(code, tenantId, orderValue);
+      res.json(result);
+    } catch (error) {
+      console.error("Validate promo error:", error);
+      res.status(500).json({ error: "Validation failed" });
+    }
+  });
+
+  // Get promotions for restaurant
+  app.get("/api/promotions/restaurant/:tenantId", optionalAuth, async (req: AuthRequest, res) => {
+    try {
+      const { tenantId } = req.params;
+      const promotions = await storage.getPromotionsByTenant(tenantId);
+      res.json(promotions);
+    } catch (error) {
+      console.error("Get promotions error:", error);
+      res.status(500).json({ error: "Failed to load promotions" });
     }
   });
 

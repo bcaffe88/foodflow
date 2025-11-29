@@ -260,6 +260,46 @@ export const customerAddresses = pgTable("customer_addresses", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Ratings & Feedback (customer feedback on orders, drivers, restaurants)
+export const ratings = pgTable("ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id),
+  customerId: varchar("customer_id").notNull().references(() => users.id),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  driverId: varchar("driver_id").references(() => users.id),
+  restaurantRating: integer("restaurant_rating"), // 1-5
+  restaurantComment: text("restaurant_comment"),
+  driverRating: integer("driver_rating"), // 1-5
+  driverComment: text("driver_comment"),
+  foodRating: integer("food_rating"), // 1-5
+  foodComment: text("food_comment"),
+  deliveryTime: integer("delivery_time"), // minutes
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  idx_order: index("idx_ratings_order").on(table.orderId),
+  idx_tenant: index("idx_ratings_tenant").on(table.tenantId),
+}));
+
+// Promotions & Coupons
+export const promotions = pgTable("promotions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  code: text("code").notNull().unique(),
+  description: text("description").notNull(),
+  discountType: text("discount_type").notNull(), // "percentage" or "fixed"
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  maxUses: integer("max_uses"),
+  currentUses: integer("current_uses").notNull().default(0),
+  minOrderValue: decimal("min_order_value", { precision: 10, scale: 2 }),
+  isActive: boolean("is_active").notNull().default(true),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  idx_tenant: index("idx_promotions_tenant").on(table.tenantId),
+  idx_code: index("idx_promotions_code").on(table.code),
+}));
+
 // Insert Schemas
 export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -276,6 +316,8 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true,
 export const insertCommissionSchema = createInsertSchema(commissions).omit({ id: true, createdAt: true });
 export const insertDriverAssignmentSchema = createInsertSchema(driverAssignments).omit({ id: true, notifiedAt: true });
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ id: true });
+export const insertRatingSchema = createInsertSchema(ratings).omit({ id: true, createdAt: true });
+export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true, createdAt: true });
 
 // Types
 export type Tenant = typeof tenants.$inferSelect;
@@ -293,6 +335,8 @@ export type Payment = typeof payments.$inferSelect;
 export type Commission = typeof commissions.$inferSelect;
 export type DriverAssignment = typeof driverAssignments.$inferSelect;
 export type DailyMetric = typeof dailyMetrics.$inferSelect;
+export type Rating = typeof ratings.$inferSelect;
+export type Promotion = typeof promotions.$inferSelect;
 
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -309,6 +353,8 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type InsertCommission = z.infer<typeof insertCommissionSchema>;
 export type InsertDriverAssignment = z.infer<typeof insertDriverAssignmentSchema>;
 export type InsertDailyMetric = z.infer<typeof insertDailyMetricSchema>;
+export type InsertRating = z.infer<typeof insertRatingSchema>;
+export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
 
 // Frontend cart item interface
 export interface CartItem {

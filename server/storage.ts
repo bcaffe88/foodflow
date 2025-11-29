@@ -11,8 +11,10 @@ import {
   type DriverProfile, type InsertDriverProfile,
   type DriverAssignment, type InsertDriverAssignment,
   type DailyMetric, type InsertDailyMetric,
+  type Rating, type InsertRating,
+  type Promotion, type InsertPromotion,
   tenants, users, categories, products, orders, orderItems, payments, commissions,
-  customerProfiles, driverProfiles, driverAssignments, dailyMetrics,
+  customerProfiles, driverProfiles, driverAssignments, dailyMetrics, ratings, promotions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
@@ -95,6 +97,23 @@ export interface IStorage {
   // Analytics
   createDailyMetric(metric: InsertDailyMetric): Promise<DailyMetric>;
   getMetricsByTenant(tenantId: string, startDate: Date, endDate: Date): Promise<DailyMetric[]>;
+
+  // Ratings & Feedback
+  createRating(rating: InsertRating): Promise<Rating>;
+  getRatingsByTenant(tenantId: string): Promise<Rating[]>;
+  getRatingByOrder(orderId: string): Promise<Rating | undefined>;
+  getDriverRatings(driverId: string): Promise<Rating[]>;
+
+  // Promotions & Coupons
+  createPromotion(promotion: InsertPromotion): Promise<Promotion>;
+  getPromotionByCode(code: string, tenantId: string): Promise<Promotion | undefined>;
+  getPromotionsByTenant(tenantId: string): Promise<Promotion[]>;
+  validatePromoCode(code: string, tenantId: string, orderValue: number): Promise<{ valid: boolean; discount: number; promotion?: Promotion }>;
+  incrementPromotionUses(promotionId: string): Promise<void>;
+
+  // Auto-Assignment
+  getBestDriverForOrder(orderId: string, latitude: number, longitude: number): Promise<DriverProfile | undefined>;
+  autoAssignDriver(orderId: string, tenantId: string): Promise<Order | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -579,7 +598,113 @@ export class DatabaseStorage implements IStorage {
 
   async getAvailableOrdersByTenant(tenantId: string, status: string): Promise<Order[]> {
     return db.select().from(orders)
-      .where(and(eq(orders.tenantId, tenantId), eq(orders.status, status)));
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.status, status as any)));
+  }
+
+  // Ratings & Feedback
+  async createRating(rating: InsertRating): Promise<Rating> {
+    const [created] = await db.insert(ratings).values(rating as any).returning();
+    return created;
+  }
+
+  async getRatingsByTenant(tenantId: string): Promise<Rating[]> {
+    return db.select().from(ratings).where(eq(ratings.tenantId, tenantId));
+  }
+
+  async getRatingByOrder(orderId: string): Promise<Rating | undefined> {
+    const [rating] = await db.select().from(ratings).where(eq(ratings.orderId, orderId));
+    return rating;
+  }
+
+  async getDriverRatings(driverId: string): Promise<Rating[]> {
+    return db.select().from(ratings).where(eq(ratings.driverId, driverId));
+  }
+
+  // Promotions & Coupons
+  async createPromotion(promotion: InsertPromotion): Promise<Promotion> {
+    const [created] = await db.insert(promotions).values(promotion as any).returning();
+    return created;
+  }
+
+  async getPromotionByCode(code: string, tenantId: string): Promise<Promotion | undefined> {
+    const [promo] = await db.select().from(promotions)
+      .where(and(eq(promotions.code, code), eq(promotions.tenantId, tenantId)));
+    return promo;
+  }
+
+  async getPromotionsByTenant(tenantId: string): Promise<Promotion[]> {
+    return db.select().from(promotions)
+      .where(and(eq(promotions.tenantId, tenantId), eq(promotions.isActive, true)));
+  }
+
+  async validatePromoCode(code: string, tenantId: string, orderValue: number): Promise<{ valid: boolean; discount: number; promotion?: Promotion }> {
+    const promo = await this.getPromotionByCode(code, tenantId);
+    
+    if (!promo) return { valid: false, discount: 0 };
+    if (!promo.isActive) return { valid: false, discount: 0 };
+    if (promo.maxUses && promo.currentUses >= promo.maxUses) return { valid: false, discount: 0 };
+    if (promo.minOrderValue && orderValue < Number(promo.minOrderValue)) return { valid: false, discount: 0 };
+    if (promo.endDate && new Date() > promo.endDate) return { valid: false, discount: 0 };
+    
+    const discount = promo.discountType === 'percentage'
+      ? (orderValue * Number(promo.discountValue)) / 100
+      : Number(promo.discountValue);
+    
+    return { valid: true, discount, promotion: promo };
+  }
+
+  async incrementPromotionUses(promotionId: string): Promise<void> {
+    const promo = await db.select().from(promotions).where(eq(promotions.id, promotionId));
+    if (promo[0]) {
+      await db.update(promotions)
+        .set({ currentUses: (promo[0].currentUses || 0) + 1 })
+        .where(eq(promotions.id, promotionId));
+    }
+  }
+
+  // Auto-Assignment: Find best driver based on GPS distance + rating
+  async getBestDriverForOrder(orderId: string, latitude: number, longitude: number): Promise<DriverProfile | undefined> {
+    const order = await db.select().from(orders).where(eq(orders.id, orderId));
+    if (!order[0]) return undefined;
+    
+    const availableDrivers = await db.select()
+      .from(driverProfiles)
+      .innerJoin(users, eq(driverProfiles.userId, users.id))
+      .where(and(eq(driverProfiles.status, 'available'), eq(users.tenantId, order[0].tenantId)));
+    
+    if (availableDrivers.length === 0) return undefined;
+    
+    // Simple scoring: drivers closer + higher rated get priority
+    let bestDriver = availableDrivers[0].driver_profiles;
+    let bestScore = -Infinity;
+    
+    for (const item of availableDrivers) {
+      const driver = item.driver_profiles;
+      const lat = Number(driver.currentLatitude || 0);
+      const lng = Number(driver.currentLongitude || 0);
+      const distance = Math.sqrt(Math.pow(lat - latitude, 2) + Math.pow(lng - longitude, 2));
+      const score = (Number(driver.rating) || 4.0) - (distance * 0.1);
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestDriver = driver;
+      }
+    }
+    
+    return bestDriver;
+  }
+
+  async autoAssignDriver(orderId: string, tenantId: string): Promise<Order | undefined> {
+    const order = await db.select().from(orders).where(eq(orders.id, orderId));
+    if (!order[0]) return undefined;
+    
+    const latitude = Number(order[0].addressLatitude || 0);
+    const longitude = Number(order[0].addressLongitude || 0);
+    const driver = await this.getBestDriverForOrder(orderId, latitude, longitude);
+    
+    if (!driver || !driver.userId) return undefined;
+    
+    return this.assignDriver(orderId, driver.userId);
   }
 }
 
@@ -1029,6 +1154,53 @@ export class SmartStorage implements IStorage {
       () => this.dbStorage.getAvailableOrdersByTenant(tenantId, status),
       () => this.memStorage.getOrdersByTenant(tenantId)
     );
+  }
+
+  // Ratings & Feedback
+  async createRating(rating: InsertRating): Promise<Rating> {
+    return this.tryDb(() => this.dbStorage.createRating(rating), () => Promise.reject('DB unavailable'));
+  }
+
+  async getRatingsByTenant(tenantId: string): Promise<Rating[]> {
+    return this.tryDb(() => this.dbStorage.getRatingsByTenant(tenantId), () => Promise.resolve([]));
+  }
+
+  async getRatingByOrder(orderId: string): Promise<Rating | undefined> {
+    return this.tryDb(() => this.dbStorage.getRatingByOrder(orderId), () => Promise.resolve(undefined));
+  }
+
+  async getDriverRatings(driverId: string): Promise<Rating[]> {
+    return this.tryDb(() => this.dbStorage.getDriverRatings(driverId), () => Promise.resolve([]));
+  }
+
+  // Promotions & Coupons
+  async createPromotion(promotion: InsertPromotion): Promise<Promotion> {
+    return this.tryDb(() => this.dbStorage.createPromotion(promotion), () => Promise.reject('DB unavailable'));
+  }
+
+  async getPromotionByCode(code: string, tenantId: string): Promise<Promotion | undefined> {
+    return this.tryDb(() => this.dbStorage.getPromotionByCode(code, tenantId), () => Promise.resolve(undefined));
+  }
+
+  async getPromotionsByTenant(tenantId: string): Promise<Promotion[]> {
+    return this.tryDb(() => this.dbStorage.getPromotionsByTenant(tenantId), () => Promise.resolve([]));
+  }
+
+  async validatePromoCode(code: string, tenantId: string, orderValue: number): Promise<{ valid: boolean; discount: number; promotion?: Promotion }> {
+    return this.tryDb(() => this.dbStorage.validatePromoCode(code, tenantId, orderValue), () => Promise.resolve({ valid: false, discount: 0 }));
+  }
+
+  async incrementPromotionUses(promotionId: string): Promise<void> {
+    return this.tryDb(() => this.dbStorage.incrementPromotionUses(promotionId), () => Promise.resolve());
+  }
+
+  // Auto-Assignment
+  async getBestDriverForOrder(orderId: string, latitude: number, longitude: number): Promise<DriverProfile | undefined> {
+    return this.tryDb(() => this.dbStorage.getBestDriverForOrder(orderId, latitude, longitude), () => Promise.resolve(undefined));
+  }
+
+  async autoAssignDriver(orderId: string, tenantId: string): Promise<Order | undefined> {
+    return this.tryDb(() => this.dbStorage.autoAssignDriver(orderId, tenantId), () => Promise.resolve(undefined));
   }
 }
 
