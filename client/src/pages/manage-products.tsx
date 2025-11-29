@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { insertProductSchema, type Product, type Category } from "@shared/schema";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Sparkles } from "lucide-react";
 import { LLMProductGenerator } from "@/components/LLMProductGenerator";
 
 type FormData = z.infer<typeof insertProductSchema>;
@@ -23,6 +23,7 @@ export default function ManageProducts() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [llmLoading, setLlmLoading] = useState(false);
 
   // Verificar autenticação
   useEffect(() => {
@@ -120,6 +121,35 @@ export default function ManageProducts() {
     mutation.mutate(data);
   };
 
+  const handleGenerateDescription = async () => {
+    const productName = form.getValues("name");
+    if (!productName) {
+      toast({ title: "Erro", description: "Preenchea o nome do produto primeiro", variant: "destructive" });
+      return;
+    }
+
+    setLlmLoading(true);
+    try {
+      const response = await fetch(`/api/restaurant/products/${editingId || "new"}/improve-description`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName,
+          currentDescription: form.getValues("description"),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Falha ao gerar descrição");
+      const data = await response.json();
+      form.setValue("description", data.improvedDescription);
+      toast({ title: "Sucesso!", description: "Descrição melhorada com IA" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message || "Falha ao gerar descrição", variant: "destructive" });
+    } finally {
+      setLlmLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
@@ -196,10 +226,33 @@ export default function ManageProducts() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Descrição</FormLabel>
+                      <div className="flex items-center justify-between mb-2">
+                        <FormLabel>Descrição</FormLabel>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleGenerateDescription}
+                          disabled={llmLoading || !form.getValues("name")}
+                          className="gap-1"
+                          data-testid="button-generate-description"
+                        >
+                          {llmLoading ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Gerando...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3 h-3" />
+                              Gerar com IA
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       <FormControl>
                         <Textarea
-                          placeholder="Descreva o produto..."
+                          placeholder="Descreva o produto... ou clique em 'Gerar com IA'"
                           data-testid="textarea-product-description"
                           {...field}
                         />
