@@ -2370,6 +2370,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Webhook Printer Configuration
+  app.get("/api/webhook/config", authenticate, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: "No tenant associated" });
+      }
+
+      const tenant = await storage.getTenant(req.user.tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
+      res.json({
+        printerWebhookUrl: tenant.printerWebhookUrl || "",
+        printerWebhookEnabled: tenant.printerWebhookEnabled || false,
+        printerWebhookMethod: tenant.printerWebhookMethod || "POST",
+        printerWebhookEvents: tenant.printerWebhookEvents || ["order.ready", "order.cancelled"]
+      });
+    } catch (error) {
+      console.error("Get webhook config error:", error);
+      res.status(500).json({ error: "Failed to get webhook config" });
+    }
+  });
+
+  // Save Webhook Printer Configuration
+  app.post("/api/webhook/config", authenticate, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: "No tenant associated" });
+      }
+
+      if (req.user?.role !== 'restaurant_owner' && req.user?.role !== 'platform_admin') {
+        return res.status(403).json({ error: "Only restaurant owners can configure webhooks" });
+      }
+
+      const { printerWebhookUrl, printerWebhookEnabled, printerWebhookMethod, printerWebhookEvents } = req.body;
+
+      const updated = await storage.updateTenant(req.user.tenantId, {
+        printerWebhookUrl,
+        printerWebhookEnabled: !!printerWebhookEnabled,
+        printerWebhookMethod: printerWebhookMethod || "POST",
+        printerWebhookEvents: printerWebhookEvents || ["order.ready", "order.cancelled"]
+      } as any);
+
+      if (!updated) {
+        return res.status(404).json({ error: "Failed to update tenant" });
+      }
+
+      res.json({
+        success: true,
+        message: "Webhook configuration saved",
+        config: {
+          printerWebhookUrl: updated.printerWebhookUrl,
+          printerWebhookEnabled: updated.printerWebhookEnabled,
+          printerWebhookMethod: updated.printerWebhookMethod,
+          printerWebhookEvents: updated.printerWebhookEvents
+        }
+      });
+    } catch (error) {
+      console.error("Save webhook config error:", error);
+      res.status(500).json({ error: "Failed to save webhook config" });
+    }
+  });
+
+  // Test Webhook
+  app.post("/api/webhook/test", authenticate, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: "No tenant associated" });
+      }
+
+      const tenant = await storage.getTenant(req.user.tenantId);
+      if (!tenant || !tenant.printerWebhookUrl) {
+        return res.status(400).json({ error: "Webhook URL not configured" });
+      }
+
+      const testPayload = {
+        event: "test.webhook",
+        timestamp: new Date().toISOString(),
+        tenantId: req.user.tenantId,
+        data: {
+          message: "This is a test webhook from Wilson Pizzaria"
+        }
+      };
+
+      try {
+        const response = await fetch(tenant.printerWebhookUrl, {
+          method: tenant.printerWebhookMethod || "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Webhook-Secret": tenant.printerWebhookSecret || ""
+          },
+          body: JSON.stringify(testPayload)
+        });
+
+        res.json({
+          success: response.ok,
+          status: response.status,
+          message: response.ok ? "Webhook test successful" : "Webhook test failed",
+          response: {
+            statusCode: response.status,
+            statusText: response.statusText
+          }
+        });
+      } catch (fetchError: any) {
+        res.status(400).json({
+          success: false,
+          message: "Failed to reach webhook URL",
+          error: fetchError.message
+        });
+      }
+    } catch (error) {
+      console.error("Test webhook error:", error);
+      res.status(500).json({ error: "Failed to test webhook" });
+    }
+  });
+
+  // Delete Webhook Configuration
+  app.delete("/api/webhook/config", authenticate, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: "No tenant associated" });
+      }
+
+      if (req.user?.role !== 'restaurant_owner' && req.user?.role !== 'platform_admin') {
+        return res.status(403).json({ error: "Only restaurant owners can delete webhooks" });
+      }
+
+      const updated = await storage.updateTenant(req.user.tenantId, {
+        printerWebhookUrl: null,
+        printerWebhookEnabled: false,
+        printerWebhookSecret: null
+      } as any);
+
+      res.json({
+        success: true,
+        message: "Webhook configuration deleted"
+      });
+    } catch (error) {
+      console.error("Delete webhook config error:", error);
+      res.status(500).json({ error: "Failed to delete webhook config" });
+    }
+  });
+
   // Broadcast notification to all drivers (e.g., system alerts, promotions)
   app.post("/api/notifications/broadcast-drivers", authenticate, async (req: AuthRequest, res) => {
     try {
