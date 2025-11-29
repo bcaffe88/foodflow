@@ -10,6 +10,7 @@ import { initializeN8NClient, type N8NClient } from "./n8n-api";
 import { initializeSupabaseService, type SupabaseService } from "./supabase-service";
 import { initializeGoogleMapsService } from "./google-maps-service";
 import { initializeDeliveryOptimizer } from "./delivery-optimizer";
+import { generateProductsWithLLM, improveProductDescription } from "./llm-product-generator";
 
 // In-memory cache for restaurant settings (fallback when DB is down)
 const settingsMemoryCache = new Map<string, Record<string, any>>();
@@ -454,6 +455,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Delete product error:", error);
         // Fallback: return success anyway
         res.status(204).send();
+      }
+    }
+  );
+
+  // Generate products with LLM (Chainlink)
+  app.post("/api/restaurant/products/generate-llm",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        if (!process.env.OPENAI_API_KEY) {
+          return res.status(503).json({ error: "LLM service not configured. Please set OPENAI_API_KEY." });
+        }
+
+        const schema = z.object({
+          restaurantName: z.string().min(2),
+          cuisineType: z.string().min(2),
+          context: z.string().optional(),
+        });
+
+        const data = schema.parse(req.body);
+
+        // Generate products using LLM
+        const generation = await generateProductsWithLLM({
+          restaurantName: data.restaurantName,
+          cuisineType: data.cuisineType,
+          context: data.context,
+        });
+
+        // Create products in database
+        const createdProducts = [];
+        for (const product of generation.products) {
+          const created = await storage.createProduct({
+            name: product.name,
+            description: product.description,
+            price: product.price.toString(),
+            image: "https://via.placeholder.com/300x200?text=" + encodeURIComponent(product.name),
+            categoryId: product.category,
+            isAvailable: product.isAvailable,
+            tenantId: req.user!.tenantId!,
+          });
+          createdProducts.push(created);
+        }
+
+        // Invalidate cache
+        await invalidateCache("/api/restaurant/products*");
+
+        res.status(201).json({
+          success: true,
+          summary: generation.summary,
+          productsCount: createdProducts.length,
+          products: createdProducts,
+        });
+      } catch (error) {
+        console.error("Generate products error:", error);
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: error.errors });
+        }
+        res.status(500).json({ error: "Failed to generate products with LLM" });
+      }
+    }
+  );
+
+  // Improve product description with LLM
+  app.post("/api/restaurant/products/:id/improve-description",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        if (!process.env.OPENAI_API_KEY) {
+          return res.status(503).json({ error: "LLM service not configured" });
+        }
+
+        const { id } = req.params;
+        const schema = z.object({
+          productName: z.string().min(2),
+          currentDescription: z.string().optional(),
+        });
+
+        const data = schema.parse(req.body);
+
+        // Improve description using LLM
+        const improvedDescription = await improveProductDescription(
+          data.productName,
+          data.currentDescription
+        );
+
+        // Update product
+        const product = await storage.updateProduct(id, {
+          description: improvedDescription,
+        });
+
+        // Invalidate cache
+        await invalidateCache("/api/restaurant/products*");
+
+        res.json({
+          success: true,
+          originalDescription: data.currentDescription,
+          improvedDescription,
+          product,
+        });
+      } catch (error) {
+        console.error("Improve description error:", error);
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: error.errors });
+        }
+        res.status(500).json({ error: "Failed to improve product description" });
       }
     }
   );
