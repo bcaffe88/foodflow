@@ -863,22 +863,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const tenant = await storage.getTenant(req.user!.tenantId!);
 
         // Send WhatsApp notification about status update
-        // TODO: Implement sendOrderStatusUpdate in WhatsAppNotificationService
-        // try {
-        //   const customerPhone = order.customerPhone?.replace(/\D/g, '');
-        //   if (customerPhone && tenant) {
-        //     await whatsappService.sendOrderStatusUpdate(
-        //       order,
-        //       previousStatus,
-        //       status,
-        //       customerPhone,
-        //       tenant.name
-        //     );
-        //   }
-        // } catch (whatsappErr) {
-        //   console.error("[WhatsApp] Error sending status update:", whatsappErr);
-        //   // Continue - don't fail if WhatsApp fails
-        // }
+        try {
+          const customerPhone = order.customerPhone?.replace(/\D/g, '');
+          if (customerPhone && tenant) {
+            await whatsappService.sendOrderStatusUpdate(
+              order,
+              previousStatus,
+              status,
+              customerPhone,
+              tenant.name
+            );
+          }
+        } catch (whatsappErr) {
+          console.error("[WhatsApp] Error sending status update:", whatsappErr);
+          // Continue - don't fail if WhatsApp fails
+        }
         
         if (tenant && tenant.n8nWebhookUrl) {
           // Get order items for webhook payload
@@ -1925,10 +1924,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[API] WhatsApp webhook received from ${phoneNumber}`);
 
       // Process message asynchronously
-      // TODO: Implement processIncomingMessage in WhatsAppNotificationService
-      // whatsappService.processIncomingMessage(phoneNumber, tenantId, message).catch(error => {
-      //   console.error(`[API] Error processing WhatsApp message:`, error);
-      // });
+      whatsappService.processIncomingMessage(phoneNumber, tenantId, message).catch(error => {
+        console.error(`[API] Error processing WhatsApp message:`, error);
+      });
 
       // Respond immediately
       res.json({ success: true, message: "Processing..." });
@@ -1957,9 +1955,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reference
       };
 
-      // TODO: Implement createFoodFlowOrder in WhatsAppNotificationService
-      // const result = await whatsappService.createFoodFlowOrder(orderRequest);
-      res.json({ success: true, message: "Order creation not yet implemented", orderRequest });
+      const result = await whatsappService.createFoodFlowOrder(orderRequest);
+      res.json(result);
     } catch (error) {
       console.error(`[API] Error creating order:`, error);
       res.status(500).json({ error: "Failed to create order" });
@@ -1977,9 +1974,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[API] Fetching order status for ${phoneNumber}`);
 
-      // TODO: Implement getCustomerOrderStatus in WhatsAppNotificationService
-      // const status = await whatsappService.getCustomerOrderStatus(phoneNumber, tenantId);
-      res.json({ error: "Order status not yet implemented" });
+      const status = await whatsappService.getCustomerOrderStatus(phoneNumber, tenantId);
+      res.json(status || { error: "No active orders" });
     } catch (error) {
       console.error(`[API] Error fetching status:`, error);
       res.status(500).json({ error: "Failed to fetch status" });

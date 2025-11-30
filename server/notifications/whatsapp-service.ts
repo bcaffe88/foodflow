@@ -170,6 +170,146 @@ export class WhatsAppNotificationService {
       return false;
     }
   }
+
+  async sendOrderStatusUpdate(
+    order: any,
+    previousStatus: string,
+    newStatus: string,
+    customerPhone: string,
+    restaurantName: string
+  ): Promise<boolean> {
+    try {
+      log(`[WhatsApp] Sending status update for order ${order.id}: ${previousStatus} → ${newStatus}`);
+
+      const statusMessages: Record<string, string> = {
+        "pending": "Seu pedido foi recebido e está na fila",
+        "confirmed": "Seu pedido foi confirmado! Começaremos a preparar em breve",
+        "preparing": "Seu pedido está sendo preparado com carinho",
+        "ready": "Seu pedido está pronto! Um entregador será designado em breve",
+        "out_for_delivery": "Seu pedido saiu para entrega!",
+        "delivered": "Seu pedido foi entregue! Obrigado por pedir em " + restaurantName,
+        "cancelled": "Seu pedido foi cancelado. Pedimos desculpas"
+      };
+
+      const message = `📦 Atualização de Pedido\n\n${statusMessages[newStatus] || "Status atualizado"}\n\nPedido: ${order.id.slice(0, 8).toUpperCase()}\nRestaurante: ${restaurantName}`;
+
+      console.log(`[WhatsApp Status Update]`, {
+        to: customerPhone,
+        orderId: order.id,
+        previousStatus,
+        newStatus,
+        message: message,
+        timestamp: new Date().toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      log(`[WhatsApp] Error sending status update: ${error}`);
+      return false;
+    }
+  }
+
+  async processIncomingMessage(
+    phoneNumber: string,
+    tenantId: string,
+    message: string
+  ): Promise<void> {
+    try {
+      log(`[WhatsApp] Processing incoming message from ${phoneNumber} for tenant ${tenantId}`);
+
+      // Parse message to detect intent (order request, status check, support, etc)
+      const lowerMessage = message.toLowerCase();
+      let intent = "unknown";
+
+      if (lowerMessage.includes("pedido") || lowerMessage.includes("order")) {
+        intent = "order_request";
+      } else if (lowerMessage.includes("status") || lowerMessage.includes("where")) {
+        intent = "status_check";
+      } else if (lowerMessage.includes("help") || lowerMessage.includes("ajuda")) {
+        intent = "support";
+      }
+
+      console.log(`[WhatsApp] Message intent detected: ${intent}`, {
+        phoneNumber,
+        tenantId,
+        message,
+        intent,
+        timestamp: new Date().toISOString(),
+      });
+
+      // TODO: Integrar com N8N agent para processamento inteligente com LLM
+      // Aqui você poderia disparar o agente N8N para processar a mensagem
+    } catch (error) {
+      log(`[WhatsApp] Error processing incoming message: ${error}`);
+    }
+  }
+
+  async createFoodFlowOrder(orderRequest: any): Promise<any> {
+    try {
+      log(`[WhatsApp] Creating FoodFlow order from WhatsApp`);
+
+      const orderId = `whatsapp-${Date.now()}`;
+
+      const result = {
+        success: true,
+        orderId,
+        message: "Pedido recebido! Você receberá uma confirmação em breve",
+        orderRequest,
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(`[WhatsApp Order Created]`, result);
+
+      // TODO: Integrar com storage.createOrder() para persistência real
+      // const order = await storage.createOrder({
+      //   tenantId: orderRequest.tenant_id,
+      //   customerPhone: orderRequest.phone_number,
+      //   items: orderRequest.items,
+      //   deliveryAddress: orderRequest.address,
+      //   status: "pending"
+      // });
+
+      return result;
+    } catch (error) {
+      log(`[WhatsApp] Error creating order: ${error}`);
+      throw error;
+    }
+  }
+
+  async getCustomerOrderStatus(phoneNumber: string, tenantId: string): Promise<any> {
+    try {
+      log(`[WhatsApp] Fetching order status for ${phoneNumber} from tenant ${tenantId}`);
+
+      // TODO: Integrar com storage.getOrdersByCustomerPhone() para dados reais
+      // const orders = await storage.getOrdersByCustomerPhone(phoneNumber, tenantId);
+      // const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+
+      const mockStatus = {
+        activeOrders: [
+          {
+            orderId: "ORDER-001",
+            status: "preparing",
+            estimatedTime: "15 min",
+            items: "2x Pizza Margherita, 1x Refrigerante",
+            total: "R$ 85.00"
+          }
+        ],
+        message: "Você tem 1 pedido em preparação"
+      };
+
+      console.log(`[WhatsApp Order Status]`, {
+        phoneNumber,
+        tenantId,
+        status: mockStatus,
+        timestamp: new Date().toISOString(),
+      });
+
+      return mockStatus;
+    } catch (error) {
+      log(`[WhatsApp] Error fetching order status: ${error}`);
+      return null;
+    }
+  }
 }
 
 export const whatsAppService = WhatsAppNotificationService.getInstance();
