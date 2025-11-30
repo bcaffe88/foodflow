@@ -681,7 +681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireTenantAccess,
     async (req: AuthRequest, res) => {
       try {
-        const { name, address, description, logo, whatsappPhone, stripePublicKey, stripeSecretKey, n8nWebhookUrl, useOwnDriver, deliveryFeeBusiness, deliveryFeeCustomer, operatingHours } = req.body;
+        const { name, address, description, logo, whatsappPhone, stripePublicKey, stripeSecretKey, n8nWebhookUrl, useOwnDriver, deliveryFeeBusiness, deliveryFeeCustomer, operatingHours, printerTcpIp, printerTcpPort, printerType, printerEnabled, printKitchenOrders } = req.body;
         const tenantId = req.user!.tenantId!;
         
         const settingsData = {
@@ -696,7 +696,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           deliveryFeeBusiness: deliveryFeeBusiness || "5.00",
           deliveryFeeCustomer: deliveryFeeCustomer || "5.00",
           operatingHours: operatingHours || {},
+          // 🖨️ Printer settings
+          printerTcpIp: printerTcpIp || "192.168.1.100",
+          printerTcpPort: printerTcpPort || 9100,
+          printerType: printerType || "tcp",
+          printerEnabled: printerEnabled ?? false,
+          printKitchenOrders: printKitchenOrders ?? true,
         };
+        
+        // Initialize printer service with config
+        if (printerEnabled) {
+          const { printerService } = await import("./services/printer-service");
+          printerService.setConfig({
+            type: printerType || "tcp",
+            tcpIp: printerTcpIp,
+            tcpPort: printerTcpPort,
+            enabled: true,
+            printKitchenOrders: printKitchenOrders ?? true,
+          });
+          console.log(`[Printer] Configured: ${printerType} @ ${printerTcpIp}:${printerTcpPort}`);
+        }
         
         // SAVE TO MEMORY CACHE FIRST (always works)
         settingsMemoryCache.set(tenantId, settingsData);
@@ -740,6 +759,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           deliveryFeeBusiness: req.body.deliveryFeeBusiness || "5.00",
           deliveryFeeCustomer: req.body.deliveryFeeCustomer || "5.00",
           operatingHours: req.body.operatingHours || {},
+          printerTcpIp: req.body.printerTcpIp || "192.168.1.100",
+          printerTcpPort: req.body.printerTcpPort || 9100,
+          printerType: req.body.printerType || "tcp",
+          printerEnabled: req.body.printerEnabled ?? false,
+          printKitchenOrders: req.body.printKitchenOrders ?? true,
         };
         
         // Save to memory cache as fallback

@@ -33,12 +33,7 @@ const settingsSchema = z.object({
   useOwnDriver: z.boolean(),
   deliveryFeeBusiness: z.string(),
   deliveryFeeCustomer: z.string(),
-  // 🔧 Webhook integrations
-  ifoodWebhookUrl: z.string().url().optional(),
-  ifoodRestaurantId: z.string().optional(),
-  uberEatsWebhookUrl: z.string().url().optional(),
-  loggiWebhookUrl: z.string().url().optional(),
-  // 🔧 Printer settings
+  // 🖨️ Printer settings
   printerTcpIp: z.string().optional(),
   printerTcpPort: z.number().optional(),
   printerType: z.enum(['tcp', 'usb', 'bluetooth']).optional(),
@@ -78,6 +73,12 @@ export default function RestaurantSettingsPage() {
       useOwnDriver: true,
       deliveryFeeBusiness: "0",
       deliveryFeeCustomer: "0",
+      // 🖨️ Printer defaults
+      printerTcpIp: "192.168.1.100",
+      printerTcpPort: 9100,
+      printerType: "tcp",
+      printerEnabled: false,
+      printKitchenOrders: true,
       operatingHours: {
         monday: { open: "10:00", close: "23:00", closed: false },
         tuesday: { open: "10:00", close: "23:00", closed: false },
@@ -168,6 +169,12 @@ export default function RestaurantSettingsPage() {
         deliveryFeeBusiness: data.deliveryFeeBusiness,
         deliveryFeeCustomer: data.deliveryFeeCustomer,
         operatingHours: data.operatingHours,
+        // 🖨️ Printer config
+        printerTcpIp: data.printerTcpIp,
+        printerTcpPort: data.printerTcpPort,
+        printerType: data.printerType,
+        printerEnabled: data.printerEnabled,
+        printKitchenOrders: data.printKitchenOrders,
       });
       
       // Invalidar TODOS os caches relacionados
@@ -346,6 +353,90 @@ export default function RestaurantSettingsPage() {
                     </FormItem>
                   )}
                 />
+              </form>
+            </Form>
+          </Card>
+
+          {/* 🖨️ Impressora */}
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">Configurações da Impressora</h2>
+            <Form {...form}>
+              <form className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="printerEnabled"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <FormLabel>Ativar Impressora</FormLabel>
+                      <Switch checked={field.value as boolean} onCheckedChange={field.onChange} data-testid="switch-printer-enabled" />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("printerEnabled") && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="printerType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Impressora</FormLabel>
+                          <FormControl>
+                            <select {...field} className="px-3 py-2 border border-border rounded-md" data-testid="select-printer-type">
+                              <option value="tcp">TCP/IP (Ethernet)</option>
+                              <option value="usb">USB</option>
+                              <option value="bluetooth">Bluetooth</option>
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {form.watch("printerType") === "tcp" && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="printerTcpIp"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Endereço IP da Impressora</FormLabel>
+                              <FormControl>
+                                <Input placeholder="192.168.1.100" {...field} data-testid="input-printer-ip" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="printerTcpPort"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Porta TCP</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="9100" {...field} onChange={(e) => field.onChange(Number(e.target.value))} data-testid="input-printer-port" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="printKitchenOrders"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between">
+                          <FormLabel>Imprimir Pedidos da Cozinha</FormLabel>
+                          <Switch checked={field.value as boolean} onCheckedChange={field.onChange} data-testid="switch-print-kitchen" />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </form>
             </Form>
           </Card>
