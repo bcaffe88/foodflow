@@ -10,6 +10,7 @@ import { initializeN8NClient, type N8NClient } from "./n8n-api";
 import { initializeSupabaseService, type SupabaseService } from "./supabase-service";
 import { initializeGoogleMapsService } from "./google-maps-service";
 import { initializeDeliveryOptimizer } from "./delivery-optimizer";
+import { sendOrderConfirmation, sendDeliveryComplete, sendDriverAssignment } from "./services/email-service";
 
 // In-memory cache for restaurant settings (fallback when DB is down)
 const settingsMemoryCache = new Map<string, Record<string, any>>();
@@ -321,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Não retorna erro - pedido é criado mesmo se falhar o WhatsApp
       }
 
-      // Send WhatsApp notification to customer
+      // Send notifications (WhatsApp + Email)
       try {
         await whatsappService.sendOrderNotification({
           type: "order.created",
@@ -337,6 +338,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (notificationError) {
         // Silent fail
+      }
+
+      // Send email confirmation if customer email available
+      if (data.customerEmail) {
+        try {
+          await sendOrderConfirmation(
+            data.customerEmail,
+            data.customerName,
+            order.id,
+            parseFloat(data.total),
+            tenant.name
+          );
+        } catch (emailError) {
+          // Silent fail
+        }
       }
 
       res.status(201).json(order);
@@ -1344,16 +1360,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { orderId } = req.params;
         const updated = await storage.updateOrderStatus(orderId, "delivered");
         
-        // Send WhatsApp notification that order was delivered
+        // Send notifications (WhatsApp + Email) that order was delivered
         if (updated) {
           const tenant = await storage.getTenant(updated.tenantId);
-          await whatsappService.sendOrderNotification({
-            type: "order.delivered",
-            orderId,
-            customerPhone: updated.customerPhone,
-            customerName: updated.customerName,
-            restaurantName: tenant?.name || "Restaurant",
-          });
+          try {
+            await whatsappService.sendOrderNotification({
+              type: "order.delivered",
+              orderId,
+              customerPhone: updated.customerPhone,
+              customerName: updated.customerName,
+              restaurantName: tenant?.name || "Restaurant",
+            });
+          } catch (whatsappError) {
+            // Silent fail
+          }
+
+          // Send email to customer
+          if (updated.customerEmail) {
+            try {
+              await sendDeliveryComplete(
+                updated.customerEmail,
+                updated.customerName,
+                orderId,
+                tenant?.name || "Restaurant"
+              );
+            } catch (emailError) {
+              // Silent fail
+            }
+          }
         }
         
         res.json(updated || { id: orderId, status: "delivered" });
