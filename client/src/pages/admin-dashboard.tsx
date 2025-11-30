@@ -6,8 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { LogOut, Plus, Store, TrendingUp, Clock, BarChart3, Users } from "lucide-react";
+import { LogOut, Plus, Store, TrendingUp, Clock, BarChart3, Users, Settings, Webhook } from "lucide-react";
 import type { Tenant } from "@shared/schema";
+
+const ADMIN_MENU = [
+  { label: "Dashboard", href: "/admin/dashboard", icon: BarChart3, testid: "link-admin-dashboard" },
+  { label: "Restaurantes", href: "/admin/restaurants", icon: Store, testid: "link-admin-restaurants" },
+  { label: "Webhook Config", href: "/admin/webhook-config", icon: Webhook, testid: "link-admin-webhook" },
+  { label: "Plataforma", href: "/admin/platform", icon: Users, testid: "link-admin-platform" },
+];
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
@@ -109,7 +116,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="bg-card border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 md:py-4 flex items-center justify-between gap-3">
@@ -124,7 +131,30 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+      {/* Navigation Tabs */}
+      <nav className="bg-background border-b sticky top-14 z-40">
+        <div className="max-w-7xl mx-auto px-4 flex gap-2 md:gap-4 overflow-x-auto">
+          {ADMIN_MENU.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(item.href);
+              }}
+              data-testid={item.testid}
+              className="px-3 md:px-4 py-3 text-xs md:text-sm font-medium hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+            >
+              <div className="flex items-center gap-1 md:gap-2">
+                <item.icon className="h-4 w-4" />
+                <span className="hidden md:inline">{item.label}</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-6 md:py-8 w-full">
         {/* KPIs */}
         <motion.div
           initial="hidden"
@@ -133,9 +163,9 @@ export default function AdminDashboard() {
           className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8"
         >
           {[
-            { icon: Store, label: "Restaurantes", value: stats.totalRestaurants, color: "text-red-600", testid: "text-total-restaurants" },
-            { icon: TrendingUp, label: "Receita", value: `R$ ${stats.totalRevenue.toFixed(2)}`, color: "text-green-600", testid: "text-revenue" },
-            { icon: Clock, label: "Pendentes", value: stats.pendingOrders, color: "text-blue-600", testid: "text-pending-orders" },
+            { icon: Store, label: "Restaurantes Ativos", value: stats.totalRestaurants, color: "text-primary", testid: "text-total-restaurants" },
+            { icon: TrendingUp, label: "Receita Estimada", value: `R$ ${stats.totalRevenue.toFixed(2)}`, color: "text-green-600", testid: "text-revenue" },
+            { icon: Clock, label: "Pedidos Pendentes", value: stats.pendingOrders, color: "text-blue-600", testid: "text-pending-orders" },
           ].map((stat, idx) => (
             <motion.div key={idx} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
               <Card className="p-4 md:p-6 h-full">
@@ -153,13 +183,25 @@ export default function AdminDashboard() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6 md:mb-8">
           <div>
-            <h2 className="text-lg md:text-xl font-bold">Seus Restaurantes</h2>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">{stats.totalRestaurants} conectados na plataforma</p>
+            <h2 className="text-lg md:text-xl font-bold">Restaurantes na Plataforma</h2>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Total: {stats.totalRestaurants} | Gerencie aqui suas configurações e integrações</p>
           </div>
-          <Button onClick={() => setShowNewTenant(!showNewTenant)} data-testid="button-new-tenant" className="gap-2 text-xs md:text-sm w-full md:w-auto">
-            <Plus className="h-3 md:h-4 w-3 md:w-4" />
-            <span>Adicionar</span>
-          </Button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button onClick={() => setShowNewTenant(!showNewTenant)} data-testid="button-new-tenant" className="gap-2 text-xs md:text-sm flex-1 md:flex-none">
+              <Plus className="h-3 md:h-4 w-3 md:w-4" />
+              <span>Novo</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/admin/restaurants")}
+              data-testid="button-manage-all"
+              className="gap-2 text-xs md:text-sm flex-1 md:flex-none"
+            >
+              <Store className="h-3 md:h-4 w-3 md:w-4" />
+              <span className="hidden md:inline">Gerenciar Todos</span>
+              <span className="md:hidden">Gerenciar</span>
+            </Button>
+          </div>
         </div>
 
         {showNewTenant && (
