@@ -6,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { LogOut, Plus, Store, TrendingUp, Clock, BarChart3, Users, Settings, Webhook } from "lucide-react";
+import { LogOut, Plus, Store, TrendingUp, Clock, BarChart3, Users, Settings } from "lucide-react";
 import type { Tenant } from "@shared/schema";
 
 const ADMIN_MENU = [
   { label: "Dashboard", href: "/admin/dashboard", icon: BarChart3, testid: "link-admin-dashboard" },
   { label: "Restaurantes", href: "/admin/restaurants", icon: Store, testid: "link-admin-restaurants" },
-  { label: "Webhook Config", href: "/admin/webhook-config", icon: Webhook, testid: "link-admin-webhook" },
   { label: "Plataforma", href: "/admin/platform", icon: Users, testid: "link-admin-platform" },
 ];
 

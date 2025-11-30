@@ -34,7 +34,6 @@ const AdminPlatform = lazy(() => import("@/pages/admin-platform"));
 const CustomerOrderTracking = lazy(() => import("@/pages/customer-order-tracking"));
 const DriverMap = lazy(() => import("@/pages/driver-map"));
 const AnalyticsDashboard = lazy(() => import("@/pages/analytics-dashboard"));
-const AdminWebhookConfig = lazy(() => import("@/pages/admin-webhook-config"));
 const RestaurantPromotions = lazy(() => import("@/pages/restaurant-promotions"));
 const CustomerRating = lazy(() => import("@/pages/customer-rating"));
 const RestaurantRatings = lazy(() => import("@/pages/restaurant-ratings"));
@@ -79,7 +78,6 @@ function Router() {
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/restaurants" component={AdminRestaurants} />
         <Route path="/admin/platform" component={AdminPlatform} />
-        <Route path="/admin/webhook-config" component={AdminWebhookConfig} />
         <Route path="/customer/order/:id" component={CustomerOrderTracking} />
         <Route component={NotFound} />
       </Switch>
