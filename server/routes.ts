@@ -11,6 +11,8 @@ import { initializeSupabaseService, type SupabaseService } from "./supabase-serv
 import { initializeGoogleMapsService } from "./google-maps-service";
 import { initializeDeliveryOptimizer } from "./delivery-optimizer";
 import { sendOrderConfirmation, sendDeliveryComplete, sendDriverAssignment } from "./services/email-service";
+import { registerAdminErrorRoutes } from "./routes/admin-errors";
+import { trackError } from "./services/error-tracking-service";
 
 // In-memory cache for restaurant settings (fallback when DB is down)
 const settingsMemoryCache = new Map<string, Record<string, any>>();
@@ -18,6 +20,7 @@ const settingsMemoryCache = new Map<string, Record<string, any>>();
 export async function registerRoutes(app: Express): Promise<Server> {
   registerAuthRoutes(app);
   registerPaymentRoutes(app);
+  registerAdminErrorRoutes(app);
 
   // Health check endpoint for deployment monitoring
   app.get("/api/health", (_req, res) => {
