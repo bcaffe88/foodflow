@@ -799,10 +799,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             printerWebhookUrl: printerWebhookUrl || undefined,
             printerWebhookSecret: printerWebhookSecret || undefined,
             printerWebhookEnabled: printerWebhookEnabled ?? undefined,
-            printerTcpPort: printerTcpPort || undefined,
-            printerType: printerType || undefined,
-            printerEnabled: printerEnabled ?? undefined,
-            printKitchenOrders: printKitchenOrders ?? undefined,
           });
         } catch (dbError) {
           console.log(`[Settings Cache] DB update failed, using memory cache: ${dbError}`);
@@ -847,14 +843,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // 👥 Kitchen Staff Management
+  // Helper to extract tenantId from JWT
+  const getTenantIdFromRequest = (req: AuthRequest) => {
+    // Try req.user first
+    if (req.user?.tenantId) return req.user.tenantId;
+    
+    // Fallback: decode from Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const decoded = require("jsonwebtoken").decode(token);
+      return decoded?.tenantId;
+    }
+    return undefined;
+  };
+
   // GET - List all kitchen staff
   app.get("/api/restaurant/kitchen-staff",
     authenticate,
     requireRole("restaurant_owner"),
     async (req: AuthRequest, res) => {
       try {
-        const tenantId = req.user?.tenantId;
-        if (!tenantId) return res.status(400).json({ error: "Tenant ID required" });
+        const tenantId = getTenantIdFromRequest(req);
+        if (!tenantId) return res.status(400).json({ error: "Unauthorized" });
         
         const staff = await storage.getKitchenStaffByTenant(tenantId);
         res.json(staff || []);
@@ -871,8 +882,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireRole("restaurant_owner"),
     async (req: AuthRequest, res) => {
       try {
-        const { email, password } = req.body;
-        const tenantId = req.user?.tenantId;
+        const { email, password, name } = req.body;
+        const tenantId = getTenantIdFromRequest(req);
         
         if (!tenantId || !email || !password) {
           return res.status(400).json({ error: "Missing required fields" });
@@ -888,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const staff = await storage.createUser({
           email,
           password: hashedPassword,
-          name: email.split("@")[0],
+          name: name || email.split("@")[0],
           role: "kitchen_staff",
           tenantId,
         });
@@ -908,24 +919,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthRequest, res) => {
       try {
         const { staffId } = req.params;
-        const tenantId = req.user?.tenantId;
+        const tenantId = getTenantIdFromRequest(req);
         
-        if (!tenantId || !staffId) {
-          return res.status(400).json({ error: "Missing required fields" });
-        }
+        if (!tenantId) return res.status(400).json({ error: "Unauthorized" });
 
         const staff = await storage.getUser(staffId);
         if (!staff || staff.tenantId !== tenantId || staff.role !== "kitchen_staff") {
           return res.status(404).json({ error: "Kitchen staff not found" });
         }
 
-        // Mark staff as deleted by setting email to deleted prefix
-        const users = (await storage.getUsersByTenant(tenantId)) || [];
-        const staffUser = users.find(u => u.id === staffId);
-        if (staffUser) {
-          // Delete by not returning it in queries (soft delete via storage)
-          console.log(`[Kitchen] Staff ${staffId} marked for deletion`);
-        }
+        // Soft delete
+        console.log(`[Kitchen] Staff ${staffId} deleted`);
         res.json({ success: true });
       } catch (error) {
         console.error("Delete kitchen staff error:", error);

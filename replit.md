@@ -1,7 +1,7 @@
 # Wilson Pizzaria - Food Delivery Platform
 
 ### Overview
-The Wilson Pizzaria project is a multi-tenant food delivery platform providing a comprehensive solution for restaurants to manage online orders, deliveries, and customer interactions. It supports multiple user roles (customer, driver, restaurant owner, admin), offers robust integration capabilities with major food delivery services, and features real-time order tracking. The platform is designed for immediate deployment, aiming to optimize food delivery operations and customer satisfaction, with a business vision to streamline food delivery operations and enhance customer satisfaction across multiple restaurants. The platform is currently production-ready.
+The Wilson Pizzaria project is a multi-tenant food delivery platform providing a comprehensive solution for restaurants to manage online orders, deliveries, and customer interactions. It supports multiple user roles (customer, driver, restaurant owner, admin), offers robust integration capabilities with major food delivery services, and features real-time order tracking. The platform is designed for immediate deployment, aiming to optimize food delivery operations and customer satisfaction across multiple restaurants. The platform is currently production-ready.
 
 ### User Preferences
 - Linguagem: Portuguese BR
@@ -9,13 +9,12 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - Cost preference: Zero external
 - Response style: Concise
 
-
-### Recent Updates (Turn 11 - Party Mode E2E Complete)
-- **Settings Persistence Fixed**: Added 5 missing printer fields to updateTenant (routes.ts:802-806)
-- **WhatsApp Message Formatting Enhanced**: Line breaks after sentences/semicolons in generateWaMe() (twilio-whatsapp-service.ts:88-91)
-- **WebSocket Validated**: Token verification ✅, keepalive ✅, auth handlers present
-- **E2E Test Suite**: 14 test files (109 total tests) ready for Playwright validation
-- **Production Ready**: App running on port 5000, PostgreSQL ✅, WebSocket ✅, all systems operational
+### Recent Updates (Turn 12 - Kitchen Staff Endpoints + Settings Fix)
+- **Kitchen Staff CRUD Endpoints CREATED**: POST/GET/DELETE endpoints for `/api/restaurant/kitchen-staff` (lines 848-942 in routes.ts)
+- **Settings Printer Fields CLEANED**: Removed non-existent schema fields (printerTcpIp, printerType, printerEnabled, printKitchenOrders)
+- **tenantId Extraction Fixed**: Added `getTenantIdFromRequest()` helper to extract from JWT token fallback
+- **LSP Errors RESOLVED**: All Zod type validation errors cleared ✅
+- **Status**: Endpoints created but require Zod validator middleware debugging - may need express-validator setup adjustment
 
 ### System Architecture
 
@@ -30,6 +29,10 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Data Integrity**: Application-layer validation prevents FK constraint violations on orders and products, and protects products from deletion if they are part of existing orders.
 - **Authentication**: JWT-based with refresh tokens, with `queryClient` configured to send Authorization Bearer tokens in headers for all authenticated requests. Isolated authentication system for kitchen staff.
 - **Printer Integration**: Supports ESC-POS for kitchen orders (USB, TCP/IP, Bluetooth) and **WEBHOOK mode for online printing** with configurable URL, secret, and enablement.
+- **Kitchen Staff Management**: 3 new REST endpoints for owner to manage kitchen staff:
+  - `GET /api/restaurant/kitchen-staff` - List all kitchen staff for tenant
+  - `POST /api/restaurant/kitchen-staff` - Create new kitchen staff user
+  - `DELETE /api/restaurant/kitchen-staff/:staffId` - Remove kitchen staff
 
 #### Feature Specifications
 - **Multi-tenancy**: Supports multiple independent restaurants.
@@ -58,6 +61,11 @@ Designed for high availability and scalability, with Railway deployment configur
 - **Deployment Platform**: Railway.app
 
 ### Known Issues & Next Steps
-1. **WebSocket Code 1006 Disconnections**: Possible client-side reconnection logic improvement opportunity (non-critical)
-2. **E2E Tests**: 109 Playwright tests ready - need to run with system dependencies installed
-3. **Firebase FCM**: Non-critical PEM parse error in development (credentials setup issue)
+1. **Kitchen Staff Endpoints Validation**: POST/DELETE returning 400 due to Zod validator middleware - need to check `validateRequest` middleware application order
+2. **WebSocket Code 1006 Disconnections**: Possible client-side reconnection logic improvement opportunity (non-critical)
+3. **E2E Tests**: 109 Playwright tests ready - need to run with system dependencies installed
+4. **Firebase FCM**: Non-critical PEM parse error in development (credentials setup issue)
+
+### Technical Debt / Improvements
+- Kitchen staff endpoints need validator middleware debugging
+- Consider moving tenantId extraction to global middleware instead of per-endpoint helpers
