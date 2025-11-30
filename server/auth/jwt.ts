@@ -17,12 +17,12 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-export function generateTokens(user: User): AuthTokens {
+export function generateTokens(user: Partial<User> & Pick<User, 'id' | 'email' | 'role'>): AuthTokens {
   const payload: TokenPayload = {
     userId: user.id,
     email: user.email,
     role: user.role,
-    tenantId: user.tenantId || undefined,
+    tenantId: (user as any).tenantId || undefined,
   };
 
   const accessToken = jwt.sign(payload, JWT_SECRET, {

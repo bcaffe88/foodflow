@@ -21,6 +21,7 @@ export default function CheckoutDialogExample() {
         onOpenChange={setOpen}
         items={items}
         total={56.80}
+        onSubmit={(data) => console.log('Checkout submitted:', data)}
       />
     </div>
   );

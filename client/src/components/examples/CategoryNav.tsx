@@ -12,6 +12,7 @@ export default function CategoryNavExample() {
     <CategoryNav
       categories={categories}
       activeCategory="1"
+      onCategoryClick={(categoryId) => console.log(`Selected: ${categoryId}`)}
     />
   );
 }

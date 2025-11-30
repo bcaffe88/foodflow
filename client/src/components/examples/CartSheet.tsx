@@ -27,6 +27,9 @@ export default function CartSheetExample() {
         open={open}
         onOpenChange={setOpen}
         items={items}
+        onUpdateQuantity={(productId, quantity) => console.log(`Update ${productId} to ${quantity}`)}
+        onRemoveItem={(productId) => console.log(`Remove ${productId}`)}
+        onCheckout={() => console.log('Checkout')}
       />
     </div>
   );

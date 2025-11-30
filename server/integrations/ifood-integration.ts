@@ -20,8 +20,7 @@ export async function handleIFoodWebhook(
         customerName: order.customer.name,
         customerPhone: order.customer.phone,
         customerEmail: order.customer.email || '',
-        externalOrderId: order.id,
-        externalPlatform: 'ifood',
+        orderNotes: `iFood Order #${order.id}`,
       });
 
       // Create order items separately if items exist

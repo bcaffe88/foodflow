@@ -34,8 +34,18 @@ export async function initializeFCM(config?: FCMConfig): Promise<boolean> {
     }
 
     // Load Firebase dynamically
-    const { initializeApp } = await import('firebase/app');
-    const { getMessaging, onMessage, isSupported } = await import('firebase/messaging');
+    let initializeApp: any, getMessaging: any, onMessage: any, isSupported: any;
+    try {
+      const firebaseApp = await import('firebase/app');
+      const firebaseMessaging = await import('firebase/messaging');
+      initializeApp = firebaseApp.initializeApp;
+      getMessaging = firebaseMessaging.getMessaging;
+      onMessage = firebaseMessaging.onMessage;
+      isSupported = firebaseMessaging.isSupported;
+    } catch (e) {
+      console.warn('Firebase modules not available', e);
+      return false;
+    }
 
     if (!(await isSupported())) {
       console.warn('Firebase Messaging not supported in this browser');
@@ -59,7 +69,7 @@ export async function initializeFCM(config?: FCMConfig): Promise<boolean> {
     messaging = getMessaging(app);
 
     // Handle foreground notifications
-    onMessage(messaging, (payload) => {
+    onMessage(messaging, (payload: any) => {
       console.log('Foreground message received:', payload);
       
       if (payload.notification) {

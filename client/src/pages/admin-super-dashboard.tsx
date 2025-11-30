@@ -127,7 +127,7 @@ export default function AdminSuperDashboard() {
                   <Cell fill="#8b5cf6" />
                   <Cell fill="#ec4899" />
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value: any) => Number(value) || 0} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>

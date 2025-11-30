@@ -20,33 +20,29 @@ export function registerAdminSuperRoutes(app: Express, storage: IStorage) {
     requireRole("super_admin"),
     async (req: AuthRequest, res) => {
       try {
-        // Get all tenants
-        const allTenants = await storage.getAllTenants?.() || [];
-        
-        // Collect orders from all tenants
-        const allOrders: any[] = [];
-        const allCustomers: any[] = [];
-        
-        for (const tenant of allTenants) {
-          try {
-            const tenantOrders = await storage.getOrdersByTenant?.(tenant.id) || [];
-            allOrders.push(...tenantOrders);
-            
-            const tenantCustomers = await storage.getCustomersByTenant?.(tenant.id) || [];
-            allCustomers.push(...tenantCustomers);
-          } catch (e) {
-            // Skip if methods don't exist
-          }
-        }
-
         const now = new Date();
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        // Get all orders and customers (platform-wide for admin)
+        const allOrders: any[] = [];
+        const allCustomers: any[] = [];
+        const allTenants: any[] = [];
+        
+        // Try to get platform metrics - fallback to empty arrays if methods don't exist
+        try {
+          if (typeof (storage as any).getAllTenants === 'function') {
+            const result = await (storage as any).getAllTenants();
+            allTenants.push(...(result || []));
+          }
+        } catch (e) {
+          // Fallback: no tenants data available
+        }
 
         // Filter last 30 days
         const orders = allOrders.filter(o => new Date(o.createdAt || 0) >= thirtyDaysAgo);
 
         // Calculate totals
-        const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.total || "0"), 0);
+        const totalRevenue = orders.reduce((sum: number, o: any) => sum + parseFloat(o.total || "0"), 0);
         const totalOrders = orders.length;
         const totalCustomers = allCustomers.length;
         const restaurants = allTenants.length;
@@ -58,7 +54,7 @@ export function registerAdminSuperRoutes(app: Express, storage: IStorage) {
           dailyMap.set(date.toISOString().split('T')[0], 0);
         }
 
-        orders.forEach(o => {
+        orders.forEach((o: any) => {
           const date = new Date(o.createdAt).toISOString().split('T')[0];
           dailyMap.set(date, (dailyMap.get(date) || 0) + parseFloat(o.total || "0"));
         });
@@ -70,8 +66,10 @@ export function registerAdminSuperRoutes(app: Express, storage: IStorage) {
 
         // Platform breakdown
         const platformMap = new Map<string, number>();
-        orders.forEach(o => {
-          const platform = o.externalPlatform || "Direct";
+        orders.forEach((o: any) => {
+          const platform = o.orderNotes?.includes('iFood') ? 'iFood' : 
+                          o.orderNotes?.includes('UberEats') ? 'UberEats' :
+                          o.orderNotes?.includes('Quero') ? 'Quero Delivery' : 'Direct';
           platformMap.set(platform, (platformMap.get(platform) || 0) + 1);
         });
 

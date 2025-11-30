@@ -20,8 +20,7 @@ export async function handleUberEatsWebhook(
         customerName: order.customer?.name || 'UberEats Customer',
         customerPhone: order.customer?.phone || '',
         customerEmail: order.customer?.email || '',
-        externalOrderId: order.id,
-        externalPlatform: 'ubereats',
+        orderNotes: `UberEats Order #${order.id}`,
       });
 
       // Create order items separately if items exist
