@@ -6,7 +6,8 @@ const JWT_EXPIRES_IN = "7d";
 const REFRESH_TOKEN_EXPIRES_IN = "30d";
 
 export interface TokenPayload {
-  userId: string;
+  userId?: string; // backward compat
+  id?: string; // new field
   email: string;
   role: string;
   tenantId?: string;

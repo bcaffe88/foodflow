@@ -132,7 +132,7 @@ export function registerAdminSuperRoutes(app: Express, storage: IStorage) {
     requireRole("super_admin"),
     async (req: AuthRequest, res) => {
       try {
-        const tenants = await storage.getTenants?.() || [];
+        const tenants = await storage.getAllTenants?.() || [];
         res.json(tenants);
       } catch (error) {
         console.error("Get restaurants error:", error);
@@ -148,10 +148,10 @@ export function registerAdminSuperRoutes(app: Express, storage: IStorage) {
     async (req: AuthRequest, res) => {
       try {
         const { id } = req.params;
-        const { active } = req.body;
+        const { active, isActive } = req.body;
 
         if (storage.updateTenant) {
-          const updated = await storage.updateTenant(id, { active });
+          const updated = await storage.updateTenant(id, { isActive: active !== undefined ? active : isActive });
           res.json(updated);
         } else {
           res.json({ success: true });
