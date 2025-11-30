@@ -33,56 +33,62 @@ export function useWebSocket({
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const params = new URLSearchParams({
-        userId,
+        userId: userId || "",
         type: userType,
-        token,
+        token: token || "",
         ...(tenantId && { tenantId }),
       });
       
       const wsUrl = `${protocol}//${window.location.host}/ws?${params.toString()}`;
-      console.log("[WebSocket] Connecting to:", wsUrl);
+      console.log("[WebSocket] 🔗 Connecting to:", wsUrl);
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("[WebSocket] ✅ Connected");
+        console.log("[WebSocket] ✅ Connected successfully");
         setIsConnected(true);
         setReconnectAttempts(0);
         onConnect?.();
+        
+        // Send initial ping to test connection
+        ws.send(JSON.stringify({ action: "ping" }));
       };
 
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          console.log("[WebSocket] Message received:", message.type);
+          console.log("[WebSocket] 📨 Message:", message.action || message.type);
           onMessage?.(message);
         } catch (error) {
-          console.error("[WebSocket] Message parse error:", error);
+          console.error("[WebSocket] ❌ Parse error:", error);
         }
       };
 
-      ws.onclose = () => {
-        console.log("[WebSocket] ❌ Disconnected");
+      ws.onclose = (event) => {
+        console.log(`[WebSocket] ❌ Disconnected (code: ${event.code}, reason: ${event.reason})`);
         setIsConnected(false);
         onDisconnect?.();
         
-        // Reconectar após 3 segundos (máx 5 tentativas)
+        // Exponential backoff: 3s, 6s, 12s, 24s, 48s
         if (reconnectAttempts < 5) {
+          const delay = 3000 * Math.pow(2, reconnectAttempts);
           setTimeout(() => {
-            console.log("[WebSocket] Attempting reconnect...");
+            console.log(`[WebSocket] 🔄 Reconnecting... (attempt ${reconnectAttempts + 1}/5)`);
             setReconnectAttempts(prev => prev + 1);
             connect();
-          }, 3000);
+          }, delay);
+        } else {
+          console.error("[WebSocket] ❌ Max reconnection attempts reached");
         }
       };
 
       ws.onerror = (error) => {
-        console.error("[WebSocket] Error:", error);
+        console.error("[WebSocket] ⚠️ Error:", error);
         setIsConnected(false);
       };
     } catch (error) {
-      console.error("[WebSocket] Connection error:", error);
+      console.error("[WebSocket] 💥 Connection error:", error);
     }
   }, [userId, userType, token, tenantId, onMessage, onConnect, onDisconnect, reconnectAttempts]);
 

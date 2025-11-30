@@ -28,7 +28,28 @@ export class NotificationSocketManager {
   }
 
   initialize(server: Server): void {
-    this.wss = new WebSocketServer({ server, path: "/ws" });
+    this.wss = new WebSocketServer({ 
+      server, 
+      path: "/ws",
+      // CORS for WebSocket connections
+      verifyClient: ({ origin, req }, callback) => {
+        // Allow all origins in development
+        callback(true);
+      }
+    });
+
+    // Heartbeat to keep connections alive
+    const heartbeat = setInterval(() => {
+      this.connections.forEach((conn) => {
+        if (conn.ws.readyState === WebSocket.OPEN) {
+          conn.ws.ping();
+        }
+      });
+    }, 30000); // Every 30 seconds
+
+    this.wss.on("close", () => {
+      clearInterval(heartbeat);
+    });
 
     this.wss.on("connection", (ws: WebSocket, req) => {
       try {
@@ -36,21 +57,26 @@ export class NotificationSocketManager {
         const userId = url.searchParams.get("userId");
         const userType = url.searchParams.get("type");
         const token = url.searchParams.get("token");
-        let tenantId = url.searchParams.get("tenantId") || undefined;  // 🔧 EXTRAIR DA URL!
+        let tenantId = url.searchParams.get("tenantId") || undefined;
+
+        log(`[NotificationSocket] 🔗 Incoming connection: userId=${userId}, type=${userType}, token=${token ? '✓' : '✗'}`);
 
         if (!userId || !userType) {
+          log(`[NotificationSocket] ❌ Missing params: userId=${userId}, type=${userType}`);
           ws.send(JSON.stringify({ error: "Missing userId or type" }));
-          ws.close();
+          ws.close(1008, "Missing userId or type");
           return;
         }
 
-        // Verify token if provided - tenantId da URL é fallback
-        if (token && !tenantId) {  // Só tenta token se não tiver na URL
+        // Verify token if provided
+        if (token) {
           try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret") as any;
             tenantId = decoded.tenantId;
+            log(`[NotificationSocket] ✅ Token verified, tenantId: ${tenantId}`);
           } catch (error) {
-            log(`[NotificationSocket] Token verification failed: ${error}`);
+            log(`[NotificationSocket] ⚠️ Token verification failed: ${error}`);
+            // Don't close - allow fallback
           }
         }
 
@@ -63,7 +89,7 @@ export class NotificationSocketManager {
           lastPing: Date.now(),
         });
 
-        log(`[NotificationSocket] ✅ Connection established: ${connectionId} (tenant: ${tenantId || 'none'})`);
+        log(`[NotificationSocket] ✅ Connection established: ${connectionId} (total: ${this.connections.size})`);
 
         ws.on("message", async (data: string) => {
           try {
@@ -74,19 +100,26 @@ export class NotificationSocketManager {
           }
         });
 
+        ws.on("pong", () => {
+          const conn = this.connections.get(connectionId);
+          if (conn) {
+            conn.lastPing = Date.now();
+          }
+        });
+
         ws.on("close", () => {
           this.handleDisconnect(connectionId);
         });
 
         ws.on("error", (error) => {
-          log(`[NotificationSocket] Error: ${error}`);
+          log(`[NotificationSocket] Error on ${connectionId}: ${error}`);
         });
 
         // Send connection confirmation
-        ws.send(JSON.stringify({ action: "connected", userId, userType }));
+        ws.send(JSON.stringify({ action: "connected", userId, userType, tenantId }));
       } catch (error) {
         log(`[NotificationSocket] Connection error: ${error}`);
-        ws.close();
+        ws.close(1011, "Internal server error");
       }
     });
 
