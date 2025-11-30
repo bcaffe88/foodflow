@@ -11,10 +11,14 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - Cost preference: Zero external
 - Response style: Concise
 
-### Recent Changes (Turn 6-8)
+### Recent Changes (Turn 6-12)
 - **Turn 6:** Kitchen Dashboard role validation + Register Restaurant fields expanded
 - **Turn 7:** Admin Restaurants CRUD completo + 2 backend endpoints (PATCH + POST status)
 - **Turn 8:** Admin Dashboard navegação completa + navigation tabs
+- **Turn 9:** 57 E2E tests com Playwright criados
+- **Turn 10:** Dark mode + Lazy loading (26 páginas) + Performance optimizations
+- **Turn 11:** Bug fixes - Admin webhook cleanup, printer config per-restaurant, register validation
+- **Turn 12:** Final documentation + deployment ready
 
 ### System Architecture
 
