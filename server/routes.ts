@@ -1414,6 +1414,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Loggi webhook
+  app.post("/api/webhooks/loggi/:tenantId",
+    async (req: AuthRequest, res) => {
+      try {
+        const { tenantId } = req.params;
+        const payload = req.body;
+        
+        console.log(`[Webhook] Loggi event: ${payload.type || payload.event}`);
+        
+        // Parse Loggi payload and create/update order
+        const trackingId = payload.tracking_id || payload.id;
+        
+        res.json({
+          status: "received",
+          trackingId,
+          externalId: trackingId,
+        });
+      } catch (error) {
+        console.error("Loggi webhook error:", error);
+        res.status(500).json({ error: "Webhook processing failed" });
+      }
+    }
+  );
+
+  // ============================================================================
+  // WEBHOOK TEST & MANAGEMENT ROUTES
+  // ============================================================================
+
+  app.post("/api/restaurant/webhooks/test",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const { webhookUrl, service } = req.body;
+        const tenantId = req.user!.tenantId!;
+        
+        console.log(`[Webhook Test] Testing ${service} webhook: ${webhookUrl}`);
+        
+        const testPayload = {
+          test: true,
+          timestamp: new Date().toISOString(),
+          service,
+          tenantId,
+          event: "test.webhook",
+        };
+
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-webhook-test": "true",
+          },
+          body: JSON.stringify(testPayload),
+        });
+
+        const result = {
+          success: response.ok,
+          status: response.status,
+          message: response.ok ? "Webhook test successful" : `Webhook returned ${response.status}`,
+          timestamp: new Date().toISOString(),
+        };
+
+        console.log(`[Webhook Test] Result: ${result.message}`);
+        res.json(result);
+      } catch (error) {
+        console.error("Webhook test error:", error);
+        res.status(500).json({ 
+          error: "Webhook test failed", 
+          details: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+  );
+
+  app.get("/api/restaurant/webhooks",
+    authenticate,
+    requireRole("restaurant_owner"),
+    requireTenantAccess,
+    async (req: AuthRequest, res) => {
+      try {
+        const tenantId = req.user!.tenantId!;
+        
+        const appUrl = process.env.APP_URL || "http://localhost:5000";
+        
+        res.json({
+          ifood: {
+            webhookUrl: `${appUrl}/api/webhooks/ifood/${tenantId}`,
+            configured: false,
+            restaurantId: "",
+          },
+          ubereats: {
+            webhookUrl: `${appUrl}/api/webhooks/ubereats/${tenantId}`,
+            configured: false,
+          },
+          loggi: {
+            webhookUrl: `${appUrl}/api/webhooks/loggi/${tenantId}`,
+            configured: false,
+          },
+        });
+      } catch (error) {
+        console.error("Get webhooks error:", error);
+        res.status(500).json({ error: "Failed to fetch webhooks" });
+      }
+    }
+  );
+
   // ============================================================================
   // ADDRESS & GEOCODING ROUTES
   // ============================================================================
