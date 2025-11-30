@@ -152,7 +152,7 @@ test.describe('Checkout API Endpoints', () => {
       },
     }).catch(() => null);
 
-    if (loginRes && loginRes.ok) {
+    if (loginRes !== null && loginRes.ok()) {
       const loginData = await loginRes.json();
       token = loginData.token;
     } else {
@@ -206,7 +206,7 @@ test.describe('Checkout API Endpoints', () => {
       },
     });
 
-    if (createRes && createRes.ok) {
+    if (createRes !== null && createRes.ok()) {
       const orderData = await createRes.json();
       const id = orderData.id;
 
