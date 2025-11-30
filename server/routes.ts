@@ -15,8 +15,12 @@ import { registerAdminErrorRoutes } from "./routes/admin-errors";
 import { trackError } from "./services/error-tracking-service";
 import { processPedeAiWebhook } from "./webhook/pede-ai";
 import { processQueroDeliveryWebhook } from "./webhook/quero-delivery";
+import { processIFoodWebhook } from "./webhook/ifood";
+import { processUberEatsWebhook } from "./webhook/ubereats";
 import { registerAnalyticsRoutes } from "./routes/analytics";
 import { registerDriverGPSRoutes } from "./routes/driver-gps";
+import { registerCouponRoutes } from "./routes/coupons";
+import { registerRatingRoutes } from "./routes/ratings";
 
 // In-memory cache for restaurant settings (fallback when DB is down)
 const settingsMemoryCache = new Map<string, Record<string, any>>();
@@ -27,6 +31,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminErrorRoutes(app);
   registerAnalyticsRoutes(app, storage);
   registerDriverGPSRoutes(app, storage);
+  registerCouponRoutes(app, storage);
+  registerRatingRoutes(app, storage);
 
   // Health check endpoint for deployment monitoring
   app.get("/api/health", (_req, res) => {

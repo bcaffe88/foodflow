@@ -1,192 +1,95 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/api';
-import { Star, ArrowLeft } from 'lucide-react';
-import type { Order } from '@shared/schema';
+import { useState } from "react";
+import { useParams } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Star } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CustomerRating() {
-  const [, navigate] = useLocation();
+  const { orderId } = useParams();
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
   const { toast } = useToast();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ratings, setRatings] = useState({
-    restaurantRating: 5,
-    restaurantComment: '',
-    driverRating: 5,
-    driverComment: '',
-    foodRating: 5,
-    foodComment: '',
-    deliveryTime: 0,
+
+  const submitRatingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/orders/${orderId}/rating`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, comment }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ description: "Avaliação enviada com sucesso!" });
+      setRating(0);
+      setComment("");
+    },
+    onError: () => {
+      toast({ variant: "destructive", description: "Erro ao enviar avaliação" });
+    },
   });
 
-  useEffect(() => {
-    const orderId = new URLSearchParams(window.location.search).get('orderId');
-    if (!orderId) {
-      navigate('/customer/orders');
-      return;
-    }
-    
-    const loadOrder = async () => {
-      try {
-        const result = await apiRequest('GET', `/api/orders/${orderId}`);
-        setOrder(result);
-      } catch (error) {
-        console.error('Failed to load order:', error);
-        toast({ title: 'Erro ao carregar pedido', variant: 'destructive' });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadOrder();
-  }, []);
-
-  const handleSubmit = async () => {
-    if (!order) return;
-
-    setIsSubmitting(true);
-    try {
-      const result = await apiRequest('POST', '/api/ratings', {
-        orderId: order.id,
-        customerId: JSON.parse(localStorage.getItem('user') || '{}').id,
-        tenantId: order.tenantId,
-        driverId: order.driverId,
-        restaurantRating: ratings.restaurantRating,
-        restaurantComment: ratings.restaurantComment,
-        driverRating: ratings.driverRating,
-        driverComment: ratings.driverComment,
-        foodRating: ratings.foodRating,
-        foodComment: ratings.foodComment,
-        deliveryTime: ratings.deliveryTime,
-      });
-
-      if (result?.success) {
-        toast({ title: 'Avaliação enviada com sucesso!' });
-        navigate('/customer/orders');
-      }
-    } catch (error) {
-      toast({ title: 'Erro ao enviar avaliação', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const StarRating = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => (
-    <div className="flex gap-2">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          onClick={() => onChange(star)}
-          data-testid={`button-star-${star}`}
-          className="transition-all"
-        >
-          <Star
-            className={`w-6 h-6 ${
-              star <= value
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-gray-300'
-            }`}
-          />
-        </button>
-      ))}
-    </div>
-  );
-
-  if (isLoading) {
-    return <div className="p-4">Carregando pedido...</div>;
-  }
-
-  if (!order) {
-    return <div className="p-4">Pedido não encontrado</div>;
-  }
-
   return (
-    <div className="min-h-screen bg-background p-4" data-testid="page-customer-rating">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/customer/orders')} data-testid="button-back">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">Avaliar Pedido #{order.id.slice(0, 8)}</h1>
-        </div>
-
-        <div className="space-y-6">
-          {/* Restaurante */}
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Avaliação do Restaurante</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Classificação (1-5)</label>
-                <StarRating value={ratings.restaurantRating} onChange={(v) => setRatings({ ...ratings, restaurantRating: v })} />
-              </div>
-              <Textarea
-                placeholder="Comentário sobre o restaurante (opcional)"
-                value={ratings.restaurantComment}
-                onChange={(e) => setRatings({ ...ratings, restaurantComment: e.target.value })}
-                data-testid="textarea-restaurant-comment"
-              />
+    <div className="p-6 max-w-2xl mx-auto">
+      <Card data-testid="card-rating-form">
+        <CardHeader>
+          <CardTitle>Avaliar Pedido #{orderId}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Star Rating */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Qual sua avaliação?</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  data-testid={`button-star-${star}`}
+                  onClick={() => setRating(star)}
+                  className="transition-transform hover:scale-110"
+                >
+                  <Star
+                    className={`h-8 w-8 ${
+                      star <= rating
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                  />
+                </button>
+              ))}
             </div>
-          </Card>
-
-          {/* Comida */}
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Avaliação da Comida</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Classificação (1-5)</label>
-                <StarRating value={ratings.foodRating} onChange={(v) => setRatings({ ...ratings, foodRating: v })} />
-              </div>
-              <Textarea
-                placeholder="Como estava a comida?"
-                value={ratings.foodComment}
-                onChange={(e) => setRatings({ ...ratings, foodComment: e.target.value })}
-                data-testid="textarea-food-comment"
-              />
-            </div>
-          </Card>
-
-          {/* Entrega */}
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Avaliação da Entrega</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Classificação do Entregador (1-5)</label>
-                <StarRating value={ratings.driverRating} onChange={(v) => setRatings({ ...ratings, driverRating: v })} />
-              </div>
-              <Textarea
-                placeholder="Como foi o serviço de entrega?"
-                value={ratings.driverComment}
-                onChange={(e) => setRatings({ ...ratings, driverComment: e.target.value })}
-                data-testid="textarea-driver-comment"
-              />
-            </div>
-          </Card>
-
-          {/* Botões */}
-          <div className="flex gap-3">
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              data-testid="button-submit-rating"
-              className="flex-1"
-            >
-              {isSubmitting ? 'Enviando...' : 'Enviar Avaliação'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/customer/orders')}
-              data-testid="button-skip-rating"
-            >
-              Pular
-            </Button>
+            {rating > 0 && (
+              <p data-testid="text-rating-value" className="text-sm text-muted-foreground">
+                {rating}/5 estrelas
+              </p>
+            )}
           </div>
-        </div>
-      </div>
+
+          {/* Comment */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Comentário (opcional)</label>
+            <Textarea
+              placeholder="Conte sua experiência..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              data-testid="textarea-comment"
+              className="min-h-24"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <Button
+            data-testid="button-submit-rating"
+            onClick={() => submitRatingMutation.mutate()}
+            disabled={rating === 0 || submitRatingMutation.isPending}
+            className="w-full"
+          >
+            {submitRatingMutation.isPending ? "Enviando..." : "Enviar Avaliação"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
