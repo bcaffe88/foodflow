@@ -366,6 +366,19 @@ export class DatabaseStorage implements IStorage {
     commissionData?: Omit<InsertCommission, 'orderId'>
   ): Promise<{ order: Order; payment?: Payment; items?: OrderItem[]; commission?: Commission }> {
     return await db.transaction(async (tx: any) => {
+      // Validate all products exist BEFORE creating order (FK constraint check)
+      if (itemsData && itemsData.length > 0) {
+        const productIds = itemsData.map(item => item.productId);
+        const existingProducts = await tx.select({ id: products.id }).from(products).where(
+          sql`${products.id} = ANY(${productIds}::text[])`
+        );
+        const existingIds = existingProducts.map((p: any) => p.id);
+        const missingIds = productIds.filter((id: string) => !existingIds.includes(id));
+        if (missingIds.length > 0) {
+          throw new Error(`Products not found: ${missingIds.join(', ')}. Cannot create order with items referencing deleted products.`);
+        }
+      }
+
       // Create order
       const [order] = await tx.insert(orders).values(orderData).returning();
 

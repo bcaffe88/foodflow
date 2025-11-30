@@ -614,14 +614,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthRequest, res) => {
       try {
         const { id } = req.params;
+        // Check if product has active order items before deletion
+        const { orderItems: oi } = await import("@shared/schema");
+        const items = await db.select().from(oi).where(eq(oi.productId, id)).limit(1).catch(() => []);
+        if (items && items.length > 0) {
+          return res.status(400).json({ 
+            error: "Não é possível deletar este produto. Existem pedidos referenciando este produto. Desative-o em vez de deletar." 
+          });
+        }
         await storage.deleteProduct(id);
         // Invalidate cache
         await invalidateCache("/api/restaurant/products*");
         res.status(204).send();
       } catch (error) {
+        if (error instanceof Error && error.message.includes("foreign key")) {
+          return res.status(400).json({ 
+            error: "Não é possível deletar este produto. Existem pedidos referenciando este produto. Desative-o em vez de deletar." 
+          });
+        }
         console.error("Delete product error:", error);
-        // Fallback: return success anyway
-        res.status(204).send();
+        res.status(500).json({ error: "Erro ao deletar produto" });
       }
     }
   );
