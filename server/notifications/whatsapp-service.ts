@@ -1,4 +1,11 @@
 import { log } from "../logger";
+import {
+  sendWhatsAppMessage,
+  sendOrderNotification as sendTwilioOrder,
+  sendStatusUpdate as sendTwilioStatus,
+  sendKitchenOrder as sendTwilioKitchen,
+  handleIncomingMessage,
+} from "../services/twilio-whatsapp-service";
 
 export interface WhatsAppMessage {
   to: string;
@@ -26,7 +33,7 @@ export class WhatsAppNotificationService {
   private static instance: WhatsAppNotificationService;
 
   private constructor() {
-    log("[WhatsApp] Service initialized");
+    log("[WhatsApp] Service initialized with Twilio integration");
   }
 
   static getInstance(): WhatsAppNotificationService {
@@ -47,15 +54,9 @@ export class WhatsAppNotificationService {
 
       log(`[WhatsApp] Sending ${event.type} notification to ${event.customerPhone}`);
 
-      // In production: integrate with Twilio/WhatsApp Business API
-      // For now: log the message (ready for Twilio integration)
-      console.log(`[WhatsApp Message]`, {
-        to: event.customerPhone,
-        message: message,
-        timestamp: new Date().toISOString(),
-      });
-
-      return true;
+      // Send via Twilio (with fallback to logging)
+      const result = await sendWhatsAppMessage(event.customerPhone, message);
+      return result.success;
     } catch (error) {
       log(`[WhatsApp] Error sending notification: ${error}`);
       return false;
@@ -148,23 +149,17 @@ export class WhatsAppNotificationService {
     try {
       log(`[WhatsApp] Sending formatted kitchen order ${orderId}`);
 
-      const itemsList = items
-        .map((item) => `• ${item.quantity}x ${item.name}${item.notes ? ` (${item.notes})` : ""}`)
-        .join("\n");
-
-      const message = `🍕 NOVO PEDIDO - ${orderId.slice(0, 8).toUpperCase()}\n\n${itemsList}\n\n💰 Total: R$ ${totalPrice}\n📍 Endereço: ${deliveryAddress}\n📱 Cliente: ${customerPhone}\n\nConfirmar: /confirm ${orderId}`;
-
-      console.log(`[WhatsApp Kitchen Order - FORMATTED]`, {
-        to: restaurantPhone,
+      // Send via Twilio (with fallback to logging)
+      const result = await sendTwilioKitchen(
+        restaurantPhone,
         orderId,
-        message: message,
-        timestamp: new Date().toISOString(),
-      });
+        items,
+        totalPrice,
+        customerPhone,
+        deliveryAddress
+      );
 
-      // TODO: Integrar com Twilio/WhatsApp Business API
-      // await this.sendViaWhatsAppAPI(restaurantPhone, message);
-
-      return true;
+      return result.success;
     } catch (error) {
       log(`[WhatsApp] Error sending formatted kitchen order: ${error}`);
       return false;
@@ -181,28 +176,16 @@ export class WhatsAppNotificationService {
     try {
       log(`[WhatsApp] Sending status update for order ${order.id}: ${previousStatus} → ${newStatus}`);
 
-      const statusMessages: Record<string, string> = {
-        "pending": "Seu pedido foi recebido e está na fila",
-        "confirmed": "Seu pedido foi confirmado! Começaremos a preparar em breve",
-        "preparing": "Seu pedido está sendo preparado com carinho",
-        "ready": "Seu pedido está pronto! Um entregador será designado em breve",
-        "out_for_delivery": "Seu pedido saiu para entrega!",
-        "delivered": "Seu pedido foi entregue! Obrigado por pedir em " + restaurantName,
-        "cancelled": "Seu pedido foi cancelado. Pedimos desculpas"
-      };
-
-      const message = `📦 Atualização de Pedido\n\n${statusMessages[newStatus] || "Status atualizado"}\n\nPedido: ${order.id.slice(0, 8).toUpperCase()}\nRestaurante: ${restaurantName}`;
-
-      console.log(`[WhatsApp Status Update]`, {
-        to: customerPhone,
-        orderId: order.id,
+      // Send via Twilio (with fallback to logging)
+      const result = await sendTwilioStatus(
+        customerPhone,
+        order.id,
         previousStatus,
         newStatus,
-        message: message,
-        timestamp: new Date().toISOString(),
-      });
+        restaurantName
+      );
 
-      return true;
+      return result.success;
     } catch (error) {
       log(`[WhatsApp] Error sending status update: ${error}`);
       return false;
