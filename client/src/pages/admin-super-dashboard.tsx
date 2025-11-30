@@ -145,7 +145,7 @@ export default function AdminSuperDashboard() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
               <YAxis />
-              <Tooltip formatter={(value) => `R$ ${value.toFixed(2)}`} />
+              <Tooltip formatter={(value) => `R$ ${(typeof value === 'number' ? value : parseFloat(String(value))).toFixed(2)}`} />
               <Bar dataKey="revenue" fill="#3b82f6" />
             </BarChart>
           </ResponsiveContainer>

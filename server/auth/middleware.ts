@@ -3,7 +3,8 @@ import { verifyToken } from "./jwt";
 
 export interface AuthRequest extends Request {
   user?: {
-    userId: string;
+    userId?: string;
+    id?: string;
     email: string;
     role: string;
     tenantId?: string;
@@ -24,7 +25,13 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 
-  req.user = payload;
+  req.user = {
+    userId: payload.userId || payload.id,
+    id: payload.id || payload.userId,
+    email: payload.email,
+    role: payload.role,
+    tenantId: payload.tenantId,
+  };
   next();
 }
 
@@ -67,7 +74,13 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
     const token = authHeader.substring(7);
     const payload = verifyToken(token);
     if (payload) {
-      req.user = payload;
+      req.user = {
+        userId: payload.userId || payload.id,
+        id: payload.id || payload.userId,
+        email: payload.email,
+        role: payload.role,
+        tenantId: payload.tenantId,
+      };
     }
   }
 

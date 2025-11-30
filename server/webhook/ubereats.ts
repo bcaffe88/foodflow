@@ -124,9 +124,6 @@ export async function processUberEatsWebhook(
       // Update order status (if method exists)
       if ('updateOrder' in storage) {
         await (storage as any).updateOrder(existingOrder.id, { status: orderStatus });
-      } else {
-        // Fallback: create new order with updated status
-        await storage.createOrder(newOrder);
       }
 
       if (shouldNotify) {

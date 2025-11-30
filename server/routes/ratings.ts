@@ -20,7 +20,7 @@ export function registerRatingRoutes(app: Express, storage: IStorage) {
       try {
         const { orderId } = req.params;
         const { rating, comment } = req.body;
-        const customerId = (req.user!.id || (req.user as any).userId)!;
+        const customerId = req.user!.id || req.user!.userId!;
 
         if (!rating || rating < 1 || rating > 5) {
           return res.status(400).json({ error: "Rating must be between 1 and 5" });

@@ -20,7 +20,7 @@ export function registerDriverGPSRoutes(app: Express, storage: IStorage) {
     requireRole("driver"),
     async (req: AuthRequest, res) => {
       try {
-        const driverId = (req.user!.id || (req.user as any).userId)!;
+        const driverId = req.user!.id || req.user!.userId!;
         const { latitude, longitude, accuracy } = req.body;
 
         const locationData: DriverLocationData = {
