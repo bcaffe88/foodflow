@@ -41,6 +41,18 @@ export default function OrderConfirmationPage() {
     }
   }, []);
 
+  // Auto-open WhatsApp quando URL está pronta
+  useEffect(() => {
+    if (whatsappUrl && !whatsappOpened) {
+      // Aguardar um pouco para a página renderizar completamente
+      const timer = setTimeout(() => {
+        window.open(whatsappUrl, "_blank");
+        setWhatsappOpened(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [whatsappUrl, whatsappOpened]);
+
   const loadOrderDetails = async (id: string) => {
     try {
       const order = await apiRequest("GET", `/api/orders/${id}`);

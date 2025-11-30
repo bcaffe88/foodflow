@@ -71,7 +71,8 @@ export default function RestaurantDashboard() {
   const connectWebSocket = (user: any) => {
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}&type=restaurant_owner&token=${localStorage.getItem("accessToken")}`;
+      // IMPORTANTE: Passar tenantId para o servidor poder fazer broadcast por tenant
+      const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}&type=restaurant_owner&token=${localStorage.getItem("accessToken")}&tenantId=${user.tenantId}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
