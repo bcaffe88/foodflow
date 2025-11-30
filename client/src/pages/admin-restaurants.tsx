@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, Edit2, Pause, Play, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -20,10 +20,13 @@ interface Restaurant {
   address: string;
   commissionPercentage: string;
   n8nWebhookUrl?: string;
+  status?: "active" | "suspended";
 }
 
 const webhookSchema = z.object({
   n8nWebhookUrl: z.string().url().optional(),
+  commissionPercentage: z.string().optional(),
+  status: z.enum(["active", "suspended"]).optional(),
 });
 
 export default function AdminRestaurantsPage() {
@@ -32,6 +35,7 @@ export default function AdminRestaurantsPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
   const form = useForm({ resolver: zodResolver(webhookSchema) });
 
   useEffect(() => {
@@ -63,15 +67,33 @@ export default function AdminRestaurantsPage() {
   const onSubmit = async (data: any) => {
     if (!selectedRestaurant) return;
     try {
-      await apiRequest("PATCH", `/api/admin/restaurants/${selectedRestaurant.id}/webhook`, data);
-      toast({ title: "Sucesso!", description: "Webhook atualizado" });
+      await apiRequest("PATCH", `/api/admin/restaurants/${selectedRestaurant.id}`, data);
+      toast({ title: "Sucesso!", description: "Restaurante atualizado" });
+      setEditMode(false);
       setSelectedRestaurant(null);
       await loadRestaurants();
     } catch (error: any) {
-      console.error("Update webhook error:", error);
+      console.error("Update restaurant error:", error);
       toast({ 
         title: "Erro", 
-        description: error?.message || "Falha ao atualizar webhook",
+        description: error?.message || "Falha ao atualizar",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleSuspendRestaurant = async (restaurantId: string, isSuspended: boolean) => {
+    if (!confirm(`Tem certeza que deseja ${isSuspended ? "ativar" : "suspender"} este restaurante?`)) return;
+    try {
+      await apiRequest("POST", `/api/admin/restaurants/${restaurantId}/status`, { 
+        status: isSuspended ? "active" : "suspended" 
+      });
+      toast({ title: "Sucesso!", description: `Restaurante ${isSuspended ? "ativado" : "suspenso"}` });
+      await loadRestaurants();
+    } catch (error: any) {
+      toast({ 
+        title: "Erro", 
+        description: error?.message || "Falha ao atualizar status",
         variant: "destructive" 
       });
     }
@@ -167,45 +189,120 @@ export default function AdminRestaurantsPage() {
                       <p className="text-xs md:text-sm text-muted-foreground">Comissão</p>
                       <p className="text-xs md:text-sm">{selectedRestaurant.commissionPercentage}%</p>
                     </div>
+                    <div>
+                      <p className="text-xs md:text-sm text-muted-foreground">Status</p>
+                      <p className="text-xs md:text-sm">
+                        <span className={`inline-block px-2 py-1 rounded ${selectedRestaurant.status === "suspended" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+                          {selectedRestaurant.status === "suspended" ? "Suspenso" : "Ativo"}
+                        </span>
+                      </p>
+                    </div>
                   </div>
 
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 md:space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="n8nWebhookUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs md:text-sm">URL Webhook N8N</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="https://n8n.example.com/webhook/..."
-                                className="text-xs md:text-sm h-9 md:h-10"
-                                {...field}
-                                data-testid="input-webhook-url"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                  {!editMode ? (
+                    <div className="space-y-2 md:space-y-3">
                       <Button
-                        type="submit"
-                        className="w-full text-xs md:text-sm"
-                        data-testid="button-save-webhook"
+                        variant="outline"
+                        className="w-full gap-2 text-xs md:text-sm"
+                        onClick={() => {
+                          setEditMode(true);
+                          form.reset({ 
+                            n8nWebhookUrl: selectedRestaurant.n8nWebhookUrl || "",
+                            commissionPercentage: selectedRestaurant.commissionPercentage,
+                          });
+                        }}
+                        data-testid="button-edit-restaurant"
                       >
-                        Salvar Webhook
+                        <Edit2 className="h-4 w-4" />
+                        Editar
                       </Button>
-                    </form>
-                  </Form>
-
-                  <Button
-                    variant="destructive"
-                    className="w-full mt-3 md:mt-4 text-xs md:text-sm"
-                    onClick={() => handleDeleteRestaurant(selectedRestaurant.id)}
-                    data-testid="button-delete-restaurant"
-                  >
-                    Deletar Restaurante
-                  </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 text-xs md:text-sm"
+                        onClick={() => handleSuspendRestaurant(selectedRestaurant.id, selectedRestaurant.status === "suspended")}
+                        data-testid="button-toggle-restaurant"
+                      >
+                        {selectedRestaurant.status === "suspended" ? (
+                          <>
+                            <Play className="h-4 w-4" />
+                            Ativar
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="h-4 w-4" />
+                            Suspender
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="w-full gap-2 text-xs md:text-sm"
+                        onClick={() => handleDeleteRestaurant(selectedRestaurant.id)}
+                        data-testid="button-delete-restaurant"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Deletar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 md:space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="commissionPercentage"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs md:text-sm">Comissão (%)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="10.00"
+                                  className="text-xs md:text-sm h-9 md:h-10"
+                                  {...field}
+                                  data-testid="input-commission"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="n8nWebhookUrl"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs md:text-sm">URL Webhook N8N</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="https://n8n.example.com/webhook/..."
+                                  className="text-xs md:text-sm h-9 md:h-10"
+                                  {...field}
+                                  data-testid="input-webhook-url"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="submit"
+                            className="flex-1 text-xs md:text-sm"
+                            data-testid="button-save-changes"
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 text-xs md:text-sm"
+                            onClick={() => setEditMode(false)}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  )}
                 </Card>
               </motion.div>
             )}

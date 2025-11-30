@@ -2015,6 +2015,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Update restaurant (comissão, webhook, etc)
+  app.patch("/api/admin/restaurants/:id",
+    authenticate,
+    requireRole("platform_admin"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { id } = req.params;
+        const { commissionPercentage, n8nWebhookUrl, status } = req.body;
+        const updates: any = {};
+        if (commissionPercentage !== undefined) updates.commissionPercentage = commissionPercentage;
+        if (n8nWebhookUrl !== undefined) updates.n8nWebhookUrl = n8nWebhookUrl;
+        if (status !== undefined) updates.isActive = status === "active" ? true : false;
+        const tenant = await storage.updateTenant(id, updates);
+        if (!tenant) {
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+        res.json(tenant);
+      } catch (error) {
+        console.error("Update restaurant error:", error);
+        res.status(500).json({ error: "Failed to update restaurant" });
+      }
+    }
+  );
+
+  // Suspend/Activate restaurant
+  app.post("/api/admin/restaurants/:id/status",
+    authenticate,
+    requireRole("platform_admin"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
+        if (!["active", "suspended"].includes(status)) {
+          return res.status(400).json({ error: "Invalid status" });
+        }
+        const isActive = status === "active" ? true : false;
+        const tenant = await storage.updateTenant(id, { isActive });
+        if (!tenant) {
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+        res.json({ success: true, status, message: `Restaurant ${status === "suspended" ? "suspended" : "activated"}` });
+      } catch (error) {
+        console.error("Update status error:", error);
+        res.status(500).json({ error: "Failed to update status" });
+      }
+    }
+  );
+
   // ============================================================================
   // IMAGE UPLOAD ROUTES
   // ============================================================================
