@@ -21,6 +21,7 @@ import { registerAnalyticsRoutes } from "./routes/analytics";
 import { registerDriverGPSRoutes } from "./routes/driver-gps";
 import { registerCouponRoutes } from "./routes/coupons";
 import { registerRatingRoutes } from "./routes/ratings";
+import { registerAdminSuperRoutes } from "./routes/admin-super";
 
 // In-memory cache for restaurant settings (fallback when DB is down)
 const settingsMemoryCache = new Map<string, Record<string, any>>();
@@ -33,6 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerDriverGPSRoutes(app, storage);
   registerCouponRoutes(app, storage);
   registerRatingRoutes(app, storage);
+  registerAdminSuperRoutes(app, storage);
 
   // Health check endpoint for deployment monitoring
   app.get("/api/health", (_req, res) => {
