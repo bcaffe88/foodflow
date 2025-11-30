@@ -43,8 +43,8 @@ export function initializeTwilio(): boolean {
 
     log("[Twilio] WhatsApp service initialized successfully");
     return true;
-  } catch (error) {
-    log("[Twilio] Failed to initialize:", error);
+  } catch (error: any) {
+    log("[Twilio] Failed to initialize:", error?.message || String(error));
     isConfigured = false;
     return false;
   }

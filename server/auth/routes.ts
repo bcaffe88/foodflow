@@ -152,7 +152,11 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const user = await storage.getUser(req.user.userId);
+      const userId = req.user.userId || req.user.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found in token" });
+      }
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }

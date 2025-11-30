@@ -9,6 +9,7 @@ export interface WebhookPayload {
   event: string;
   timestamp: string;
   tenantId: string;
+  orderId?: string;
   data: any;
 }
 
@@ -45,7 +46,7 @@ export async function processPrinterWebhook(
   storage: any
 ): Promise<{ success: boolean; message: string; processed?: WebhookEvent }> {
   try {
-    const { event, data, orderId } = payload;
+    const { event, data, orderId } = payload as any;
 
     // Validate event type
     if (!["order.ready", "order.cancelled", "order.completed", "test.webhook"].includes(event)) {
@@ -137,6 +138,9 @@ export async function sendWebhookToPrinter(
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       const response = await fetch(webhookUrl, {
         method: method || "POST",
         headers: {
@@ -144,8 +148,9 @@ export async function sendWebhookToPrinter(
           ...(secret && { "X-Webhook-Secret": secret })
         },
         body: JSON.stringify(payload),
-        timeout: 10000
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         console.log(`[Webhook] Successfully sent to printer (attempt ${attempt}/${maxRetries})`);
@@ -155,9 +160,9 @@ export async function sendWebhookToPrinter(
         };
       }
 
-      lastError = `HTTP ${response.status}: ${response.statusText}`;
+      lastError = `HTTP ${response.status}: ${response.statusText}` as string;
     } catch (error: any) {
-      lastError = error.message;
+      lastError = error.message || String(error);
 
       // Exponential backoff
       if (attempt < maxRetries) {
@@ -172,7 +177,7 @@ export async function sendWebhookToPrinter(
   return {
     success: false,
     attempts: maxRetries,
-    lastError
+    lastError: lastError || undefined
   };
 }
 

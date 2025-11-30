@@ -106,7 +106,7 @@ export function registerDriverGPSRoutes(app: Express, storage: IStorage) {
         }
 
         // TODO: Create assignment in database
-        console.log(`[Dispatch] Assigned order ${orderId} to driver ${nearestDriver.driverId}`);
+        console.log(`[Dispatch] Assigned order ${orderId} to driver ${(nearestDriver as any)?.driverId || 'unknown'}`);
 
         res.json({
           success: true,

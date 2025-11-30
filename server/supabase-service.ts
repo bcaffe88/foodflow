@@ -145,13 +145,19 @@ export class SupabaseService {
     try {
       console.log(`[Supabase] Saving message for session: ${sessionId}`);
       
+      const mappedMessageType: "order_request" | "status_check" | "support" | "unclear" = 
+        messageType === "order_request" ? "order_request" :
+        messageType === "status_check" ? "status_check" :
+        messageType === "support" ? "support" :
+        "unclear";
+
       const { data, error } = await this.client
         .from('whatsapp_messages')
         .insert({
           session_id: sessionId,
           role,
           content,
-          message_type: messageType,
+          message_type: mappedMessageType,
           tokens_used: tokensUsed,
           confidence_score: confidenceScore,
           timestamp: new Date().toISOString(),

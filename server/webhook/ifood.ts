@@ -112,7 +112,7 @@ export async function processIFoodWebhook(
         createdAt: new Date().toISOString(),
       };
 
-      await storage.createOrder(newOrder);
+      await storage.createOrder(newOrder as any);
 
       // Send WhatsApp notification
       if (shouldNotify) {

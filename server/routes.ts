@@ -395,7 +395,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticate,
     async (req: AuthRequest, res) => {
       try {
-        const customerId = req.user!.userId;
+        const customerId = req.user!.userId || req.user!.id;
+        if (!customerId) {
+          return res.status(401).json({ error: "User ID not found" });
+        }
         const orders = await storage.getOrdersByCustomer(customerId);
         res.json(orders);
       } catch (error) {
@@ -425,7 +428,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         const data = orderSchema.parse(req.body);
-        const customerId = req.user!.userId;
+        const customerId = req.user!.userId || req.user!.id;
+        if (!customerId) {
+          return res.status(401).json({ error: "User ID not found" });
+        }
         
         const tenant = await storage.getTenant(data.restaurantId);
         if (!tenant) {
@@ -1223,7 +1229,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticate,
     async (req: AuthRequest, res) => {
       try {
-        const addresses = await storage.getCustomerAddresses(req.user!.userId);
+        const userId = req.user!.userId || req.user!.id;
+        if (!userId) {
+          return res.status(401).json({ error: "User ID not found" });
+        }
+        const addresses = await storage.getCustomerAddresses(userId);
         res.json(addresses);
       } catch (error) {
         res.status(500).json({ error: "Failed to load addresses" });
@@ -1243,8 +1253,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reference: z.string().optional(),
         });
         const data = schema.parse(req.body);
+        const userId = req.user!.userId || req.user!.id;
+        if (!userId) {
+          return res.status(401).json({ error: "User ID not found" });
+        }
         const address = await storage.createCustomerAddress({
-          userId: req.user!.userId,
+          userId,
           ...data,
         });
         res.status(201).json(address);
@@ -1294,7 +1308,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireRole("driver"),
     async (req: AuthRequest, res) => {
       try {
-        const user = await storage.getUser(req.user!.userId);
+        const userId = req.user!.userId || req.user!.id;
+        if (!userId) return res.status(401).json({ error: "User ID not found" });
+        const user = await storage.getUser(userId);
         const driverProfile = user ? await storage.getDriverProfile(user.id) : null;
         const activeOrders = user ? await storage.getOrdersByDriver(user.id).then(orders => orders.filter(o => o.status === "out_for_delivery")) : [];
         res.json({
@@ -1334,6 +1350,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         const readyOrders = allOrders.filter(o => o.status === "ready" && !o.driverId);
         res.json(readyOrders);
+        const userId = req.user!.userId || req.user!.id;
+        if (!userId) return res.status(401).json({ error: "User ID not found" });
       } catch (error) {
         console.error("Failed to load available orders:", error);
         res.json([]);
@@ -1350,10 +1368,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const order = await storage.getOrder(orderId);
         if (!order) return res.status(404).json({ error: "Order not found" });
         
-        const updated = await storage.assignDriver(orderId, req.user!.userId);
+        const userId = req.user!.userId || req.user!.id;
+        if (!userId) return res.status(401).json({ error: "User ID not found" });
+        const updated = await storage.assignDriver(orderId, userId);
         
         // Get driver info for WebSocket notification
-        const driver = await storage.getUser(req.user!.userId);
+        const driver = await storage.getUser(userId);
         const driverProfile = driver ? await storage.getDriverProfile(driver.id) : null;
         
         // Broadcast to restaurant owner via WebSocket
@@ -2218,7 +2238,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Product not found" });
         }
 
-        invalidateCache(`/api/storefront/${req.user!.tenantId}/products`);
+        const tenantId = req.user!.tenantId;
+        if (tenantId) {
+          invalidateCache(`/api/storefront/${tenantId}/products`);
+        }
         res.json(product);
       } catch (error) {
         console.error("Update product error:", error);
@@ -2234,9 +2257,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireRole("driver"),
     async (req: AuthRequest, res) => {
       try {
-        const socketId = `socket-${req.user!.userId}-${Date.now()}`;
+        const userId = req.user!.userId || req.user!.id;
+        if (!userId) {
+          return res.status(401).json({ error: "User ID not found" });
+        }
+        const socketId = `socket-${userId}-${Date.now()}`;
         driverConnections.set(socketId, {
-          userId: req.user!.userId,
+          userId,
           online: true,
           socketId
         });
@@ -2561,8 +2588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create rating/feedback for order
-  app.post("/api/ratings", authenticate, async (req: AuthRequest, res) => {
+  // Get ratings for restaurant
   app.get("/api/ratings/restaurant/:tenantId",
     authenticate,
     requireRole("restaurant_owner"),
@@ -2577,15 +2603,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Create rating/feedback for order
+  app.post("/api/ratings", authenticate, async (req: AuthRequest, res) => {
     try {
       const { orderId, restaurantRating, driverRating, foodRating, restaurantComment, driverComment, foodComment, deliveryTime } = req.body;
       
       const order = await storage.getOrder(orderId);
       if (!order) return res.status(404).json({ error: "Order not found" });
       
+      const customerId = req.user!.userId || req.user!.id;
       const rating = await storage.createRating({
         orderId,
-        customerId: req.user!.userId,
+        customerId: customerId || "",
         tenantId: order.tenantId,
         driverId: order.driverId || undefined,
         restaurantRating: restaurantRating || 5,
