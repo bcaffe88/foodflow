@@ -97,7 +97,7 @@ export default function AdminSuperDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value) => `R$ ${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: any) => `R$ ${(Number(value) || 0).toFixed(2)}`} />
                 <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>

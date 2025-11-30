@@ -12,19 +12,30 @@ export async function handleUberEatsWebhook(
       const newOrder = await storage.createOrder({
         tenantId,
         customerId: 'ubereats-' + (order.customer?.id || 'unknown'),
-        items: order.items.map((item: any) => ({
-          productId: 'ubereats-' + (item.id || item.name),
-          quantity: item.quantity || 1,
-          price: parseFloat(item.price || 0),
-        })),
-        totalPrice: parseFloat(order.total || 0),
+        subtotal: order.subtotal ? String(order.subtotal) : String(parseFloat(order.total || 0) * 0.85),
+        deliveryFee: order.deliveryFee ? String(order.deliveryFee) : "0",
+        total: String(parseFloat(order.total || 0)),
         status: 'pending',
         deliveryAddress: order.deliveryAddress || '',
         customerName: order.customer?.name || 'UberEats Customer',
         customerPhone: order.customer?.phone || '',
+        customerEmail: order.customer?.email || '',
         externalOrderId: order.id,
-        externalSource: 'ubereats',
+        externalPlatform: 'ubereats',
       });
+
+      // Create order items separately if items exist
+      if (order.items && Array.isArray(order.items)) {
+        for (const item of order.items) {
+          await storage.createOrderItem({
+            orderId: newOrder.id,
+            productId: 'ubereats-' + (item.id || item.name),
+            quantity: item.quantity || 1,
+            price: String(parseFloat(item.price || 0)),
+            name: item.name,
+          }).catch(() => null);
+        }
+      }
 
       return { success: true, orderId: newOrder.id };
     }

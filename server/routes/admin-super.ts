@@ -20,15 +20,30 @@ export function registerAdminSuperRoutes(app: Express, storage: IStorage) {
     requireRole("super_admin"),
     async (req: AuthRequest, res) => {
       try {
-        const allOrders = await storage.getOrders();
-        const allCustomers = await storage.getCustomers();
-        const allTenants = await storage.getTenants?.() || [];
+        // Get all tenants
+        const allTenants = await storage.getAllTenants?.() || [];
+        
+        // Collect orders from all tenants
+        const allOrders: any[] = [];
+        const allCustomers: any[] = [];
+        
+        for (const tenant of allTenants) {
+          try {
+            const tenantOrders = await storage.getOrdersByTenant?.(tenant.id) || [];
+            allOrders.push(...tenantOrders);
+            
+            const tenantCustomers = await storage.getCustomersByTenant?.(tenant.id) || [];
+            allCustomers.push(...tenantCustomers);
+          } catch (e) {
+            // Skip if methods don't exist
+          }
+        }
 
         const now = new Date();
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
         // Filter last 30 days
-        const orders = allOrders.filter(o => new Date(o.createdAt) >= thirtyDaysAgo);
+        const orders = allOrders.filter(o => new Date(o.createdAt || 0) >= thirtyDaysAgo);
 
         // Calculate totals
         const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.total || "0"), 0);

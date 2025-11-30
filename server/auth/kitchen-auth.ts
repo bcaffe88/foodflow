@@ -42,7 +42,7 @@ export function registerKitchenAuthRoutes(app: Express) {
       }
 
       const tokens = generateTokens({
-        userId: staff.id,
+        id: staff.id,
         email: staff.email,
         role: "kitchen_staff",
         tenantId: staff.tenantId,

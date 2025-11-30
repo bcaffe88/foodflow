@@ -12,19 +12,30 @@ export async function handleIFoodWebhook(
       const newOrder = await storage.createOrder({
         tenantId,
         customerId: 'ifood-' + order.customer.phone,
-        items: order.items.map((item: any) => ({
-          productId: 'ifood-' + item.id,
-          quantity: item.quantity,
-          price: parseFloat(item.price),
-        })),
-        totalPrice: parseFloat(order.total),
+        subtotal: order.subtotal ? String(order.subtotal) : String(parseFloat(order.total) * 0.85),
+        deliveryFee: order.deliveryFee ? String(order.deliveryFee) : "0",
+        total: String(parseFloat(order.total)),
         status: 'pending',
         deliveryAddress: order.deliveryAddress || '',
         customerName: order.customer.name,
         customerPhone: order.customer.phone,
+        customerEmail: order.customer.email || '',
         externalOrderId: order.id,
-        externalSource: 'ifood',
+        externalPlatform: 'ifood',
       });
+
+      // Create order items separately if items exist
+      if (order.items && Array.isArray(order.items)) {
+        for (const item of order.items) {
+          await storage.createOrderItem({
+            orderId: newOrder.id,
+            productId: 'ifood-' + item.id,
+            quantity: item.quantity,
+            price: String(parseFloat(item.price)),
+            name: item.name,
+          }).catch(() => null);
+        }
+      }
 
       return { success: true, orderId: newOrder.id };
     }
