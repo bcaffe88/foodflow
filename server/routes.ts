@@ -37,9 +37,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize WhatsApp Integration
   const { initializeWhatsAppIntegrationService } = await import('./whatsapp-integration');
   const whatsappService = initializeWhatsAppIntegrationService();
-  
-  // Initialize WhatsApp Notification Service
-  const { whatsAppService } = await import('./notifications/whatsapp-service');
 
   // Initialize Google Maps & Delivery Services
   const mapsService = initializeGoogleMapsService();
