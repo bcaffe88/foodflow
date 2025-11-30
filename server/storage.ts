@@ -134,6 +134,14 @@ export interface IStorage {
   getKitchenStaffByTenant(tenantId: string): Promise<KitchenStaff[]>;
   updateKitchenStaff(id: string, data: Partial<InsertKitchenStaff>): Promise<KitchenStaff | undefined>;
   deleteKitchenStaff(id: string): Promise<void>;
+
+  // Coupons (optional methods for extended functionality)
+  getCoupons?(): Promise<any[]>;
+  createCoupon?(coupon: any): Promise<any>;
+  updateCoupon?(id: string, data: any): Promise<any>;
+
+  // Ratings (optional method)
+  getRatings?(): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
