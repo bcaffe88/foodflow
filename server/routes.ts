@@ -848,6 +848,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // 👥 Kitchen Staff Management
+  // GET - List all kitchen staff
+  app.get("/api/restaurant/kitchen-staff",
+    authenticate,
+    requireRole("restaurant_owner"),
+    async (req: AuthRequest, res) => {
+      try {
+        const tenantId = req.user?.tenantId;
+        if (!tenantId) return res.status(400).json({ error: "Tenant ID required" });
+        
+        const staff = await storage.getKitchenStaffByTenant(tenantId);
+        res.json(staff || []);
+      } catch (error) {
+        console.error("Get kitchen staff error:", error);
+        res.status(500).json({ error: "Failed to load kitchen staff" });
+      }
+    }
+  );
+
+  // POST - Create new kitchen staff
+  app.post("/api/restaurant/kitchen-staff",
+    authenticate,
+    requireRole("restaurant_owner"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { email, password } = req.body;
+        const tenantId = req.user?.tenantId;
+        
+        if (!tenantId || !email || !password) {
+          return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        // Check if staff already exists
+        const existing = await storage.getUserByEmail(email);
+        if (existing) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+
+        const hashedPassword = await import("bcryptjs").then(m => m.hash(password, 10));
+        const staff = await storage.createUser({
+          email,
+          password: hashedPassword,
+          name: email.split("@")[0],
+          role: "kitchen_staff",
+          tenantId,
+        });
+
+        res.json({ id: staff.id, email: staff.email, name: staff.name });
+      } catch (error) {
+        console.error("Create kitchen staff error:", error);
+        res.status(500).json({ error: "Failed to create kitchen staff" });
+      }
+    }
+  );
+
+  // DELETE - Remove kitchen staff
+  app.delete("/api/restaurant/kitchen-staff/:staffId",
+    authenticate,
+    requireRole("restaurant_owner"),
+    async (req: AuthRequest, res) => {
+      try {
+        const { staffId } = req.params;
+        const tenantId = req.user?.tenantId;
+        
+        if (!tenantId || !staffId) {
+          return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        const staff = await storage.getUser(staffId);
+        if (!staff || staff.tenantId !== tenantId || staff.role !== "kitchen_staff") {
+          return res.status(404).json({ error: "Kitchen staff not found" });
+        }
+
+        await storage.updateUser(staffId, { email: `deleted-${staffId}@deleted.com` });
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Delete kitchen staff error:", error);
+        res.status(500).json({ error: "Failed to delete kitchen staff" });
+      }
+    }
+  );
+
   // Get all categories for restaurant
   app.get("/api/restaurant/categories",
     authenticate,
