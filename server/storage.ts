@@ -14,9 +14,10 @@ import {
   type Rating, type InsertRating,
   type Promotion, type InsertPromotion,
   type TenantIntegration, type InsertTenantIntegration,
+  type KitchenStaff, type InsertKitchenStaff,
   tenants, users, categories, products, orders, orderItems, payments, commissions,
   customerProfiles, driverProfiles, driverAssignments, dailyMetrics, ratings, promotions,
-  tenantIntegrations,
+  tenantIntegrations, kitchenStaff,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
@@ -126,6 +127,13 @@ export interface IStorage {
   getTenantIntegrations(tenantId: string): Promise<TenantIntegration[]>;
   createTenantIntegration(data: InsertTenantIntegration): Promise<TenantIntegration>;
   updateTenantIntegration(id: string, data: Partial<InsertTenantIntegration>): Promise<TenantIntegration | undefined>;
+
+  // Kitchen Staff
+  createKitchenStaff(staff: InsertKitchenStaff): Promise<KitchenStaff>;
+  getKitchenStaffByEmail(email: string, tenantId: string): Promise<KitchenStaff | undefined>;
+  getKitchenStaffByTenant(tenantId: string): Promise<KitchenStaff[]>;
+  updateKitchenStaff(id: string, data: Partial<InsertKitchenStaff>): Promise<KitchenStaff | undefined>;
+  deleteKitchenStaff(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1330,6 +1338,30 @@ export class SmartStorage implements IStorage {
       },
       () => Promise.resolve(undefined)
     );
+  }
+
+  // Kitchen Staff
+  async createKitchenStaff(staff: InsertKitchenStaff): Promise<KitchenStaff> {
+    const [result] = await db.insert(kitchenStaff).values(staff).returning();
+    return result;
+  }
+
+  async getKitchenStaffByEmail(email: string, tenantId: string): Promise<KitchenStaff | undefined> {
+    const [result] = await db.select().from(kitchenStaff).where(and(eq(kitchenStaff.email, email), eq(kitchenStaff.tenantId, tenantId)));
+    return result;
+  }
+
+  async getKitchenStaffByTenant(tenantId: string): Promise<KitchenStaff[]> {
+    return db.select().from(kitchenStaff).where(eq(kitchenStaff.tenantId, tenantId));
+  }
+
+  async updateKitchenStaff(id: string, data: Partial<InsertKitchenStaff>): Promise<KitchenStaff | undefined> {
+    const [result] = await db.update(kitchenStaff).set(data).where(eq(kitchenStaff.id, id)).returning();
+    return result;
+  }
+
+  async deleteKitchenStaff(id: string): Promise<void> {
+    await db.delete(kitchenStaff).where(eq(kitchenStaff.id, id));
   }
 }
 

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { registerAuthRoutes } from "./auth/routes";
+import { registerKitchenAuthRoutes } from "./auth/kitchen-auth";
 import { registerPaymentRoutes } from "./payment/routes";
 import { storage } from "./storage";
 import { authenticate, requireRole, requireTenantAccess, optionalAuth, type AuthRequest } from "./auth/middleware";
@@ -30,6 +31,7 @@ const settingsMemoryCache = new Map<string, Record<string, any>>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   registerAuthRoutes(app);
+  registerKitchenAuthRoutes(app);
   registerPaymentRoutes(app);
   registerAdminErrorRoutes(app);
   registerAnalyticsRoutes(app, storage);

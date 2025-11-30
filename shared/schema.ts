@@ -5,7 +5,7 @@ import { z } from "zod";
 import { relations } from "drizzle-orm";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["customer", "restaurant_owner", "driver", "platform_admin"]);
+export const userRoleEnum = pgEnum("user_role", ["customer", "restaurant_owner", "driver", "platform_admin", "kitchen_staff"]);
 export const orderStatusEnum = pgEnum("order_status", ["pending", "confirmed", "preparing", "ready", "out_for_delivery", "delivered", "cancelled"]);
 export const driverStatusEnum = pgEnum("driver_status", ["available", "busy", "offline"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "failed", "refunded"]);
@@ -269,6 +269,21 @@ export const customerAddresses = pgTable("customer_addresses", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Kitchen Staff (funcionários da cozinha com acesso isolado)
+export const kitchenStaff = pgTable("kitchen_staff", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  email: text("email").notNull(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  idx_tenant: index("idx_kitchen_staff_tenant").on(table.tenantId),
+  idx_email_tenant: index("idx_kitchen_staff_email_tenant").on(table.email, table.tenantId),
+}));
+
 // Ratings & Feedback (customer feedback on orders, drivers, restaurants)
 export const ratings = pgTable("ratings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -331,6 +346,7 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true,
 export const insertCommissionSchema = createInsertSchema(commissions).omit({ id: true, createdAt: true });
 export const insertDriverAssignmentSchema = createInsertSchema(driverAssignments).omit({ id: true, notifiedAt: true });
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ id: true });
+export const insertKitchenStaffSchema = createInsertSchema(kitchenStaff).omit({ id: true, createdAt: true });
 export const insertRatingSchema = createInsertSchema(ratings).omit({ id: true, createdAt: true });
 export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true, createdAt: true });
 
@@ -350,6 +366,7 @@ export type Payment = typeof payments.$inferSelect;
 export type Commission = typeof commissions.$inferSelect;
 export type DriverAssignment = typeof driverAssignments.$inferSelect;
 export type DailyMetric = typeof dailyMetrics.$inferSelect;
+export type KitchenStaff = typeof kitchenStaff.$inferSelect;
 export type Rating = typeof ratings.$inferSelect;
 export type Promotion = typeof promotions.$inferSelect;
 
@@ -368,6 +385,7 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type InsertCommission = z.infer<typeof insertCommissionSchema>;
 export type InsertDriverAssignment = z.infer<typeof insertDriverAssignmentSchema>;
 export type InsertDailyMetric = z.infer<typeof insertDailyMetricSchema>;
+export type InsertKitchenStaff = z.infer<typeof insertKitchenStaffSchema>;
 export type InsertRating = z.infer<typeof insertRatingSchema>;
 export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
 

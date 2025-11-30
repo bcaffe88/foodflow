@@ -22,6 +22,7 @@ const RestaurantDashboard = lazy(() => import("@/pages/restaurant-dashboard"));
 const DriverDashboard = lazy(() => import("@/pages/driver-dashboard"));
 const DeliveryDashboard = lazy(() => import("@/pages/delivery-dashboard"));
 const KitchenDashboard = lazy(() => import("@/pages/kitchen-dashboard"));
+const KitchenLogin = lazy(() => import("@/pages/kitchen-login"));
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
 const RestaurantSettings = lazy(() => import("@/pages/restaurant-settings"));
 const ProductsManagement = lazy(() => import("@/pages/products-management"));
@@ -74,6 +75,7 @@ function Router() {
         <Route path="/restaurant/ratings" component={RestaurantRatings} />
         <Route path="/customer/rating" component={CustomerRating} />
         <Route path="/driver/dashboard" component={DeliveryDashboard} />
+        <Route path="/kitchen/login" component={KitchenLogin} />
         <Route path="/kitchen/dashboard" component={KitchenDashboard} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/restaurants" component={AdminRestaurants} />
