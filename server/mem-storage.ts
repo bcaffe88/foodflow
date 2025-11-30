@@ -327,6 +327,10 @@ export class MemStorage {
     return Array.from(this.orders.values()).filter((o: any) => o.driverId === driverId);
   }
 
+  async getOrdersByCustomerPhone(phone: string, tenantId: string) {
+    return Array.from(this.orders.values()).filter((o: any) => o.customerPhone === phone && o.tenantId === tenantId);
+  }
+
   async updateOrderStatus(id: string, status: string) {
     const order = this.orders.get(id);
     if (order) {

@@ -68,6 +68,7 @@ export interface IStorage {
   getOrdersByTenant(tenantId: string): Promise<Order[]>;
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
   getOrdersByDriver(driverId: string): Promise<Order[]>;
+  getOrdersByCustomerPhone(phone: string, tenantId: string): Promise<Order[]>;
   getPendingOrdersByTenant(tenantId: string): Promise<Order[]>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
   assignDriver(orderId: string, driverId: string): Promise<Order | undefined>;
@@ -322,6 +323,12 @@ export class DatabaseStorage implements IStorage {
 
   async getOrdersByCustomer(customerId: string): Promise<Order[]> {
     return db.select().from(orders).where(eq(orders.customerId, customerId)).orderBy(desc(orders.createdAt));
+  }
+
+  async getOrdersByCustomerPhone(phone: string, tenantId: string): Promise<Order[]> {
+    return db.select().from(orders)
+      .where(and(eq(orders.customerPhone, phone), eq(orders.tenantId, tenantId)))
+      .orderBy(desc(orders.createdAt));
   }
 
   async getOrdersByDriver(driverId: string): Promise<Order[]> {
@@ -996,6 +1003,13 @@ export class SmartStorage implements IStorage {
     return this.tryDb(
       () => this.dbStorage.getOrdersByDriver(driverId),
       () => this.memStorage.getOrdersByDriver(driverId)
+    );
+  }
+
+  async getOrdersByCustomerPhone(phone: string, tenantId: string): Promise<Order[]> {
+    return this.tryDb(
+      () => this.dbStorage.getOrdersByCustomerPhone(phone, tenantId),
+      () => this.memStorage.getOrdersByCustomerPhone(phone, tenantId)
     );
   }
 

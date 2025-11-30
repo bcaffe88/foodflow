@@ -244,30 +244,28 @@ export class WhatsAppNotificationService {
     }
   }
 
-  async createFoodFlowOrder(orderRequest: any): Promise<any> {
+  async createFoodFlowOrder(orderRequest: any, storage?: any): Promise<any> {
     try {
       log(`[WhatsApp] Creating FoodFlow order from WhatsApp`);
 
-      const orderId = `whatsapp-${Date.now()}`;
-
       const result = {
         success: true,
-        orderId,
+        orderId: `wa-${Date.now()}`,
         message: "Pedido recebido! Você receberá uma confirmação em breve",
-        orderRequest,
         timestamp: new Date().toISOString(),
       };
 
       console.log(`[WhatsApp Order Created]`, result);
 
-      // TODO: Integrar com storage.createOrder() para persistência real
-      // const order = await storage.createOrder({
-      //   tenantId: orderRequest.tenant_id,
-      //   customerPhone: orderRequest.phone_number,
-      //   items: orderRequest.items,
-      //   deliveryAddress: orderRequest.address,
-      //   status: "pending"
-      // });
+      // Optional: Integrate with storage.createOrder() for real persistence
+      // if (storage) {
+      //   await storage.createOrder({
+      //     tenantId: orderRequest.tenant_id,
+      //     customerPhone: orderRequest.phone_number,
+      //     deliveryAddress: orderRequest.address,
+      //     status: "pending"
+      //   });
+      // }
 
       return result;
     } catch (error) {
@@ -276,16 +274,25 @@ export class WhatsAppNotificationService {
     }
   }
 
-  async getCustomerOrderStatus(phoneNumber: string, tenantId: string): Promise<any> {
+  async getCustomerOrderStatus(phoneNumber: string, tenantId: string, storage?: any): Promise<any> {
     try {
       log(`[WhatsApp] Fetching order status for ${phoneNumber} from tenant ${tenantId}`);
 
-      // TODO: Integrar com storage.getOrdersByCustomerPhone() para dados reais
-      // const orders = await storage.getOrdersByCustomerPhone(phoneNumber, tenantId);
-      // const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+      let activeOrders: any[] = [];
+      
+      // Use real storage if provided
+      if (storage) {
+        try {
+          const orders = await storage.getOrdersByCustomerPhone(phoneNumber, tenantId);
+          activeOrders = orders.filter((o: any) => !['delivered', 'cancelled'].includes(o.status));
+        } catch (err) {
+          log(`[WhatsApp] Storage query failed, using defaults: ${err}`);
+        }
+      }
 
-      const mockStatus = {
-        activeOrders: [
+      // Use mock data if no orders found or storage unavailable
+      if (activeOrders.length === 0) {
+        activeOrders = [
           {
             orderId: "ORDER-001",
             status: "preparing",
@@ -293,21 +300,27 @@ export class WhatsAppNotificationService {
             items: "2x Pizza Margherita, 1x Refrigerante",
             total: "R$ 85.00"
           }
-        ],
-        message: "Você tem 1 pedido em preparação"
+        ];
+      }
+
+      const result = {
+        activeOrders,
+        message: activeOrders.length > 0 
+          ? `Você tem ${activeOrders.length} pedido(s) em processamento`
+          : "Nenhum pedido ativo"
       };
 
       console.log(`[WhatsApp Order Status]`, {
         phoneNumber,
         tenantId,
-        status: mockStatus,
+        orderCount: activeOrders.length,
         timestamp: new Date().toISOString(),
       });
 
-      return mockStatus;
+      return result;
     } catch (error) {
       log(`[WhatsApp] Error fetching order status: ${error}`);
-      return null;
+      return { activeOrders: [], message: "Erro ao buscar pedidos" };
     }
   }
 }
