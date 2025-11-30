@@ -13,10 +13,10 @@ import { apiRequest } from "@/lib/api";
 import { Store, ArrowLeft } from "lucide-react";
 
 const schema = z.object({
-  name: z.string().min(3),
-  email: z.string().email(),
-  phone: z.string().min(10),
-  address: z.string().min(10),
+  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  phone: z.string().min(10, "Telefone inválido"),
 });
 
 export default function RegisterRestaurantPage() {
@@ -31,16 +31,26 @@ export default function RegisterRestaurantPage() {
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
-      await apiRequest("POST", "/api/auth/register-restaurant", data);
-      toast({
-        title: "Sucesso!",
-        description: "Seu cadastro foi enviado. Aguarde aprovação do admin.",
+      const response = await apiRequest("POST", "/api/auth/register", {
+        ...data,
+        role: "restaurant_owner",
       });
-      navigate("/login");
-    } catch (error) {
+      
+      if (response?.user) {
+        toast({
+          title: "Sucesso!",
+          description: "Restaurante registrado com sucesso!",
+        });
+        navigate("/login");
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (error: any) {
+      const errorMsg = error?.message || "Falha ao registrar restaurante";
+      console.error("Registration error:", error);
       toast({
-        title: "Erro",
-        description: "Falha ao registrar restaurante",
+        title: "Erro de Registro",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
@@ -82,7 +92,7 @@ export default function RegisterRestaurantPage() {
                     <FormItem>
                       <FormLabel className="text-xs md:text-sm">Nome do Restaurante</FormLabel>
                       <FormControl>
-                        <Input placeholder="Seu Restaurante" className="text-xs md:text-sm h-9 md:h-10" {...field} />
+                        <Input placeholder="Seu Restaurante" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-name" />
                       </FormControl>
                       <FormMessage className="text-xs" />
                     </FormItem>
@@ -95,7 +105,20 @@ export default function RegisterRestaurantPage() {
                     <FormItem>
                       <FormLabel className="text-xs md:text-sm">Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="seu@email.com" className="text-xs md:text-sm h-9 md:h-10" {...field} />
+                        <Input type="email" placeholder="seu@email.com" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-email" />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Senha</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Mínimo 6 caracteres" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-password" />
                       </FormControl>
                       <FormMessage className="text-xs" />
                     </FormItem>
@@ -108,20 +131,7 @@ export default function RegisterRestaurantPage() {
                     <FormItem>
                       <FormLabel className="text-xs md:text-sm">Telefone</FormLabel>
                       <FormControl>
-                        <Input placeholder="558799999999" className="text-xs md:text-sm h-9 md:h-10" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs md:text-sm">Endereço</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Rua, número, cidade..." className="text-xs md:text-sm h-9 md:h-10" {...field} />
+                        <Input placeholder="558799999999" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-phone" />
                       </FormControl>
                       <FormMessage className="text-xs" />
                     </FormItem>

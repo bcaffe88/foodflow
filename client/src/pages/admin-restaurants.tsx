@@ -41,9 +41,15 @@ export default function AdminRestaurantsPage() {
   const loadRestaurants = async () => {
     try {
       const data = await apiRequest("GET", "/api/admin/tenants");
-      setRestaurants(data || []);
-    } catch (error) {
-      toast({ title: "Erro", description: "Falha ao carregar restaurantes", variant: "destructive" });
+      setRestaurants(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      console.error("Load restaurants error:", error);
+      toast({ 
+        title: "Erro", 
+        description: error?.message || "Falha ao carregar restaurantes",
+        variant: "destructive" 
+      });
+      setRestaurants([]);
     } finally {
       setIsLoading(false);
     }
@@ -61,8 +67,13 @@ export default function AdminRestaurantsPage() {
       toast({ title: "Sucesso!", description: "Webhook atualizado" });
       setSelectedRestaurant(null);
       await loadRestaurants();
-    } catch (error) {
-      toast({ title: "Erro", description: "Falha ao atualizar webhook", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Update webhook error:", error);
+      toast({ 
+        title: "Erro", 
+        description: error?.message || "Falha ao atualizar webhook",
+        variant: "destructive" 
+      });
     }
   };
 
@@ -73,8 +84,13 @@ export default function AdminRestaurantsPage() {
       toast({ title: "Sucesso!", description: "Restaurante deletado" });
       setSelectedRestaurant(null);
       await loadRestaurants();
-    } catch (error) {
-      toast({ title: "Erro", description: "Falha ao deletar restaurante", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Delete restaurant error:", error);
+      toast({ 
+        title: "Erro", 
+        description: error?.message || "Falha ao deletar restaurante",
+        variant: "destructive" 
+      });
     }
   };
 
@@ -166,6 +182,7 @@ export default function AdminRestaurantsPage() {
                                 placeholder="https://n8n.example.com/webhook/..."
                                 className="text-xs md:text-sm h-9 md:h-10"
                                 {...field}
+                                data-testid="input-webhook-url"
                               />
                             </FormControl>
                           </FormItem>
