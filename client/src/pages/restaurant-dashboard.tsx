@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { apiRequest } from "@/lib/api";
-import { LogOut, Plus, Package, MapPin, BarChart3, Truck, Phone, Navigation } from "lucide-react";
+import { LogOut, Plus, Package, MapPin, BarChart3, Truck, Phone, Navigation, Plug } from "lucide-react";
 import type { Order } from "@shared/schema";
 
 interface AssignedDriver {
@@ -204,6 +204,10 @@ export default function RestaurantDashboard() {
           <Button onClick={() => navigate("/restaurant/analytics")} variant="outline" data-testid="button-view-analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Analytics
+          </Button>
+          <Button onClick={() => navigate("/restaurant/integrations")} variant="outline" data-testid="button-integrations">
+            <Plug className="h-4 w-4 mr-2" />
+            Integrações
           </Button>
           <Button variant="outline" onClick={() => navigate("/restaurant/settings")} data-testid="button-settings">
             Configurações
