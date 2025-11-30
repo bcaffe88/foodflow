@@ -152,8 +152,8 @@ test.describe('Checkout API Endpoints', () => {
       },
     }).catch(() => null);
 
-    if (loginRes && (await loginRes).ok) {
-      const loginData = await (await loginRes).json();
+    if (loginRes && loginRes.ok) {
+      const loginData = await loginRes.json();
       token = loginData.token;
     } else {
       // Use test token if login fails
@@ -206,8 +206,8 @@ test.describe('Checkout API Endpoints', () => {
       },
     });
 
-    if (createRes && (await createRes).ok) {
-      const orderData = await (await createRes).json();
+    if (createRes && createRes.ok) {
+      const orderData = await createRes.json();
       const id = orderData.id;
 
       const updateRes = await request.patch(`${baseURL}/api/orders/${id}/update`, {
