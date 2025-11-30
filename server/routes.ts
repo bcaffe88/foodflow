@@ -6,6 +6,8 @@ import { storage } from "./storage";
 import { authenticate, requireRole, requireTenantAccess, optionalAuth, type AuthRequest } from "./auth/middleware";
 import { cacheMiddleware, invalidateCache } from "./middleware/cache";
 import { z } from "zod";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { initializeN8NClient, type N8NClient } from "./n8n-api";
 import { initializeSupabaseService, type SupabaseService } from "./supabase-service";
 import { initializeGoogleMapsService } from "./google-maps-service";
