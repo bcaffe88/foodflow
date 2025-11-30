@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { LogIn, Mail, Lock, ShoppingCart } from "lucide-react";
+import { LogIn, Mail, Lock, ShoppingCart, ChefHat } from "lucide-react";
 
 type UserRole = "customer" | "restaurant_owner" | "driver" | "platform_admin";
 
@@ -125,34 +125,53 @@ export default function LoginPage() {
               className="space-y-3 md:space-y-4 mb-6 md:mb-8"
             >
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo de Perfil</p>
-              <div className="grid grid-cols-4 gap-1 md:gap-2">
+              <div className="grid grid-cols-5 gap-1 md:gap-2">
                 {[
                   { id: "customer", label: "Cliente", icon: "🍽️" },
                   { id: "owner", label: "Dono", icon: "🏪" },
                   { id: "driver", label: "Moto", icon: "🚗" },
                   { id: "admin", label: "Admin", icon: "⚙️" },
-                ].map((tab) => (
-                  <motion.button
-                    key={tab.id}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      setActiveTab(tab.id as any);
-                      const account = demoAccounts[tab.id as keyof typeof demoAccounts];
-                      setEmail(account.email);
-                      setPassword(account.password);
-                    }}
-                    className={`py-2 md:py-3 px-1.5 md:px-2 rounded-lg text-xs font-medium transition-all duration-300 flex flex-col items-center gap-1 ${
-                      activeTab === tab.id
-                        ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80 border border-border/50"
-                    }`}
-                    data-testid={`button-tab-${tab.id}`}
-                  >
-                    <span className="text-base md:text-lg">{tab.icon}</span>
-                    <span className="hidden sm:inline text-xs">{tab.label}</span>
-                  </motion.button>
-                ))}
+                  { id: "kitchen", label: "Cozinha", icon: "👨‍🍳" },
+                ].map((tab) => {
+                  if (tab.id === "kitchen") {
+                    return (
+                      <motion.button
+                        key={tab.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => navigate("/kitchen/login")}
+                        className="py-2 md:py-3 px-1.5 md:px-2 rounded-lg text-xs font-medium transition-all duration-300 flex flex-col items-center gap-1 bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300/50"
+                        data-testid="button-tab-kitchen"
+                        title="Acesso para funcionários de cozinha"
+                      >
+                        <span className="text-base md:text-lg">{tab.icon}</span>
+                        <span className="hidden sm:inline text-xs">{tab.label}</span>
+                      </motion.button>
+                    );
+                  }
+                  return (
+                    <motion.button
+                      key={tab.id}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        const account = demoAccounts[tab.id as keyof typeof demoAccounts];
+                        setEmail(account.email);
+                        setPassword(account.password);
+                      }}
+                      className={`py-2 md:py-3 px-1.5 md:px-2 rounded-lg text-xs font-medium transition-all duration-300 flex flex-col items-center gap-1 ${
+                        activeTab === tab.id
+                          ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80 border border-border/50"
+                      }`}
+                      data-testid={`button-tab-${tab.id}`}
+                    >
+                      <span className="text-base md:text-lg">{tab.icon}</span>
+                      <span className="hidden sm:inline text-xs">{tab.label}</span>
+                    </motion.button>
+                  );
+                })}
               </div>
             </motion.div>
 
