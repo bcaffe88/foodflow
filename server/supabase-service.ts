@@ -157,7 +157,7 @@ export class SupabaseService {
           session_id: sessionId,
           role,
           content,
-          message_type: mappedMessageType,
+          message_type: mappedMessageType as "order_request" | "status_check" | "support" | "unclear",
           tokens_used: tokensUsed,
           confidence_score: confidenceScore,
           timestamp: new Date().toISOString(),

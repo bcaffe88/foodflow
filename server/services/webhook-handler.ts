@@ -219,7 +219,7 @@ export async function triggerPrinterWebhook(
     tenant.printerWebhookUrl,
     tenant.printerWebhookMethod || "POST",
     payload,
-    tenant.printerWebhookSecret
+    tenant.printerWebhookSecret || undefined
   ).catch(error => {
     console.error(`[Webhook] Failed to send printer webhook:`, error);
     // Don't fail the order - webhook is best-effort

@@ -138,22 +138,26 @@ export async function sendBroadcast(
     const batch = deviceTokens.slice(i, i + 100);
     
     try {
-      const response = await admin.messaging().sendMulticast({
-        tokens: batch,
-        ...message
-      } as MulticastMessage);
+      // Use send() for each token individually (fallback for sendMulticast)
+      const responses = await Promise.allSettled(
+        batch.map(token => 
+          admin.messaging().send({
+            token,
+            notification: message.notification,
+            data: message.data,
+            webpush: message.webpush
+          })
+        )
+      );
 
-      success += response.successCount;
-      failed += response.failureCount;
-
-      // Log failed tokens for cleanup
-      if (response.failureCount > 0) {
-        response.responses.forEach((resp: any, idx: number) => {
-          if (!resp.success) {
-            console.warn(`Failed to send to token ${batch[idx]}:`, resp.error);
-          }
-        });
-      }
+      responses.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          success++;
+        } else {
+          failed++;
+          console.warn(`Failed to send to token ${batch[idx]}:`, result.reason);
+        }
+      });
     } catch (error) {
       console.error('Batch send error:', error);
       failed += batch.length;
