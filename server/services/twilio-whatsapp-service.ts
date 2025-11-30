@@ -31,12 +31,7 @@ export function initializeTwilio(): boolean {
 
     if (!accountSid || !authToken || !fromPhone) {
       log(
-        "[Twilio] Credentials not fully configured. Using logging fallback.",
-        {
-          hasAccountSid: !!accountSid,
-          hasAuthToken: !!authToken,
-          hasFromPhone: !!fromPhone,
-        }
+        `[Twilio] Credentials not fully configured. Using logging fallback. hasAccountSid=${!!accountSid}, hasAuthToken=${!!authToken}, hasFromPhone=${!!fromPhone}`
       );
       isConfigured = false;
       return false;
@@ -113,11 +108,7 @@ export async function sendWhatsAppMessage(
           body: message,
         });
 
-        log("[Twilio] Message sent successfully", {
-          sid: result.sid,
-          to: formattedPhone,
-          status: result.status,
-        });
+        log(`[Twilio] Message sent successfully - sid=${result.sid}, to=${formattedPhone}, status=${result.status}`);
 
         return {
           success: true,
@@ -136,10 +127,7 @@ export async function sendWhatsAppMessage(
       }
     } else {
       // Fallback: log message (development/testing mode)
-      log("[Twilio Fallback] Message logged (Twilio not configured)", {
-        to: formattedPhone,
-        message: message.substring(0, 100),
-      });
+      log(`[Twilio Fallback] Message logged (Twilio not configured) - to=${formattedPhone}, message=${message.substring(0, 100)}`);
 
       console.log(`[WhatsApp Message - FALLBACK MODE]`, {
         to: formattedPhone,
@@ -153,10 +141,7 @@ export async function sendWhatsAppMessage(
       };
     }
   } catch (error: any) {
-    log("[Twilio] Error sending message", {
-      error: error.message,
-      retries,
-    });
+    log(`[Twilio] Error sending message - error=${error.message}, retries=${retries}`);
 
     // If we haven't exhausted retries, try again
     if (retries < MAX_RETRIES) {
@@ -261,7 +246,7 @@ export async function handleIncomingMessage(
   phoneNumber: string,
   message: string
 ): Promise<string> {
-  log("[Twilio Webhook] Incoming message", { from: phoneNumber, message });
+  log(`[Twilio Webhook] Incoming message from=${phoneNumber}, message=${message}`);
 
   const lowerMessage = message.toLowerCase().trim();
 
