@@ -843,30 +843,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // 👥 Kitchen Staff Management
-  // Helper to extract tenantId from JWT
-  const getTenantIdFromRequest = (req: AuthRequest) => {
-    // Try req.user first
-    if (req.user?.tenantId) return req.user.tenantId;
-    
-    // Fallback: decode from Authorization header
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      const decoded = require("jsonwebtoken").decode(token);
-      return decoded?.tenantId;
-    }
-    return undefined;
-  };
-
   // GET - List all kitchen staff
   app.get("/api/restaurant/kitchen-staff",
     authenticate,
     requireRole("restaurant_owner"),
+    requireTenantAccess,
     async (req: AuthRequest, res) => {
       try {
-        const tenantId = getTenantIdFromRequest(req);
-        if (!tenantId) return res.status(400).json({ error: "Unauthorized" });
-        
+        const tenantId = req.user!.tenantId!;
         const staff = await storage.getKitchenStaffByTenant(tenantId);
         res.json(staff || []);
       } catch (error) {
@@ -880,13 +864,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/restaurant/kitchen-staff",
     authenticate,
     requireRole("restaurant_owner"),
+    requireTenantAccess,
     async (req: AuthRequest, res) => {
       try {
         const { email, password, name } = req.body;
-        const tenantId = getTenantIdFromRequest(req);
+        const tenantId = req.user!.tenantId!;
         
-        if (!tenantId || !email || !password) {
-          return res.status(400).json({ error: "Missing required fields" });
+        if (!email || !password) {
+          return res.status(400).json({ error: "Email and password required" });
         }
 
         // Check if staff already exists
@@ -916,12 +901,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/restaurant/kitchen-staff/:staffId",
     authenticate,
     requireRole("restaurant_owner"),
+    requireTenantAccess,
     async (req: AuthRequest, res) => {
       try {
         const { staffId } = req.params;
-        const tenantId = getTenantIdFromRequest(req);
-        
-        if (!tenantId) return res.status(400).json({ error: "Unauthorized" });
+        const tenantId = req.user!.tenantId!;
 
         const staff = await storage.getUser(staffId);
         if (!staff || staff.tenantId !== tenantId || staff.role !== "kitchen_staff") {
