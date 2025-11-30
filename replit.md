@@ -233,3 +233,40 @@ Restaurante owner couldn't configure impressora no modo online (webhook) - apena
 
 #### Final Status
 ✅ **PRODUCTION READY** - Kitchen staff isolated login fully functional
+
+### Turn 19: Kitchen & Restaurant Integration E2E Tests
+
+**Integration Test Suite Created** (tests/e2e/kitchen-integration.spec.ts)
+- ✅ **4 Complete Integration Tests** (321 linhas):
+  1. Complete flow: Owner creates staff, staff logs in, both see same order updates in real-time
+  2. Multiple staff members can login simultaneously to same restaurant
+  3. Owner can delete staff member and staff loses access immediately
+  4. Staff in one restaurant cannot access another restaurant kitchen dashboard
+
+**Test Coverage:**
+- ✅ Simultaneous owner + staff sessions
+- ✅ Real-time order status updates
+- ✅ Multiple concurrent staff logins
+- ✅ Staff access revocation on deletion
+- ✅ Tenant isolation validation
+- ✅ JWT token verification
+- ✅ Cross-restaurant access prevention
+
+**Key Features Tested:**
+- ✅ Owner creates staff → Staff logs in → Both access same system
+- ✅ Staff updates order status → Owner sees changes
+- ✅ Staff cannot access /restaurant/settings
+- ✅ Multiple staff with different credentials
+- ✅ Session isolation between staff members
+- ✅ Deleted staff loses kitchen access
+- ✅ Staff token bound to specific tenant ID
+
+**Run Integration Tests:**
+```bash
+npm test -- tests/e2e/kitchen-integration.spec.ts
+npm test -- tests/e2e/kitchen-integration.spec.ts --headed  # See browser
+npm test -- tests/e2e/kitchen-integration.spec.ts -g "Complete flow"  # Specific test
+```
+
+#### Final Status
+✅ **PRODUCTION READY** - Full kitchen-restaurant integration validated
