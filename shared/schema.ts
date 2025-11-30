@@ -379,3 +379,32 @@ export interface CartItem {
   quantity: number;
   notes?: string;
 }
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+export const tenantIntegrations = pgTable("tenant_integrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  platform: text("platform").notNull(), // 'ifood', 'ubereats', 'quero', 'pede_ai'
+  isActive: boolean("is_active").notNull().default(false),
+  accessToken: text("access_token"), // Encrypted - API key ou token
+  refreshToken: text("refresh_token"), // Para OAuth
+  externalId: text("external_id"), // Restaurant ID na plataforma externa
+  webhookUrl: text("webhook_url"), // URL do webhook que a plataforma deve chamar
+  webhookSecret: text("webhook_secret"), // Secret para validar webhooks
+  metadata: json("metadata").$type<Record<string, any>>(), // Dados específicos da plataforma
+  syncOrders: boolean("sync_orders").notNull().default(true),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type TenantIntegration = typeof tenantIntegrations.$inferSelect;
+export const insertTenantIntegrationSchema = createInsertSchema(tenantIntegrations).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertTenantIntegration = z.infer<typeof insertTenantIntegrationSchema>;
