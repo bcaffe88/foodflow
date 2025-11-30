@@ -3053,14 +3053,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Integrations - Create
   app.post("/api/restaurant/integrations", authenticate, requireRole("owner"), async (req: AuthRequest, res) => {
     try {
-      const { platform, webhookUrl, webhookSecret, isActive } = req.body;
+      const { platform, accessToken, externalId, webhookUrl, webhookSecret, isActive } = req.body;
       const tenantId = req.user?.tenantId;
       if (!tenantId || !platform) return res.status(400).json({ error: "Missing required fields" });
+      // Map frontend fields (accessToken, externalId) to storage fields (webhookUrl, webhookSecret)
       const integration = await storage.createTenantIntegration({
         tenantId,
         platform,
-        webhookUrl: webhookUrl || "",
-        webhookSecret: webhookSecret || "",
+        webhookUrl: webhookUrl || accessToken || "",
+        webhookSecret: webhookSecret || externalId || "",
         isActive: isActive !== false,
       });
       res.json(integration);
