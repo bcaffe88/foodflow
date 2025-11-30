@@ -6,7 +6,6 @@ import { storage } from "./storage";
 import { authenticate, requireRole, requireTenantAccess, optionalAuth, type AuthRequest } from "./auth/middleware";
 import { cacheMiddleware, invalidateCache } from "./middleware/cache";
 import { z } from "zod";
-import type { InsertPayment } from "@shared/schema";
 import { initializeN8NClient, type N8NClient } from "./n8n-api";
 import { initializeSupabaseService, type SupabaseService } from "./supabase-service";
 import { initializeGoogleMapsService } from "./google-maps-service";
@@ -34,9 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Initialize WhatsApp Integration
-  const { initializeWhatsAppIntegrationService } = await import('./whatsapp-integration');
-  const whatsappService = initializeWhatsAppIntegrationService();
+  // Initialize WhatsApp Notification Service
+  const { WhatsAppNotificationService } = await import('./notifications/whatsapp-service');
+  const whatsappService = WhatsAppNotificationService.getInstance();
 
   // Initialize Google Maps & Delivery Services
   const mapsService = initializeGoogleMapsService();
@@ -255,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Prepare payment data if Stripe payment (without orderId - will be added in transaction)
-      let paymentData: Omit<InsertPayment, 'orderId'> | undefined;
+      let paymentData: any | undefined;
       if (data.paymentIntentId) {
         paymentData = {
           stripePaymentIntentId: data.paymentIntentId,
@@ -309,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             notes: item.notes,
           }));
           
-          await whatsAppService.sendFormattedKitchenOrder(
+          await whatsappService.sendFormattedKitchenOrder(
             whatsappPhone,
             order.id,
             formattedItems,
@@ -324,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send WhatsApp notification to customer
       try {
-        await whatsAppService.sendOrderNotification({
+        await whatsappService.sendOrderNotification({
           type: "order.created",
           orderId: order.id,
           customerPhone: data.customerPhone,
@@ -864,21 +863,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const tenant = await storage.getTenant(req.user!.tenantId!);
 
         // Send WhatsApp notification about status update
-        try {
-          const customerPhone = order.customerPhone?.replace(/\D/g, '');
-          if (customerPhone && tenant) {
-            await whatsappService.sendOrderStatusUpdate(
-              order,
-              previousStatus,
-              status,
-              customerPhone,
-              tenant.name
-            );
-          }
-        } catch (whatsappErr) {
-          console.error("[WhatsApp] Error sending status update:", whatsappErr);
-          // Continue - don't fail if WhatsApp fails
-        }
+        // TODO: Implement sendOrderStatusUpdate in WhatsAppNotificationService
+        // try {
+        //   const customerPhone = order.customerPhone?.replace(/\D/g, '');
+        //   if (customerPhone && tenant) {
+        //     await whatsappService.sendOrderStatusUpdate(
+        //       order,
+        //       previousStatus,
+        //       status,
+        //       customerPhone,
+        //       tenant.name
+        //     );
+        //   }
+        // } catch (whatsappErr) {
+        //   console.error("[WhatsApp] Error sending status update:", whatsappErr);
+        //   // Continue - don't fail if WhatsApp fails
+        // }
         
         if (tenant && tenant.n8nWebhookUrl) {
           // Get order items for webhook payload
@@ -1177,56 +1177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // ============================================================================
-  // RESTAURANT SETTINGS ROUTES
+  // ADMIN ROUTES
   // ============================================================================
-  
-  app.get("/api/restaurant/settings",
-    authenticate,
-    requireRole("restaurant_owner"),
-    requireTenantAccess,
-    async (req: AuthRequest, res) => {
-      try {
-        const tenant = await storage.getTenant(req.user!.tenantId!);
-        if (!tenant) {
-          return res.status(404).json({ error: "Restaurant not found" });
-        }
-        res.json(tenant);
-      } catch (error) {
-        res.status(500).json({ error: "Failed to load settings" });
-      }
-    }
-  );
-
-  app.patch("/api/restaurant/settings",
-    authenticate,
-    requireRole("restaurant_owner"),
-    requireTenantAccess,
-    async (req: AuthRequest, res) => {
-      try {
-        const settingsSchema = z.object({
-          whatsappPhone: z.string().min(10).optional(),
-          stripePublicKey: z.string().optional(),
-          stripeSecretKey: z.string().optional(),
-          n8nWebhookUrl: z.string().url().optional(),
-          whatsappWebhookUrl: z.string().url().optional(),
-          useOwnDriver: z.boolean().optional(),
-          deliveryFeeBusiness: z.union([z.string(), z.number()]).optional(),
-          deliveryFeeCustomer: z.union([z.string(), z.number()]).optional(),
-          commissionPercentage: z.string().optional(),
-        });
-
-        const data = settingsSchema.parse(req.body);
-        const updated = await storage.updateTenant(req.user!.tenantId!, data as any);
-        res.json(updated);
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return res.status(400).json({ error: error.errors });
-        }
-        console.error("Update settings error:", error);
-        res.status(500).json({ error: "Failed to update settings" });
-      }
-    }
-  );
 
   // Admin route to update restaurant commission percentage
   app.patch("/api/admin/restaurants/:id/commission",
@@ -1338,7 +1290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send WhatsApp notification that order was delivered
         if (updated) {
           const tenant = await storage.getTenant(updated.tenantId);
-          await whatsAppService.sendOrderNotification({
+          await whatsappService.sendOrderNotification({
             type: "order.delivered",
             orderId,
             customerPhone: updated.customerPhone,
@@ -1377,7 +1329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (result.orderId) {
           const order = await storage.getOrder(result.orderId);
           if (order) {
-            await whatsAppService.sendOrderNotification({
+            await whatsappService.sendOrderNotification({
               type: "order.created",
               orderId: result.orderId,
               customerPhone: order.customerPhone,
@@ -1534,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const tenant = await storage.getTenant(updated.tenantId);
           
           if (status === "preparing") {
-            await whatsAppService.sendOrderNotification({
+            await whatsappService.sendOrderNotification({
               type: "order.preparing",
               orderId,
               customerPhone: updated.customerPhone,
@@ -1542,7 +1494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               restaurantName: tenant?.name || "Restaurant",
             });
           } else if (status === "ready") {
-            await whatsAppService.sendOrderNotification({
+            await whatsappService.sendOrderNotification({
               type: "order.ready",
               orderId,
               customerPhone: updated.customerPhone,
@@ -1715,36 +1667,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  // Get restaurant analytics summary
-  app.get("/api/analytics/summary", 
-    authenticate, 
-    requireRole("restaurant_owner"),
-    requireTenantAccess,
-    async (req: AuthRequest, res) => {
-      try {
-        const tenantId = req.user!.tenantId!;
-        const allOrders = await storage.getOrdersByTenant(tenantId);
-        const recentOrders = allOrders.filter(o => new Date(o.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-        const totalRevenue = recentOrders.reduce((sum, o) => sum + Number(o.total), 0);
-        res.json({ totalOrders: recentOrders.length, totalRevenue, period: "30 days" });
-      } catch (error) {
-        res.json({ totalOrders: 0, totalRevenue: 0 });
-      }
-    }
-  );
-
-  app.get("/api/restaurant/dashboard",
-    authenticate,
-    requireRole("restaurant_owner"),
-    requireTenantAccess,
-    async (req: AuthRequest, res) => {
-      try {
-        res.json({ orders: [], financials: { revenue: 2500 }, commissions: [] });
-      } catch (error) {
-        res.status(500).json({ error: "Failed to load dashboard" });
-      }
-    }
-  );
 
   app.delete("/api/admin/restaurants/:id",
     authenticate,
@@ -1888,66 +1810,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  // Get restaurant categories
-  app.get("/api/restaurant/categories",
-    authenticate,
-    requireRole("restaurant_owner"),
-    requireTenantAccess,
-    async (req: AuthRequest, res) => {
-      try {
-        const tenantId = req.user?.tenantId;
-        if (!tenantId) {
-          return res.status(403).json({ error: "No restaurant associated" });
-        }
-        const categories = await storage.getCategoriesByTenant(tenantId);
-        res.json(categories);
-      } catch (error) {
-        console.error("Get categories error:", error);
-        res.status(500).json({ error: "Failed to load categories" });
-      }
-    }
-  );
-
-  // Create product
-  app.post("/api/restaurant/products",
-    authenticate,
-    requireRole("restaurant_owner"),
-    requireTenantAccess,
-    async (req: AuthRequest, res) => {
-      try {
-        const tenantId = req.user?.tenantId;
-        if (!tenantId) {
-          return res.status(403).json({ error: "No restaurant associated" });
-        }
-
-        const productSchema = z.object({
-          categoryId: z.string(),
-          name: z.string().min(2),
-          description: z.string().min(5),
-          price: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? val : val.toString()),
-          image: z.string().url(),
-          isAvailable: z.boolean().optional().default(true),
-        });
-
-        const data = productSchema.parse(req.body);
-        const product = await storage.createProduct({
-          tenantId,
-          categoryId: data.categoryId,
-          name: data.name,
-          description: data.description,
-          price: data.price,
-          image: data.image,
-          isAvailable: data.isAvailable ?? true,
-        });
-
-        invalidateCache(`/api/storefront/${tenantId}/products`);
-        res.status(201).json(product);
-      } catch (error) {
-        console.error("Create product error:", error);
-        res.status(400).json({ error: "Failed to create product" });
-      }
-    }
-  );
 
   // Update product
   app.put("/api/restaurant/products/:id",
@@ -1978,24 +1840,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Update product error:", error);
         res.status(400).json({ error: "Failed to update product" });
-      }
-    }
-  );
-
-  // Delete product
-  app.delete("/api/restaurant/products/:id",
-    authenticate,
-    requireRole("restaurant_owner"),
-    requireTenantAccess,
-    async (req: AuthRequest, res) => {
-      try {
-        const { id } = req.params;
-        await storage.deleteProduct(id);
-        invalidateCache(`/api/storefront/${req.user!.tenantId}/products`);
-        res.json({ success: true });
-      } catch (error) {
-        console.error("Delete product error:", error);
-        res.status(500).json({ error: "Failed to delete product" });
       }
     }
   );
@@ -2081,9 +1925,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[API] WhatsApp webhook received from ${phoneNumber}`);
 
       // Process message asynchronously
-      whatsappService.processIncomingMessage(phoneNumber, tenantId, message).catch(error => {
-        console.error(`[API] Error processing WhatsApp message:`, error);
-      });
+      // TODO: Implement processIncomingMessage in WhatsAppNotificationService
+      // whatsappService.processIncomingMessage(phoneNumber, tenantId, message).catch(error => {
+      //   console.error(`[API] Error processing WhatsApp message:`, error);
+      // });
 
       // Respond immediately
       res.json({ success: true, message: "Processing..." });
@@ -2112,8 +1957,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reference
       };
 
-      const result = await whatsappService.createFoodFlowOrder(orderRequest);
-      res.json(result);
+      // TODO: Implement createFoodFlowOrder in WhatsAppNotificationService
+      // const result = await whatsappService.createFoodFlowOrder(orderRequest);
+      res.json({ success: true, message: "Order creation not yet implemented", orderRequest });
     } catch (error) {
       console.error(`[API] Error creating order:`, error);
       res.status(500).json({ error: "Failed to create order" });
@@ -2131,8 +1977,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[API] Fetching order status for ${phoneNumber}`);
 
-      const status = await whatsappService.getCustomerOrderStatus(phoneNumber, tenantId);
-      res.json(status || { error: "No active orders" });
+      // TODO: Implement getCustomerOrderStatus in WhatsAppNotificationService
+      // const status = await whatsappService.getCustomerOrderStatus(phoneNumber, tenantId);
+      res.json({ error: "Order status not yet implemented" });
     } catch (error) {
       console.error(`[API] Error fetching status:`, error);
       res.status(500).json({ error: "Failed to fetch status" });
