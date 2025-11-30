@@ -1,20 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { LogOut, Plus, Package, MapPin, BarChart3 } from "lucide-react";
+import { LogOut, Plus, Package, MapPin, BarChart3, Truck, Phone, Navigation } from "lucide-react";
 import type { Order } from "@shared/schema";
+
+interface AssignedDriver {
+  id: string;
+  name: string;
+  phone: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+interface OrderWithDriver extends Order {
+  assignedDriver?: AssignedDriver;
+}
 
 export default function RestaurantDashboard() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [dashboardData, setDashboardData] = useState<any>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderWithDriver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
     // Verificar autenticação
@@ -34,6 +50,7 @@ export default function RestaurantDashboard() {
         return;
       }
       setIsAuthenticated(true);
+      connectWebSocket(parsedUser);
       loadDashboard();
     } catch (error) {
       navigate("/login");
@@ -50,6 +67,75 @@ export default function RestaurantDashboard() {
 
     return () => clearInterval(interval);
   }, [isAuthenticated]);
+
+  const connectWebSocket = (user: any) => {
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}&type=restaurant_owner&token=${localStorage.getItem("accessToken")}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setWsConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const notification = JSON.parse(event.data);
+          
+          // Quando motorista aceita pedido (driver_assigned)
+          if (notification.type === "driver_assigned" && notification.driver) {
+            const orderId = notification.orderId;
+            const driver = notification.driver;
+            
+            // Atualizar estado local do pedido com informações do motorista
+            setOrders(prev =>
+              prev.map(order =>
+                order.id === orderId
+                  ? {
+                      ...order,
+                      status: "out_for_delivery",
+                      assignedDriver: {
+                        id: driver.id,
+                        name: driver.name,
+                        phone: driver.phone,
+                        location: driver.location,
+                      },
+                    }
+                  : order
+              )
+            );
+
+            toast({
+              title: "Motorista Atribuído!",
+              description: `${driver.name} saiu para entregar`,
+            });
+          }
+        } catch (error) {
+          console.error("WS message parse error:", error);
+        }
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+      };
+
+      ws.onerror = () => {
+        setWsConnected(false);
+      };
+    } catch (error) {
+      console.error("WebSocket connection error:", error);
+    }
+  };
+
+  // Cleanup WebSocket ao desmontar
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
 
   const loadDashboard = async () => {
     try {
@@ -176,7 +262,7 @@ export default function RestaurantDashboard() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {orders?.map((order: Order) => {
+              {orders?.map((order: OrderWithDriver) => {
                 const statusColors: { [key: string]: string } = {
                   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
                   confirmed: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -196,6 +282,45 @@ export default function RestaurantDashboard() {
                       <Badge className={statusColors[order.status] || "bg-gray-100"}>{order.status}</Badge>
                     </div>
                     <p className="text-sm mb-2 line-clamp-1">{order.deliveryAddress}</p>
+                    
+                    {/* Motorista Atribuído */}
+                    {order.assignedDriver && order.status === "out_for_delivery" && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <div>
+                              <p className="font-semibold text-sm text-blue-900 dark:text-blue-100">{order.assignedDriver.name}</p>
+                              <div className="flex gap-3 mt-1">
+                                <a
+                                  href={`https://wa.me/${order.assignedDriver.phone.replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                  data-testid={`link-whatsapp-driver-${order.id}`}
+                                >
+                                  <Phone className="h-3 w-3" />
+                                  WhatsApp
+                                </a>
+                                {order.assignedDriver.location && (
+                                  <a
+                                    href={`https://www.google.com/maps/search/${order.assignedDriver.location.latitude},${order.assignedDriver.location.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                    data-testid={`link-map-driver-${order.id}`}
+                                  >
+                                    <Navigation className="h-3 w-3" />
+                                    Localização
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-center">
                       <p className="font-semibold">R$ {Number(order.total).toFixed(2)}</p>
                       <select
