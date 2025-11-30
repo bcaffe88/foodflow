@@ -11,7 +11,7 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - Cost preference: Zero external
 - Response style: Concise
 
-### Recent Changes (Turn 6-16)
+### Recent Changes (Turn 6-18)
 - **Turn 6:** Kitchen Dashboard role validation + Register Restaurant fields expanded
 - **Turn 7:** Admin Restaurants CRUD completo + 2 backend endpoints (PATCH + POST status)
 - **Turn 8:** Admin Dashboard navegação completa + navigation tabs
@@ -23,6 +23,8 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - **Turn 14:** CRITICAL FK Constraint Fix - Validates products exist BEFORE creating order_items + Protected DELETE product endpoint
 - **Turn 15:** CRITICAL Auth Fix - queryClient now sends Authorization Bearer token in headers for all authenticated requests
 - **Turn 16:** Webhook Printer Configuration - Added "Webhook (Online)" option for printer mode + URL/Secret/Enabled fields + Backend support
+- **Turn 17:** E2E Printer Settings Tests - 11 complete test cases (264 linhas) para TCP, USB, Bluetooth, Webhook
+- **Turn 18:** Kitchen Staff Authentication System ISOLADO - Login separado, criar/remover staff, 5 E2E tests
 
 ### Critical Data Integrity Improvements (Turn 14)
 
@@ -187,19 +189,47 @@ Restaurante owner couldn't configure impressora no modo online (webhook) - apena
   10. Kitchen orders printing toggle
   11. Form field visibility per printer type
 
-**Test Coverage:**
-- ✅ All 4 printer types (TCP, USB, Bluetooth, Webhook)
-- ✅ Conditional field visibility
-- ✅ Form validation
-- ✅ Data persistence
-- ✅ Toggle behaviors
-- ✅ Type switching
+### Turn 18: Kitchen Staff Authentication System
 
-**Run Tests:**
-```bash
-npm test -- tests/e2e/printer-settings.spec.ts
-npx playwright install  # if needed
-```
+**Isolated Login Implementation:**
+- ✅ **Backend** (server/auth/kitchen-auth.ts)
+  - POST `/api/kitchen/auth/login` - Staff login com email + password + tenantId
+  - POST `/api/restaurant/kitchen-staff` - Criar novo staff
+  - GET `/api/restaurant/kitchen-staff` - Listar staff
+  - DELETE `/api/restaurant/kitchen-staff/:id` - Remover staff
+
+- ✅ **Database** (shared/schema.ts + npm run db:push)
+  - Nova tabela `kitchenStaff` com email, password (bcrypt), tenantId
+  - Role `kitchen_staff` no enum
+  - Insert schemas com Zod
+
+- ✅ **Storage** (server/storage.ts)
+  - Interface + DatabaseStorage + SmartStorage
+  - 5 novos métodos para CRUD de kitchen staff
+
+- ✅ **Frontend**
+  - Nova página `/kitchen/login` para autenticação isolada
+  - Aba "Gerenciar Funcionários de Cozinha" em restaurant-settings.tsx
+  - UI para criar/listar/deletar staff
+  - Data test IDs em todos elementos
+
+- ✅ **E2E Tests** (tests/e2e/kitchen-auth.spec.ts - 5 tests)
+  1. Owner creates kitchen staff and staff can login independently
+  2. Kitchen staff isolation - no access to restaurant owner panel
+  3. Owner can delete kitchen staff member
+  4. Kitchen staff has role isolation in JWT token
+  5. Kitchen staff access kitchen endpoints only
+
+**Security Features:**
+- ✅ Isolamento completo: cada staff tem credenciais PRÓPRIAS
+- ✅ Email + tenantId único
+- ✅ Passwords hasheadas com bcryptjs
+- ✅ JWT tokens com role `kitchen_staff`
+- ✅ Zero acesso ao painel do owner
+
+**Database Status:**
+- ✅ Migration completed: `npm run db:push` sucesso
+- ✅ kitchenStaff table criada no PostgreSQL
 
 #### Final Status
-✅ **PRODUCTION READY** - All printer types tested and validated
+✅ **PRODUCTION READY** - Kitchen staff isolated login fully functional
