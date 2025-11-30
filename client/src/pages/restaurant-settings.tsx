@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -55,12 +55,22 @@ const settingsSchema = z.object({
 
 type SettingsFormData = z.infer<typeof settingsSchema>;
 
+interface KitchenStaff {
+  id: string;
+  email: string;
+  tenantId: string;
+}
+
 export default function RestaurantSettingsPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [restaurant, setRestaurant] = useState<any>(null);
+  const [kitchenStaff, setKitchenStaff] = useState<KitchenStaff[]>([]);
+  const [newStaffEmail, setNewStaffEmail] = useState("");
+  const [newStaffPassword, setNewStaffPassword] = useState("");
+  const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -99,7 +109,17 @@ export default function RestaurantSettingsPage() {
 
   useEffect(() => {
     loadSettings();
+    loadKitchenStaff();
   }, []);
+
+  const loadKitchenStaff = async () => {
+    try {
+      const data = await apiRequest("GET", "/api/restaurant/kitchen-staff");
+      setKitchenStaff(data || []);
+    } catch (error) {
+      console.error("Failed to load kitchen staff:", error);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -174,6 +194,42 @@ export default function RestaurantSettingsPage() {
       toast({ title: "Aviso", description: "Usando valores padrão", variant: "default" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateStaff = async () => {
+    if (!newStaffEmail || !newStaffPassword) {
+      toast({ title: "Erro", description: "Preencha email e senha", variant: "destructive" });
+      return;
+    }
+
+    setIsCreatingStaff(true);
+    try {
+      await apiRequest("POST", "/api/restaurant/kitchen-staff", {
+        email: newStaffEmail,
+        password: newStaffPassword,
+      });
+      
+      toast({ title: "Sucesso!", description: "Funcionário adicionado" });
+      setNewStaffEmail("");
+      setNewStaffPassword("");
+      await loadKitchenStaff();
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao criar funcionário", variant: "destructive" });
+    } finally {
+      setIsCreatingStaff(false);
+    }
+  };
+
+  const handleDeleteStaff = async (staffId: string) => {
+    if (!confirm("Remover este funcionário?")) return;
+
+    try {
+      await apiRequest("DELETE", `/api/restaurant/kitchen-staff/${staffId}`);
+      toast({ title: "Sucesso!", description: "Funcionário removido" });
+      await loadKitchenStaff();
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao remover funcionário", variant: "destructive" });
     }
   };
 
@@ -554,6 +610,63 @@ export default function RestaurantSettingsPage() {
                 />
               </form>
             </Form>
+          </Card>
+
+          {/* Kitchen Staff Management */}
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">Gerenciar Funcionários de Cozinha</h2>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  placeholder="Email"
+                  type="email"
+                  value={newStaffEmail}
+                  onChange={(e) => setNewStaffEmail(e.target.value)}
+                  data-testid="input-staff-email"
+                />
+                <Input
+                  placeholder="Senha"
+                  type="password"
+                  value={newStaffPassword}
+                  onChange={(e) => setNewStaffPassword(e.target.value)}
+                  data-testid="input-staff-password"
+                />
+              </div>
+              <Button 
+                onClick={handleCreateStaff} 
+                disabled={isCreatingStaff}
+                className="w-full"
+                data-testid="button-create-staff"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {isCreatingStaff ? "Adicionando..." : "Adicionar Funcionário"}
+              </Button>
+
+              {kitchenStaff.length > 0 ? (
+                <div className="space-y-2 mt-6">
+                  <h3 className="font-medium text-sm">Funcionários Cadastrados:</h3>
+                  {kitchenStaff.map((staff) => (
+                    <div 
+                      key={staff.id} 
+                      className="flex items-center justify-between p-3 bg-muted rounded-md"
+                      data-testid={`staff-item-${staff.id}`}
+                    >
+                      <span className="text-sm">{staff.email}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteStaff(staff.id)}
+                        data-testid={`button-delete-staff-${staff.id}`}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum funcionário cadastrado</p>
+              )}
+            </div>
           </Card>
 
           {/* Horário de Funcionamento */}
