@@ -33,6 +33,17 @@ const settingsSchema = z.object({
   useOwnDriver: z.boolean(),
   deliveryFeeBusiness: z.string(),
   deliveryFeeCustomer: z.string(),
+  // 🔧 Webhook integrations
+  ifoodWebhookUrl: z.string().url().optional(),
+  ifoodRestaurantId: z.string().optional(),
+  uberEatsWebhookUrl: z.string().url().optional(),
+  loggiWebhookUrl: z.string().url().optional(),
+  // 🔧 Printer settings
+  printerTcpIp: z.string().optional(),
+  printerTcpPort: z.number().optional(),
+  printerType: z.enum(['tcp', 'usb', 'bluetooth']).optional(),
+  printerEnabled: z.boolean().default(false),
+  printKitchenOrders: z.boolean().default(true),
   operatingHours: z.object({
     monday: daySchema,
     tuesday: daySchema,
