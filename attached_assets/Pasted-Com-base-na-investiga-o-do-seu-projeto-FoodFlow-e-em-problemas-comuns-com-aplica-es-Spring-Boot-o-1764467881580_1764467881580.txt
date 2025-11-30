@@ -1,0 +1,30 @@
+Com base na investigação do seu projeto FoodFlow e em problemas comuns com aplicações Spring Boot, o problema do banco de dados não estar sendo populado corretamente está muito provavelmente relacionado com a configuração do banco de dados H2, especificamente a ordem em que o schema é criado e os dados são carregados.
+
+🛠️ Possíveis Causas e Soluções
+
+O erro descrito em um projeto similar aponta para um problema específico de sequência durante a inicialização da aplicação.
+
+· Causa Principal: O erro Table "RESTAURANTE" not found indica que o arquivo data.sql está tentando executar antes que as tabelas do banco de dados tenham sido criadas. No Spring Boot, por padrão, data.sql é executado após a inicialização do banco de dados H2 em memória, mas antes da geração do schema pelo Hibernate, o que pode causar este conflito.
+· Solução Primária: Configure o Spring Boot para criar o schema primeiro. Você pode fazer isso de duas formas:
+  1. Renomear os arquivos: Certifique-se de ter um arquivo schema.sql (com comandos CREATE TABLE) e um data.sql (apenas com INSERT). O Spring Boot executará automaticamente schema.sql antes de data.sql.
+  2. Configurar no application.properties:
+  ```properties
+  spring.sql.init.mode=always
+  spring.datasource.initialization-order=1
+  ```
+· Verifique a URL de conexão: O problema similar também mencionou problemas com a URL. Certifique-se que seu application.properties está usando a URL correta do H2 em memória:
+  ```properties
+  spring.datasource.url=jdbc:h2:mem:testdb
+  ```
+  Se você estiver usando um banco H2 baseado em arquivo (como jdbc:h2:~/test), o banco de dados pode persistir, mas o script data.sql pode não executar se as tabelas já existirem de uma sessão anterior.
+· Verifique a sintaxe SQL: Revise a sintaxe no seu arquivo data.sql. Certifique-se de que os nomes das tabelas e colunas correspondem ao caso usado no seu script de criação de schema e que não há erros de digitação.
+
+🔍 Como Investigar Mais a Fundo
+
+Aqui estão as áreas principais para verificar no seu projeto:
+
+1. Revise application.properties/application.yml: Procure pela configuração do banco H2 (URL, username, driver class) e configurações de inicialização.
+2. Verifique schema.sql e data.sql: Estes arquivos normalmente ficam no diretório src/main/resources. Confirme sua localização e conteúdo.
+3. Examine os Logs da Aplicação: Quando você executa sua aplicação, os logs de inicialização mostram a URL de conexão do banco e a execução dos arquivos SQL. Procure por mensagens de erro relacionadas à criação de tabelas ou inserção de dados.
+
+Ao focar na configuração da inicialização dos scripts SQL, você deve conseguir resolver o problema. Se os problemas persistirem, compartilhe as partes relevantes do seu application.properties e as linhas iniciais do seu arquivo de log que posso oferecer ajuda mais direcionada.

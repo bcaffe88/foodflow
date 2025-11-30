@@ -1,94 +1,42 @@
-// UberEats Integration Service
-// Handles real UberEats webhook events and order synchronization
+import type { IStorage } from '../storage';
 
-import { log } from "../logger";
+export async function handleUberEatsWebhook(
+  payload: any,
+  tenantId: string,
+  storage: IStorage
+): Promise<{ success: boolean; orderId?: string }> {
+  try {
+    const { event, order } = payload;
 
-interface UberEatsOrder {
-  id: string;
-  reference?: string;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
-  subtotal: number;
-  tax: number;
-  delivery_fee: number;
-  total: number;
-  customer: {
-    name: string;
-    phone: string;
-    email?: string;
-  };
-  delivery: {
-    address: string;
-    latitude?: number;
-    longitude?: number;
-    instructions?: string;
-  };
-}
+    if (event === 'order.placed') {
+      const newOrder = await storage.createOrder({
+        tenantId,
+        customerId: 'ubereats-' + (order.customer?.id || 'unknown'),
+        items: order.items.map((item: any) => ({
+          productId: 'ubereats-' + (item.id || item.name),
+          quantity: item.quantity || 1,
+          price: parseFloat(item.price || 0),
+        })),
+        totalPrice: parseFloat(order.total || 0),
+        status: 'pending',
+        deliveryAddress: order.deliveryAddress || '',
+        customerName: order.customer?.name || 'UberEats Customer',
+        customerPhone: order.customer?.phone || '',
+        externalOrderId: order.id,
+        externalSource: 'ubereats',
+      });
 
-interface UberEatsWebhookPayload {
-  event_id: string;
-  event_time: string;
-  event_type: string;
-  data: {
-    order_id: string;
-    order: UberEatsOrder;
-  };
-}
-
-export class UberEatsIntegration {
-  private restaurantId: string;
-  private apiKey: string;
-
-  constructor(restaurantId: string, apiKey: string) {
-    this.restaurantId = restaurantId;
-    this.apiKey = apiKey;
-    log(`[UberEats] Integration initialized for restaurant ${restaurantId}`);
-  }
-
-  async handleWebhook(payload: UberEatsWebhookPayload): Promise<boolean> {
-    try {
-      const { event_type, data } = payload;
-      log(`[UberEats] Webhook received: ${event_type}`);
-
-      switch (event_type) {
-        case "orders.order_placed":
-          return await this.handleOrderPlaced(data.order);
-        case "orders.order_confirmed":
-          return await this.handleOrderConfirmed(data.order_id);
-        case "orders.order_cancelled":
-          return await this.handleOrderCancelled(data.order_id);
-        default:
-          log(`[UberEats] Unknown event: ${event_type}`);
-          return true;
-      }
-    } catch (error) {
-      console.error("[UberEats] Webhook error:", error);
-      return false;
+      return { success: true, orderId: newOrder.id };
     }
-  }
 
-  private async handleOrderPlaced(order: UberEatsOrder): Promise<boolean> {
-    log(`[UberEats] Order placed: ${order.id}`);
-    // TODO: Create order in database
-    // TODO: Notify kitchen via printer
-    return true;
-  }
+    if (event === 'order.accepted') {
+      // Update order status
+      return { success: true };
+    }
 
-  private async handleOrderConfirmed(orderId: string): Promise<boolean> {
-    log(`[UberEats] Order confirmed: ${orderId}`);
-    // TODO: Update order status
-    return true;
-  }
-
-  private async handleOrderCancelled(orderId: string): Promise<boolean> {
-    log(`[UberEats] Order cancelled: ${orderId}`);
-    // TODO: Update order status
-    return true;
+    return { success: true };
+  } catch (error) {
+    console.error('[UberEats] Webhook error:', error);
+    return { success: false };
   }
 }
-
-export default UberEatsIntegration;

@@ -1,0 +1,92 @@
+DB] Connecting to: postgresql://postgres:sYDOtebrdqcdYrhwKnwwnTlYhHRkkomR@...railway
+[MemStorage] 🚀 Initializing pre-seed data...
+[MemStorage] ✅ Initialized: 1 tenants, 1 users, 7 categories, 13 products
+[12:06:22 AM] [express] Running Drizzle migrations...
+[12:06:22 AM] [Error: Can't find meta/_journal.json file] ❌ Migration failed:
+file:///app/node_modules/drizzle-orm/migrator.js:8
+    throw new Error(`Can't find meta/_journal.json file`);
+          ^
+Error: Can't find meta/_journal.json file
+    at readMigrationFiles (file:///app/node_modules/drizzle-orm/migrator.js:8:11)
+    at migrate (file:///app/node_modules/drizzle-orm/node-postgres/migrator.js:3:22)
+    at runMigrations (file:///app/dist/index.js:4907:11)
+    at file:///app/dist/index.js:4966:9
+    at file:///app/dist/index.js:5024:3
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Node.js v20.19.6
+[DB] Connecting to: postgresql://postgres:sYDOtebrdqcdYrhwKnwwnTlYhHRkkomR@...railway
+[MemStorage] 🚀 Initializing pre-seed data...
+[MemStorage] ✅ Initialized: 1 tenants, 1 users, 7 categories, 13 products
+    at readMigrationFiles (file:///app/node_modules/drizzle-orm/migrator.js:8:11)
+[12:06:24 AM] [express] Running Drizzle migrations...
+[12:06:24 AM] [Error: Can't find meta/_journal.json file] ❌ Migration failed:
+file:///app/node_modules/drizzle-orm/migrator.js:8
+    at migrate (file:///app/node_modules/drizzle-orm/node-postgres/migrator.js:3:22)
+    throw new Error(`Can't find meta/_journal.json file`);
+    at runMigrations (file:///app/dist/index.js:4907:11)
+          ^
+    at file:///app/dist/index.js:4966:9
+    at file:///app/dist/index.js:5024:3
+Error: Can't find meta/_journal.json file
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Node.js v20.19.6
+[DB] Connecting to: postgresql://postgres:sYDOtebrdqcdYrhwKnwwnTlYhHRkkomR@...railway
+[MemStorage] 🚀 Initializing pre-seed data...
+[MemStorage] ✅ Initialized: 1 tenants, 1 users, 7 categories, 13 products
+[12:06:25 AM] [express] Running Drizzle migrations...
+[12:06:25 AM] [Error: Can't find meta/_journal.json file] ❌ Migration failed:
+file:///app/node_modules/drizzle-orm/migrator.js:8
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+    throw new Error(`Can't find meta/_journal.json file`);
+          ^
+Node.js v20.19.6
+Error: Can't find meta/_journal.json file
+    at readMigrationFiles (file:///app/node_modules/drizzle-orm/migrator.js:8:11)
+    at migrate (file:///app/node_modules/drizzle-orm/node-postgres/migrator.js:3:22)
+    at runMigrations (file:///app/dist/index.js:4907:11)
+    at file:///app/dist/index.js:4966:9
+    at file:///app/dist/index.js:5024:3
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+[12:06:21 AM] [express] SIGTERM received, closing Redis connection
+    at readMigrationFiles (file:///app/node_modules/drizzle-orm/migrator.js:8:11)
+    at migrate (file:///app/node_modules/drizzle-orm/node-postgres/migrator.js:3:22)
+Node.js v20.19.6
+    at runMigrations (file:///app/dist/index.js:4907:11)
+[12:06:27 AM] [Error: Can't find meta/_journal.json file] ❌ Migration failed:
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+[DB] Connecting to: postgresql://postgres:sYDOtebrdqcdYrhwKnwwnTlYhHRkkomR@...railway
+file:///app/node_modules/drizzle-orm/migrator.js:8
+[MemStorage] 🚀 Initializing pre-seed data...
+    throw new Error(`Can't find meta/_journal.json file`);
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+[MemStorage] ✅ Initialized: 1 tenants, 1 users, 7 categories, 13 products
+[12:06:27 AM] [express] Running Drizzle migrations...
+          ^
+    at file:///app/dist/index.js:4966:9
+    at file:///app/dist/index.js:5024:3
+Error: Can't find meta/_journal.json file
+[DB] Connecting to: postgresql://postgres:sYDOtebrdqcdYrhwKnwwnTlYhHRkkomR@...railway
+[MemStorage] 🚀 Initializing pre-seed data...
+[MemStorage] ✅ Initialized: 1 tenants, 1 users, 7 categories, 13 products
+[12:06:29 AM] [express] Running Drizzle migrations...
+[12:06:29 AM] [Error: Can't find meta/_journal.json file] ❌ Migration failed:
+file:///app/node_modules/drizzle-orm/migrator.js:8
+    throw new Error(`Can't find meta/_journal.json file`);
+          ^
+Error: Can't find meta/_journal.json file
+    at readMigrationFiles (file:///app/node_modules/drizzle-orm/migrator.js:8:11)
+    at migrate (file:///app/node_modules/drizzle-orm/node-postgres/migrator.js:3:22)
+    at runMigrations (file:///app/dist/index.js:4907:11)
+    at file:///app/dist/index.js:4966:9
+    at file:///app/dist/index.js:5024:3
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+Node.js v20.19.6
+Log Explorer | Railway

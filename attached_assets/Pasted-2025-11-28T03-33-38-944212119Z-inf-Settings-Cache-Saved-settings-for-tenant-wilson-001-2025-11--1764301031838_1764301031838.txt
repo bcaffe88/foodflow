@@ -1,0 +1,49 @@
+2025-11-28T03:33:38.944212119Z [inf]  [Settings Cache] Saved settings for tenant wilson-001
+2025-11-28T03:33:38.944218429Z [inf]  [3:33:35 AM] [express] PATCH /api/restaurant/settings 200 in 77ms :: {"name":"Wilson Pizza","address":…
+2025-11-28T03:33:43.306892625Z [inf]  [3:33:43 AM] [express] GET /api/restaurant/dashboard 200 in 8ms :: {"pendingOrdersCount":0,"totalOrder…
+2025-11-28T03:33:43.379825928Z [inf]  [3:33:43 AM] [express] GET /api/restaurant/orders 200 in 81ms :: {"data":[],"total":0,"page":1,"limit"…
+2025-11-28T03:33:46.010949656Z [inf]  1:M 28 Nov 2025 03:33:43.435 * 1 changes in 60 seconds. Saving...
+2025-11-28T03:33:46.010960393Z [inf]  1:M 28 Nov 2025 03:33:43.436 * Background saving started by pid 49
+2025-11-28T03:33:46.010965724Z [inf]  49:C 28 Nov 2025 03:33:43.446 * DB saved on disk
+2025-11-28T03:33:46.010976813Z [inf]  49:C 28 Nov 2025 03:33:43.447 * Fork CoW for RDB: current 0 MB, peak 0 MB, average 0 MB
+2025-11-28T03:33:46.010983246Z [inf]  1:M 28 Nov 2025 03:33:43.537 * Background saving terminated with success
+2025-11-28T03:33:48.316561212Z [inf]  [3:33:48 AM] [express] GET /api/restaurant/orders 304 in 2ms :: {"data":[],"total":0,"page":1,"limit":…
+2025-11-28T03:33:48.316566202Z [inf]  [3:33:48 AM] [express] GET /api/restaurant/dashboard 304 in 6ms :: {"pendingOrdersCount":0,"totalOrder…
+2025-11-28T03:33:52.741267693Z [inf]  [3:33:52 AM] [express] GET /api/storefront/restaurants 200 in 3ms :: [{"id":"6b890b90-1e41-4f2d-8615-5…
+2025-11-28T03:33:55.864730522Z [inf]  [3:33:55 AM] [express] GET /api/storefront/WilsonPizza 200 in 4ms :: {"id":"6b890b90-1e41-4f2d-8615-56…
+2025-11-28T03:33:55.864738642Z [inf]  [3:33:55 AM] [express] GET /api/storefront/WilsonPizza/categories 200 in 5ms :: []
+2025-11-28T03:33:55.864748213Z [inf]  [3:33:55 AM] [express] GET /api/storefront/WilsonPizza/products 200 in 4ms :: []
+2025-11-28T03:34:15.864991211Z [inf]  [3:34:15 AM] [express] POST /api/payments/create-intent 200 in 142ms :: {"clientSecret":"pi_3SYIRnJ5FL…
+2025-11-28T03:34:24.990046024Z [err]    position: undefined,
+2025-11-28T03:34:24.990055180Z [inf]  [3:34:24 AM] [express] POST /api/storefront/WilsonPizza/orders 500 in 11ms :: {"error":"Failed to crea…
+2025-11-28T03:34:24.990056303Z [err]    internalPosition: undefined,
+2025-11-28T03:34:24.990061706Z [err]    internalQuery: undefined,
+2025-11-28T03:34:24.990066463Z [err]    where: undefined,
+2025-11-28T03:34:24.990071082Z [err]    schema: 'public',
+2025-11-28T03:34:24.990076524Z [err]  Create order error: error: insert or update on table "order_items" violates foreign key constraint "order_items_product_id_products_id_fk"
+2025-11-28T03:34:24.990078695Z [err]    table: 'order_items',
+2025-11-28T03:34:24.990083306Z [err]      at /app/node_modules/pg/lib/client.js:545:17
+2025-11-28T03:34:24.990085716Z [err]    column: undefined,
+2025-11-28T03:34:24.990098259Z [err]      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-11-28T03:34:24.990102997Z [err]      at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-11-28T03:34:24.990107987Z [err]      at async file:///app/dist/index.js:996:21
+2025-11-28T03:34:24.990113227Z [err]      at async NodePgSession.transaction (file:///app/node_modules/drizzle-orm/node-postgres/session.js:142:22)
+2025-11-28T03:34:24.990125933Z [err]      at async DatabaseStorage.createOrderWithTransaction (file:///app/dist/index.js:984:16)
+2025-11-28T03:34:24.990130545Z [err]      at async SmartStorage.tryDb (file:///app/dist/index.js:1163:18)
+2025-11-28T03:34:24.990135061Z [err]      at async file:///app/dist/index.js:3330:22 {
+2025-11-28T03:34:24.990139000Z [err]    length: 312,
+2025-11-28T03:34:24.990151969Z [err]    severity: 'ERROR',
+2025-11-28T03:34:24.990156705Z [err]    code: '23503',
+2025-11-28T03:34:24.990160740Z [err]    detail: 'Key (product_id)=(prod-salgadas-2) is not present in table "products".',
+2025-11-28T03:34:24.990172600Z [err]    hint: undefined,
+2025-11-28T03:34:24.991403900Z [err]    dataType: undefined,
+2025-11-28T03:34:24.991410153Z [err]    constraint: 'order_items_product_id_products_id_fk',
+2025-11-28T03:34:24.991414496Z [err]    file: 'ri_triggers.c',
+2025-11-28T03:34:24.991418496Z [err]    line: '2599',
+2025-11-28T03:34:24.991422302Z [err]    routine: 'ri_ReportViolation'
+2025-11-28T03:34:24.991426425Z [err]  }
+2025-11-28T03:34:30.385880533Z [err]  2025-11-28 03:34:24.989 UTC [372] ERROR:  insert or update on table "order_items" violates foreign key constraint "order_items_product_id_products_id_fk"
+2025-11-28T03:34:30.385888727Z [err]  2025-11-28 03:34:24.989 UTC [372] DETAIL:  Key (product_id)=(prod-salgadas-2) is not present in table "products".
+2025-11-28T03:34:30.385893779Z [err]  2025-11-28 03:34:24.989 UTC [372] STATEMENT:  insert into "order_items" ("id", "order_id", "product_id", "name", "price", "quantity", "notes") values (default, $1, $2, $3, $4, $5, default) returning "id", "order_id", "product_id", "name", "price", "quantity", "notes"
+2025-11-28T03:35:50.102770706Z [err]  2025-11-28 03:35:46.060 UTC [27] LOG:  checkpoint starting: time
+2025-11-28T03:35:50.102774487Z [err]  2025-11-28 03:35:46.893 UTC [27] LOG:  checkpoint complete: wrote 9 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.806 s, sync=0.013 s, total=0.833 s; sync files=9, longest=0.012 s, average=0.002 s; distance=3 kB, estimate=508 kB; lsn=0/1A3DD40, redo lsn=0/1A3DCE8
