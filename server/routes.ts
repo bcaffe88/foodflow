@@ -1270,9 +1270,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { orderId } = req.body;
         const order = await storage.getOrder(orderId);
         if (!order) return res.status(404).json({ error: "Order not found" });
+        
         const updated = await storage.assignDriver(orderId, req.user!.userId);
+        
+        // Get driver info for WebSocket notification
+        const driver = await storage.getUser(req.user!.userId);
+        const driverProfile = driver ? await storage.getDriverProfile(driver.id) : null;
+        
+        // Broadcast to restaurant owner via WebSocket
+        if (updated) {
+          const { notificationSocketManager } = await import("./websocket/notification-socket");
+          notificationSocketManager.broadcastByTenant(order.tenantId, {
+            type: "driver_assigned",
+            action: "driver_accepted_order",
+            orderId: updated.id,
+            status: "out_for_delivery",
+            driver: {
+              id: driver?.id,
+              name: driver?.name,
+              phone: driver?.phone,
+              location: driverProfile ? { 
+                latitude: parseFloat(driverProfile.currentLatitude || "0"), 
+                longitude: parseFloat(driverProfile.currentLongitude || "0") 
+              } : null,
+            },
+            order: {
+              id: updated.id,
+              customerName: updated.customerName,
+              deliveryAddress: updated.deliveryAddress,
+              total: updated.total,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        }
+        
         res.json(updated || order);
       } catch (error) {
+        console.error("Failed to accept order:", error);
         res.status(500).json({ error: "Failed to accept order" });
       }
     }
