@@ -726,7 +726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireTenantAccess,
     async (req: AuthRequest, res) => {
       try {
-        const { name, address, description, logo, whatsappPhone, stripePublicKey, stripeSecretKey, n8nWebhookUrl, useOwnDriver, deliveryFeeBusiness, deliveryFeeCustomer, operatingHours, printerTcpIp, printerTcpPort, printerType, printerEnabled, printKitchenOrders } = req.body;
+        const { name, address, description, logo, whatsappPhone, stripePublicKey, stripeSecretKey, n8nWebhookUrl, useOwnDriver, deliveryFeeBusiness, deliveryFeeCustomer, operatingHours, printerTcpIp, printerTcpPort, printerType, printerEnabled, printKitchenOrders, printerWebhookUrl, printerWebhookSecret, printerWebhookEnabled } = req.body;
         const tenantId = req.user!.tenantId!;
         
         const settingsData = {
@@ -746,6 +746,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           printerTcpPort: printerTcpPort || 9100,
           printerType: printerType || "tcp",
           printerEnabled: printerEnabled ?? false,
+          printerWebhookUrl: printerWebhookUrl || "",
+          printerWebhookSecret: printerWebhookSecret || "",
+          printerWebhookEnabled: printerWebhookEnabled ?? false,
           printKitchenOrders: printKitchenOrders ?? true,
         };
         
@@ -780,6 +783,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             deliveryFeeBusiness: deliveryFeeBusiness || undefined,
             deliveryFeeCustomer: deliveryFeeCustomer || undefined,
             operatingHours: operatingHours || undefined,
+            printerWebhookUrl: printerWebhookUrl || undefined,
+            printerWebhookSecret: printerWebhookSecret || undefined,
+            printerWebhookEnabled: printerWebhookEnabled ?? undefined,
           });
         } catch (dbError) {
           console.log(`[Settings Cache] DB update failed, using memory cache: ${dbError}`);

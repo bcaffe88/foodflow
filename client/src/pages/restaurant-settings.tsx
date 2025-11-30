@@ -36,8 +36,11 @@ const settingsSchema = z.object({
   // 🖨️ Printer settings
   printerTcpIp: z.string().optional(),
   printerTcpPort: z.number().optional(),
-  printerType: z.enum(['tcp', 'usb', 'bluetooth']).optional(),
+  printerType: z.enum(['tcp', 'usb', 'bluetooth', 'webhook']).optional(),
   printerEnabled: z.boolean().default(false),
+  printerWebhookUrl: z.string().url().optional(),
+  printerWebhookSecret: z.string().optional(),
+  printerWebhookEnabled: z.boolean().default(false),
   printKitchenOrders: z.boolean().default(true),
   operatingHours: z.object({
     monday: daySchema,
@@ -78,6 +81,9 @@ export default function RestaurantSettingsPage() {
       printerTcpPort: 9100,
       printerType: "tcp",
       printerEnabled: false,
+      printerWebhookUrl: "",
+      printerWebhookSecret: "",
+      printerWebhookEnabled: false,
       printKitchenOrders: true,
       operatingHours: {
         monday: { open: "10:00", close: "23:00", closed: false },
@@ -113,6 +119,15 @@ export default function RestaurantSettingsPage() {
         useOwnDriver: data?.useOwnDriver ?? true,
         deliveryFeeBusiness: String(data?.deliveryFeeBusiness || "0"),
         deliveryFeeCustomer: String(data?.deliveryFeeCustomer || "0"),
+        // 🖨️ Printer settings
+        printerType: data?.printerType || "tcp",
+        printerEnabled: data?.printerEnabled ?? false,
+        printerTcpIp: data?.printerTcpIp || "192.168.1.100",
+        printerTcpPort: data?.printerTcpPort || 9100,
+        printerWebhookUrl: data?.printerWebhookUrl || "",
+        printerWebhookSecret: data?.printerWebhookSecret || "",
+        printerWebhookEnabled: data?.printerWebhookEnabled ?? false,
+        printKitchenOrders: data?.printKitchenOrders ?? true,
         operatingHours: data?.operatingHours || {
           monday: { open: "10:00", close: "23:00", closed: false },
           tuesday: { open: "10:00", close: "23:00", closed: false },
@@ -137,6 +152,15 @@ export default function RestaurantSettingsPage() {
         useOwnDriver: true,
         deliveryFeeBusiness: "0",
         deliveryFeeCustomer: "0",
+        // 🖨️ Printer defaults
+        printerType: "tcp",
+        printerEnabled: false,
+        printerTcpIp: "192.168.1.100",
+        printerTcpPort: 9100,
+        printerWebhookUrl: "",
+        printerWebhookSecret: "",
+        printerWebhookEnabled: false,
+        printKitchenOrders: true,
         operatingHours: {
           monday: { open: "10:00", close: "23:00", closed: false },
           tuesday: { open: "10:00", close: "23:00", closed: false },
@@ -386,6 +410,7 @@ export default function RestaurantSettingsPage() {
                               <option value="tcp">TCP/IP (Ethernet)</option>
                               <option value="usb">USB</option>
                               <option value="bluetooth">Bluetooth</option>
+                              <option value="webhook">Webhook (Online)</option>
                             </select>
                           </FormControl>
                           <FormMessage />
@@ -419,6 +444,49 @@ export default function RestaurantSettingsPage() {
                                 <Input type="number" placeholder="9100" {...field} onChange={(e) => field.onChange(Number(e.target.value))} data-testid="input-printer-port" />
                               </FormControl>
                               <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
+
+                    {form.watch("printerType") === "webhook" && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="printerWebhookUrl"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>URL do Webhook</FormLabel>
+                              <FormControl>
+                                <Input type="url" placeholder="https://seu-servidor.com/webhook" {...field} data-testid="input-printer-webhook-url" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="printerWebhookSecret"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Segredo do Webhook</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="seu-segredo-aqui" {...field} data-testid="input-printer-webhook-secret" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="printerWebhookEnabled"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center justify-between">
+                              <FormLabel>Webhook Ativado</FormLabel>
+                              <Switch checked={field.value as boolean} onCheckedChange={field.onChange} data-testid="switch-printer-webhook-enabled" />
                             </FormItem>
                           )}
                         />

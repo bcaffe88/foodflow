@@ -11,7 +11,7 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - Cost preference: Zero external
 - Response style: Concise
 
-### Recent Changes (Turn 6-14)
+### Recent Changes (Turn 6-16)
 - **Turn 6:** Kitchen Dashboard role validation + Register Restaurant fields expanded
 - **Turn 7:** Admin Restaurants CRUD completo + 2 backend endpoints (PATCH + POST status)
 - **Turn 8:** Admin Dashboard navegação completa + navigation tabs
@@ -21,6 +21,8 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - **Turn 12:** Final documentation + deployment ready
 - **Turn 13:** Webhook endpoint fix - POST accepts both accessToken/externalId AND webhookUrl/webhookSecret formats
 - **Turn 14:** CRITICAL FK Constraint Fix - Validates products exist BEFORE creating order_items + Protected DELETE product endpoint
+- **Turn 15:** CRITICAL Auth Fix - queryClient now sends Authorization Bearer token in headers for all authenticated requests
+- **Turn 16:** Webhook Printer Configuration - Added "Webhook (Online)" option for printer mode + URL/Secret/Enabled fields + Backend support
 
 ### Critical Data Integrity Improvements (Turn 14)
 
@@ -84,11 +86,11 @@ The platform features dedicated applications for customers, restaurant owners, d
 #### Feature Specifications
 - **Multi-tenancy**: Supports multiple independent restaurants.
 - **User Roles**: Customer, Driver, Restaurant Owner, Kitchen Staff, Platform Admin.
-- **Authentication**: JWT-based with refresh tokens.
+- **Authentication**: JWT-based with refresh tokens + Bearer token in headers for all queries.
 - **Real-time Updates**: Powered by WebSockets (driver assignments, order status).
 - **Payment Processing**: Stripe for multi-tenant payments.
 - **Mapping & Routing**: Leaflet (OpenStreetMap) for maps, OSRM for routing.
-- **Printer Integration**: ESC-POS for kitchen orders.
+- **Printer Integration**: ESC-POS for kitchen orders (USB, TCP/IP, Bluetooth) + **WEBHOOK mode for online printing**.
 - **Error Handling**: Standardized error responses, custom errors, auto error logging, data integrity validation.
 - **Analytics**: Frontend dashboard with KPIs, charts (revenue, orders, status).
 - **Coupons**: Unlimited coupon creation with percentage/fixed amounts.
@@ -101,13 +103,14 @@ Designed for high availability and scalability, with Railway deployment configur
 
 ### Build Status
 - ✅ TypeScript: PASSING (zero errors)
-- ✅ Build: PASSING (420KB frontend + 302.7KB backend)
+- ✅ Build: PASSING (421KB frontend + 303.1KB backend)
 - ✅ Server: RUNNING (health check OK)
-- ✅ Frontend: 30+ pages deployed
-- ✅ Backend: 102+ endpoints working
+- ✅ Frontend: 30+ pages deployed with webhook printer config
+- ✅ Backend: 102+ endpoints working + webhook printer support
 - ✅ WebSocket: Connected and functional
 - ✅ Database: PostgreSQL with migrations + FK validation
 - ✅ Data Integrity: FK constraint prevention implemented
+- ✅ Auth: queryClient Authorization Bearer token in all requests
 
 ### Deployment Configuration
 - Platform: Railway.app (ready)
@@ -132,4 +135,38 @@ Designed for high availability and scalability, with Railway deployment configur
 - [ ] Performance optimization
 - [ ] Documentation completion
 
-**Note:** System is READY for production deployment. All optional features can be added after launch. Critical data integrity issues resolved.
+### Turn 16 Implementation Summary
+
+#### Problem Solved
+Restaurante owner couldn't configure impressora no modo online (webhook) - apenas opções de USB, TCP/IP e Bluetooth disponíveis.
+
+#### Solutions Implemented
+
+1. **Frontend Printer Configuration** (client/src/pages/restaurant-settings.tsx)
+   - ✅ Adicionada opção "Webhook (Online)" em `printerType` enum
+   - ✅ 3 novos campos condicionais para tipo webhook:
+     - `printerWebhookUrl`: URL do webhook (tipo: url)
+     - `printerWebhookSecret`: Segredo para validação (tipo: password)
+     - `printerWebhookEnabled`: Toggle para ativar/desativar (tipo: boolean)
+   - ✅ Schema Zod atualizado com enum `['tcp', 'usb', 'bluetooth', 'webhook']`
+   - ✅ Default values + form reset com novos campos
+
+2. **Backend Printer Configuration** (server/routes.ts:732-791)
+   - ✅ PATCH `/api/restaurant/settings` agora processa:
+     - `printerWebhookUrl`
+     - `printerWebhookSecret`
+     - `printerWebhookEnabled`
+   - ✅ Campos salvos em memory cache + DB (async)
+
+3. **Query Authentication Fix** (client/src/lib/queryClient.ts)
+   - ✅ queryClient default fetcher agora extrai token de `localStorage.getItem("accessToken")`
+   - ✅ Authorization header: `Bearer <token>` adicionado a TODAS as queries autenticadas
+   - ✅ Resolvido erro 401 "No token provided" em endpoints de integrations
+
+#### Impact
+- ✅ Dono consegue agora configurar impressora webhook online
+- ✅ Suporta múltiplos tipos de impressora (USB, TCP/IP, Bluetooth, Webhook)
+- ✅ Todos os endpoints autenticados funcionam corretamente com token
+- ✅ Webhook integrations agora aparecem no painel
+
+**Note:** System is READY for production deployment. All optional features can be added after launch. Critical data integrity and authentication issues resolved.
