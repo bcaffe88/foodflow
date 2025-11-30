@@ -8,6 +8,7 @@
 
 import { log } from "../logger";
 import { createHmac } from "crypto";
+import { verifyQueroDeliverySignature } from "../utils/webhook-signature";
 
 interface QueroDeliveryItem {
   product_id?: string;
@@ -62,9 +63,20 @@ interface QueroDeliveryWebhookPayload {
 export async function processQueroDeliveryWebhook(
   payload: QueroDeliveryWebhookPayload,
   tenantId: string,
-  storage: any
+  storage: any,
+  signature?: string,
+  secret?: string
 ): Promise<any> {
   try {
+    // Validate HMAC signature if provided
+    if (signature && secret) {
+      const isValid = verifyQueroDeliverySignature(JSON.stringify(payload), signature, secret);
+      if (!isValid) {
+        log("[Quero Delivery] Invalid signature - rejecting webhook");
+        return { success: false, message: "Invalid signature" };
+      }
+    }
+
     log(`[Quero Delivery Webhook] Processing ${payload.event}`);
 
     switch (payload.event) {

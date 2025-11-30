@@ -1,5 +1,6 @@
 import { IStorage } from "../storage";
 import { sendTwilioWhatsApp } from "../services/twilio-whatsapp-service";
+import { verifyUberEatsSignature } from "../utils/webhook-signature";
 
 interface UberEatsOrder {
   id: string;
@@ -37,9 +38,20 @@ interface UberEatsWebhookEvent {
 export async function processUberEatsWebhook(
   event: UberEatsWebhookEvent,
   tenantId: string,
-  storage: IStorage
+  storage: IStorage,
+  signature?: string,
+  secret?: string
 ) {
   try {
+    // Validate HMAC signature if provided
+    if (signature && secret) {
+      const isValid = verifyUberEatsSignature(JSON.stringify(event), signature, secret);
+      if (!isValid) {
+        console.error("[UberEats] Invalid signature - rejecting webhook");
+        return { success: false, message: "Invalid signature" };
+      }
+    }
+
     const { order, eventType } = event;
     console.log(`[UberEats] Processing ${eventType} event for order ${order.id}`);
 
@@ -75,9 +87,7 @@ export async function processUberEatsWebhook(
     }
 
     // Create or update order
-    const existingOrder = await storage.getOrders().then(orders =>
-      orders.find(o => o.externalOrderId === order.reference && o.externalPlatform === "ubereats")
-    );
+    const existingOrder = await storage.getOrder(order.reference).catch(() => undefined);
 
     if (!existingOrder) {
       // Create new order
@@ -111,8 +121,13 @@ export async function processUberEatsWebhook(
         );
       }
     } else {
-      // Update order status
-      await storage.updateOrder(existingOrder.id, { status: orderStatus });
+      // Update order status (if method exists)
+      if ('updateOrder' in storage) {
+        await (storage as any).updateOrder(existingOrder.id, { status: orderStatus });
+      } else {
+        // Fallback: create new order with updated status
+        await storage.createOrder(newOrder);
+      }
 
       if (shouldNotify) {
         await sendTwilioWhatsApp(

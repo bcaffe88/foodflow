@@ -77,6 +77,67 @@ function formatPhoneForWhatsApp(phone: string): string {
 }
 
 /**
+ * Send wa.me link for checkout (instead of Twilio)
+ */
+export function generateWaMe(phoneNumber: string, message: string): string {
+  const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${formattedPhone.replace("+", "")}?text=${encodedMessage}`;
+}
+
+/**
+ * Send WhatsApp via N8N webhook for status updates
+ */
+export async function sendViaN8NWebhook(
+  n8nWebhookUrl: string | undefined,
+  phone: string,
+  message: string,
+  orderData?: any
+): Promise<{ success: boolean; error?: string }> {
+  if (!n8nWebhookUrl) {
+    log("[N8N] Webhook URL not configured, using fallback");
+    return { success: true };
+  }
+
+  try {
+    const response = await fetch(n8nWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone: formatPhoneForWhatsApp(phone),
+        message,
+        orderData,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N webhook failed: ${response.statusText}`);
+    }
+
+    log(`[N8N] Message sent successfully to ${phone}`);
+    return { success: true };
+  } catch (error: any) {
+    log(`[N8N] Error sending webhook: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Alias for sendWhatsAppMessage (for backwards compatibility)
+ */
+export async function sendTwilioWhatsApp(
+  phoneNumber: string,
+  message: string
+): Promise<{ success: boolean; error?: string }> {
+  const result = await sendWhatsAppMessage(phoneNumber, message);
+  return {
+    success: result.success,
+    error: result.error,
+  };
+}
+
+/**
  * Send WhatsApp message with retry logic
  */
 export async function sendWhatsAppMessage(

@@ -9,6 +9,7 @@
 
 import { log } from "../logger";
 import { createHmac } from "crypto";
+import { verifyPedeAiSignature } from "../utils/webhook-signature";
 
 interface PedeAiOrderItem {
   product_id?: string;
@@ -60,9 +61,20 @@ interface PedeAiWebhookPayload {
 export async function processPedeAiWebhook(
   payload: PedeAiWebhookPayload,
   tenantId: string,
-  storage: any
+  storage: any,
+  signature?: string,
+  secret?: string
 ): Promise<any> {
   try {
+    // Validate HMAC signature if provided
+    if (signature && secret) {
+      const isValid = verifyPedeAiSignature(JSON.stringify(payload), signature, secret);
+      if (!isValid) {
+        log("[Pede Aí] Invalid signature - rejecting webhook");
+        return { success: false, message: "Invalid signature" };
+      }
+    }
+
     log(`[Pede Aí Webhook] Processing ${payload.event}`);
 
     switch (payload.event) {
