@@ -17,6 +17,9 @@ const schema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   phone: z.string().min(10, "Telefone inválido"),
+  address: z.string().min(5, "Endereço inválido").optional(),
+  city: z.string().min(2, "Cidade inválida").optional(),
+  category: z.string().optional(),
 });
 
 export default function RegisterRestaurantPage() {
@@ -132,6 +135,45 @@ export default function RegisterRestaurantPage() {
                       <FormLabel className="text-xs md:text-sm">Telefone</FormLabel>
                       <FormControl>
                         <Input placeholder="558799999999" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-phone" />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Endereço (opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Rua, número" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-address" />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Cidade (opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="São Paulo" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-city" />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs md:text-sm">Categoria (opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Pizzaria, Hambúrguer, etc" className="text-xs md:text-sm h-9 md:h-10" {...field} data-testid="input-restaurant-category" />
                       </FormControl>
                       <FormMessage className="text-xs" />
                     </FormItem>

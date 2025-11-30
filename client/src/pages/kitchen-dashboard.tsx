@@ -35,9 +35,14 @@ export default function KitchenDashboard() {
 
     try {
       const parsedUser = JSON.parse(user);
-      if (parsedUser.role !== "restaurant_owner") {
+      // Kitchen staff pode ser restaurant_owner (old) ou kitchen_staff (novo)
+      if (parsedUser.role !== "restaurant_owner" && parsedUser.role !== "kitchen_staff") {
         navigate("/login");
         return;
+      }
+      // Se tiver tenantId, guardar para depois
+      if (parsedUser.tenantId) {
+        localStorage.setItem("kitchenTenantId", parsedUser.tenantId);
       }
     } catch {
       navigate("/login");
