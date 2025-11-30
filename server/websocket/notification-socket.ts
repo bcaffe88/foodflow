@@ -36,6 +36,7 @@ export class NotificationSocketManager {
         const userId = url.searchParams.get("userId");
         const userType = url.searchParams.get("type");
         const token = url.searchParams.get("token");
+        let tenantId = url.searchParams.get("tenantId") || undefined;  // 🔧 EXTRAIR DA URL!
 
         if (!userId || !userType) {
           ws.send(JSON.stringify({ error: "Missing userId or type" }));
@@ -43,9 +44,8 @@ export class NotificationSocketManager {
           return;
         }
 
-        // Verify token if provided
-        let tenantId: string | undefined;
-        if (token) {
+        // Verify token if provided - tenantId da URL é fallback
+        if (token && !tenantId) {  // Só tenta token se não tiver na URL
           try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret") as any;
             tenantId = decoded.tenantId;
@@ -63,7 +63,7 @@ export class NotificationSocketManager {
           lastPing: Date.now(),
         });
 
-        log(`[NotificationSocket] Connection established: ${connectionId}`);
+        log(`[NotificationSocket] ✅ Connection established: ${connectionId} (tenant: ${tenantId || 'none'})`);
 
         ws.on("message", async (data: string) => {
           try {
