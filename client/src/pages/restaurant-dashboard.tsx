@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { apiRequest } from "@/lib/api";
 import { LogOut, Plus, Package, MapPin, BarChart3, Truck, Phone, Navigation } from "lucide-react";
 import type { Order } from "@shared/schema";
@@ -29,114 +30,69 @@ export default function RestaurantDashboard() {
   const [orders, setOrders] = useState<OrderWithDriver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const [wsConnected, setWsConnected] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     // Verificar autenticação
     const token = localStorage.getItem("accessToken");
-    const user = localStorage.getItem("user");
+    const userData = localStorage.getItem("user");
     
-    if (!token || !user) {
+    if (!token || !userData) {
       navigate("/login");
       return;
     }
 
     try {
-      const parsedUser = JSON.parse(user);
+      const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== "restaurant_owner") {
         toast({ title: "Acesso negado", description: "Você não tem permissão para acessar esta área", variant: "destructive" });
         navigate("/login");
         return;
       }
+      setUser(parsedUser);
       setIsAuthenticated(true);
-      connectWebSocket(parsedUser);
       loadDashboard();
     } catch (error) {
       navigate("/login");
     }
   }, []);
 
-  // Polling para atualizar status em tempo real a cada 5 segundos
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  // WebSocket real-time updates
+  useWebSocket({
+    userId: user?.id || "",
+    userType: "restaurant_owner",
+    token: localStorage.getItem("accessToken") || "",
+    tenantId: user?.tenantId,
+    onMessage: (notification) => {
+      // Quando motorista aceita pedido
+      if (notification.action === "driver_accepted_order" && notification.driver) {
+        const orderId = notification.orderId;
+        const driver = notification.driver;
+        
+        setOrders(prev =>
+          prev.map(order =>
+            order.id === orderId
+              ? {
+                  ...order,
+                  status: "out_for_delivery",
+                  assignedDriver: {
+                    id: driver.id,
+                    name: driver.name,
+                    phone: driver.phone,
+                    location: driver.location,
+                  },
+                }
+              : order
+          )
+        );
 
-    const interval = setInterval(() => {
-      loadDashboard();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
-  const connectWebSocket = (user: any) => {
-    try {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      // IMPORTANTE: Passar tenantId para o servidor poder fazer broadcast por tenant
-      const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}&type=restaurant_owner&token=${localStorage.getItem("accessToken")}&tenantId=${user.tenantId}`;
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        setWsConnected(true);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const notification = JSON.parse(event.data);
-          
-          // Quando motorista aceita pedido (driver_assigned)
-          if (notification.type === "driver_assigned" && notification.driver) {
-            const orderId = notification.orderId;
-            const driver = notification.driver;
-            
-            // Atualizar estado local do pedido com informações do motorista
-            setOrders(prev =>
-              prev.map(order =>
-                order.id === orderId
-                  ? {
-                      ...order,
-                      status: "out_for_delivery",
-                      assignedDriver: {
-                        id: driver.id,
-                        name: driver.name,
-                        phone: driver.phone,
-                        location: driver.location,
-                      },
-                    }
-                  : order
-              )
-            );
-
-            toast({
-              title: "Motorista Atribuído!",
-              description: `${driver.name} saiu para entregar`,
-            });
-          }
-        } catch (error) {
-          console.error("WS message parse error:", error);
-        }
-      };
-
-      ws.onclose = () => {
-        setWsConnected(false);
-      };
-
-      ws.onerror = () => {
-        setWsConnected(false);
-      };
-    } catch (error) {
-      console.error("WebSocket connection error:", error);
-    }
-  };
-
-  // Cleanup WebSocket ao desmontar
-  useEffect(() => {
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+        toast({
+          title: "Motorista Atribuído!",
+          description: `${driver.name} saiu para entregar seu pedido!`,
+        });
       }
-    };
-  }, []);
+    },
+  });
 
   const loadDashboard = async () => {
     try {
