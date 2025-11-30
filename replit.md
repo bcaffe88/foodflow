@@ -9,6 +9,7 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - Cost preference: Zero external
 - Response style: Concise
 
+
 ### Recent Updates (Turn 11 - Party Mode E2E Complete)
 - **Settings Persistence Fixed**: Added 5 missing printer fields to updateTenant (routes.ts:802-806)
 - **WhatsApp Message Formatting Enhanced**: Line breaks after sentences/semicolons in generateWaMe() (twilio-whatsapp-service.ts:88-91)
