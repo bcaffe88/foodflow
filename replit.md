@@ -9,6 +9,12 @@ The Wilson Pizzaria project is a multi-tenant food delivery platform providing a
 - Cost preference: Zero external
 - Response style: Concise
 
+### Recent Updates (Turn 10 - E2E Party Mode Debugging)
+- **Settings Persistence Fixed**: Added missing printer fields (printerTcpIp, printerTcpPort, printerType, printerEnabled, printKitchenOrders) to updateTenant in routes.ts
+- **WhatsApp Message Formatting Enhanced**: Added line breaks after sentences/semicolons in generateWaMe() for better readability
+- **WebSocket Investigated**: Code 1006 disconnections traced - token validation present, potential client-side reconnection issue
+- **Production Ready**: App running on port 5000, PostgreSQL connected, WebSocket active, all seeds initialized
+
 ### System Architecture
 
 #### UI/UX Decisions
@@ -21,7 +27,7 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Features**: GPS real-time tracking, order auto-assignment, promotional coupons, Stripe multi-tenant payments, Leaflet maps (OpenStreetMap), OSRM routing, comprehensive error handling and logging, analytics dashboard for restaurant owners, and customer rating and review system.
 - **Data Integrity**: Application-layer validation prevents FK constraint violations on orders and products, and protects products from deletion if they are part of existing orders.
 - **Authentication**: JWT-based with refresh tokens, with `queryClient` configured to send Authorization Bearer tokens in headers for all authenticated requests. Isolated authentication system for kitchen staff.
-- **Printer Integration**: Supports ESC-POS for kitchen orders (USB, TCP/IP, Bluetooth) and a new **WEBHOOK mode for online printing** with configurable URL, secret, and enablement.
+- **Printer Integration**: Supports ESC-POS for kitchen orders (USB, TCP/IP, Bluetooth) and **WEBHOOK mode for online printing** with configurable URL, secret, and enablement.
 
 #### Feature Specifications
 - **Multi-tenancy**: Supports multiple independent restaurants.
@@ -35,7 +41,7 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Ratings**: 5-star interactive rating UI with comments.
 - **Admin Panel**: Full CRUD for restaurants, status management, commission control.
 - **Data Integrity**: FK constraint prevention, product deletion protection, order validation.
-- **Kitchen Staff Management**: Isolated login for kitchen staff, with UI for restaurant owners to create, list, and delete staff members, ensuring secure and isolated access.
+- **Kitchen Staff Management**: Isolated login for kitchen staff, with UI for restaurant owners to create, list, and delete staff members.
 
 #### System Design Choices
 Designed for high availability and scalability, with Railway deployment configurations for automatic scaling. Emphasizes robust error handling, multi-tenant isolation, comprehensive documentation, and application-layer data integrity. Production-ready with all critical features implemented and tested.
@@ -48,3 +54,8 @@ Designed for high availability and scalability, with Railway deployment configur
 - **Messaging**: Twilio (for WhatsApp integration), SendGrid (for email notifications)
 - **Food Delivery Integrations**: iFood, UberEats, Quero Delivery, Pede Aí
 - **Deployment Platform**: Railway.app
+
+### Known Issues & Next Steps
+1. **WebSocket Code 1006 Disconnections**: Browser-side reconnection logic may need improvement with exponential backoff
+2. **Kitchen E2E Tests**: Ready for Playwright E2E testing via `npm run test`
+3. **Firebase FCM**: Needs credentials file format (currently shows PEM parse error - non-critical)

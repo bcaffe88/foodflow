@@ -796,12 +796,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             printerWebhookUrl: printerWebhookUrl || undefined,
             printerWebhookSecret: printerWebhookSecret || undefined,
             printerWebhookEnabled: printerWebhookEnabled ?? undefined,
+            printerTcpIp: printerTcpIp || undefined,
+            printerTcpPort: printerTcpPort || undefined,
+            printerType: printerType || undefined,
+            printerEnabled: printerEnabled ?? undefined,
+            printKitchenOrders: printKitchenOrders ?? undefined,
           });
         } catch (dbError) {
           console.log(`[Settings Cache] DB update failed, using memory cache: ${dbError}`);
         }
 
-        // Return updated settings
+        // Return updated settings immediately (cache is already updated)
         res.json(settingsData);
       } catch (error) {
         console.error("Update settings error:", error);

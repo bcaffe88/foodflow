@@ -81,7 +81,12 @@ function formatPhoneForWhatsApp(phone: string): string {
  */
 export function generateWaMe(phoneNumber: string, message: string): string {
   const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
-  const encodedMessage = encodeURIComponent(message);
+  // Add line breaks for better formatting in WhatsApp
+  const formattedMessage = message
+    .replace(/\n/g, '%0A')  // Preserve existing line breaks
+    .replace(/\. /g, '.%0A') // Add break after sentences
+    .replace(/; /g, ';%0A'); // Add break after semicolons
+  const encodedMessage = encodeURIComponent(formattedMessage);
   return `https://wa.me/${formattedPhone.replace("+", "")}?text=${encodedMessage}`;
 }
 
