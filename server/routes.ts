@@ -3005,7 +3005,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Integrations - Create
   app.post("/api/restaurant/integrations", authenticate, requireRole("owner"), async (req: AuthRequest, res) => {
     try {
-      const { platform, webhookUrl, webhookSecret, isActive, credentials } = req.body;
+      const { platform, webhookUrl, webhookSecret, isActive } = req.body;
       const tenantId = req.user?.tenantId;
       if (!tenantId || !platform) return res.status(400).json({ error: "Missing required fields" });
       const integration = await storage.createTenantIntegration({
@@ -3014,7 +3014,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         webhookUrl: webhookUrl || "",
         webhookSecret: webhookSecret || "",
         isActive: isActive !== false,
-        credentials: credentials || {},
       });
       res.json(integration);
     } catch (error) {

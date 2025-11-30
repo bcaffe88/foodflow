@@ -7,6 +7,7 @@
  */
 
 import { log } from "../logger";
+import { createHmac } from "crypto";
 
 interface QueroDeliveryItem {
   product_id?: string;

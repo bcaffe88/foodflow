@@ -8,6 +8,7 @@
  */
 
 import { log } from "../logger";
+import { createHmac } from "crypto";
 
 interface PedeAiOrderItem {
   product_id?: string;
