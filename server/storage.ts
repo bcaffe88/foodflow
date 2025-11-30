@@ -744,6 +744,21 @@ export class DatabaseStorage implements IStorage {
     
     return this.assignDriver(orderId, driver.userId);
   }
+
+  // Integrations
+  async getTenantIntegrations(tenantId: string): Promise<TenantIntegration[]> {
+    return db.select().from(tenantIntegrations).where(eq(tenantIntegrations.tenantId, tenantId));
+  }
+
+  async createTenantIntegration(data: InsertTenantIntegration): Promise<TenantIntegration> {
+    const [result] = await db.insert(tenantIntegrations).values(data).returning();
+    return result;
+  }
+
+  async updateTenantIntegration(id: string, data: Partial<InsertTenantIntegration>): Promise<TenantIntegration | undefined> {
+    const [result] = await db.update(tenantIntegrations).set({ ...data, updatedAt: new Date() }).where(eq(tenantIntegrations.id, id)).returning();
+    return result;
+  }
 }
 
 // SmartStorage: Fallback from Database to MemStorage on connection errors
@@ -1303,4 +1318,33 @@ export class SmartStorage implements IStorage {
       () => Promise.resolve(undefined)
     );
   }
+}
+
+export const storage = new SmartStorage();
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export async function paginate<T>(
+  query: any,
+  countQuery: any,
+  page: number = 1,
+  limit: number = 50
+): Promise<PaginatedResult<T>> {
+  const offset = (page - 1) * limit;
+  const [{ count }] = await countQuery;
+  const data = await query.offset(offset).limit(limit);
+  
+  return {
+    data,
+    total: count || 0,
+    page,
+    limit,
+    pages: Math.ceil((count || 0) / limit),
+  };
 }

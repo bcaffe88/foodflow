@@ -2838,11 +2838,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Broadcast error:", error);
-      res.status(500).json({ error: "Broadcast failed" });
+    }
+  });
+
+  // Integrations - Get
+  app.get("/api/restaurant/integrations", authenticate, requireRole("owner"), async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) return res.status(401).json({ error: "Not authenticated" });
+      const integrations = await storage.getTenantIntegrations(tenantId);
+      res.json(integrations);
+    } catch (error) {
+      console.error("Get integrations error:", error);
+      res.status(500).json({ error: "Failed to load integrations" });
+    }
+  });
+
+  // Integrations - Create
+  app.post("/api/restaurant/integrations", authenticate, requireRole("owner"), async (req: AuthRequest, res) => {
+    try {
+      const { platform, webhookUrl, webhookSecret, isActive, credentials } = req.body;
+      const tenantId = req.user?.tenantId;
+      if (!tenantId || !platform) return res.status(400).json({ error: "Missing required fields" });
+      const integration = await storage.createTenantIntegration({
+        tenantId,
+        platform,
+        webhookUrl: webhookUrl || "",
+        webhookSecret: webhookSecret || "",
+        isActive: isActive !== false,
+        credentials: credentials || {},
+      });
+      res.json(integration);
+    } catch (error) {
+      console.error("Create integration error:", error);
+      res.status(500).json({ error: "Failed to create integration" });
     }
   });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }
