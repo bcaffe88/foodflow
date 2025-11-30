@@ -14,6 +14,7 @@ import { sendOrderConfirmation, sendDeliveryComplete, sendDriverAssignment } fro
 import { registerAdminErrorRoutes } from "./routes/admin-errors";
 import { trackError } from "./services/error-tracking-service";
 import { processPedeAiWebhook } from "./webhook/pede-ai";
+import { processQueroDeliveryWebhook } from "./webhook/quero-delivery";
 
 // In-memory cache for restaurant settings (fallback when DB is down)
 const settingsMemoryCache = new Map<string, Record<string, any>>();
@@ -1544,6 +1545,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (error) {
         console.error("Pede Aí webhook error:", error);
+        res.status(500).json({ error: "Webhook processing failed" });
+      }
+    }
+  );
+
+  // Quero Delivery webhook
+  app.post("/api/webhooks/quero-delivery/:tenantId",
+    async (req: AuthRequest, res) => {
+      try {
+        const { tenantId } = req.params;
+        const payload = req.body;
+        const signature = req.headers["x-quero-delivery-signature"] as string;
+
+        console.log(`[Webhook] Quero Delivery event: ${payload.event}`);
+
+        // Process Quero Delivery webhook
+        const result = await processQueroDeliveryWebhook(payload, tenantId, storage);
+
+        // Send WhatsApp notification to customer
+        if (result.orderId && payload.event === "order.created") {
+          try {
+            const order = await storage.getOrder(result.orderId);
+            if (order) {
+              await whatsappService.sendOrderNotification({
+                type: "order.created",
+                orderId: result.orderId,
+                customerPhone: order.customerPhone,
+                customerName: order.customerName,
+                restaurantName: (await storage.getTenant(tenantId))?.name || "Restaurant",
+                orderDetails: {
+                  total: order.total,
+                  address: order.deliveryAddress || "Endereço de Entrega",
+                },
+              });
+            }
+          } catch (whatsappError) {
+            console.log("[Quero Delivery Webhook] WhatsApp notification failed (non-critical)");
+          }
+        }
+
+        res.json({
+          status: "received",
+          orderId: result.orderId,
+          externalId: result.externalId,
+          event: payload.event,
+        });
+      } catch (error) {
+        console.error("Quero Delivery webhook error:", error);
         res.status(500).json({ error: "Webhook processing failed" });
       }
     }
