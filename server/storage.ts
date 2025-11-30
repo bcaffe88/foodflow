@@ -13,8 +13,10 @@ import {
   type DailyMetric, type InsertDailyMetric,
   type Rating, type InsertRating,
   type Promotion, type InsertPromotion,
+  type TenantIntegration, type InsertTenantIntegration,
   tenants, users, categories, products, orders, orderItems, payments, commissions,
   customerProfiles, driverProfiles, driverAssignments, dailyMetrics, ratings, promotions,
+  tenantIntegrations,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
@@ -119,6 +121,11 @@ export interface IStorage {
   // Auto-Assignment
   getBestDriverForOrder(orderId: string, latitude: number, longitude: number): Promise<DriverProfile | undefined>;
   autoAssignDriver(orderId: string, tenantId: string): Promise<Order | undefined>;
+
+  // Integrations
+  getTenantIntegrations(tenantId: string): Promise<TenantIntegration[]>;
+  createTenantIntegration(data: InsertTenantIntegration): Promise<TenantIntegration>;
+  updateTenantIntegration(id: string, data: Partial<InsertTenantIntegration>): Promise<TenantIntegration | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1268,34 +1275,32 @@ export class SmartStorage implements IStorage {
   async autoAssignDriver(orderId: string, tenantId: string): Promise<Order | undefined> {
     return this.tryDb(() => this.dbStorage.autoAssignDriver(orderId, tenantId), () => Promise.resolve(undefined));
   }
-}
 
-export const storage = new SmartStorage();
+  // Integrations
+  async getTenantIntegrations(tenantId: string): Promise<TenantIntegration[]> {
+    return this.tryDb(
+      () => db.select().from(tenantIntegrations).where(eq(tenantIntegrations.tenantId, tenantId)),
+      () => Promise.resolve([])
+    );
+  }
 
-// Pagination helper
-export interface PaginatedResult<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-}
+  async createTenantIntegration(data: InsertTenantIntegration): Promise<TenantIntegration> {
+    return this.tryDb(
+      async () => {
+        const [result] = await db.insert(tenantIntegrations).values(data).returning();
+        return result;
+      },
+      async () => ({ ...data, id: '', createdAt: new Date(), updatedAt: new Date() } as TenantIntegration)
+    );
+  }
 
-export async function paginate<T>(
-  query: any,
-  countQuery: any,
-  page: number = 1,
-  limit: number = 50
-): Promise<PaginatedResult<T>> {
-  const offset = (page - 1) * limit;
-  const [{ count }] = await countQuery;
-  const data = await query.offset(offset).limit(limit);
-  
-  return {
-    data,
-    total: count || 0,
-    page,
-    limit,
-    pages: Math.ceil((count || 0) / limit),
-  };
+  async updateTenantIntegration(id: string, data: Partial<InsertTenantIntegration>): Promise<TenantIntegration | undefined> {
+    return this.tryDb(
+      async () => {
+        const [result] = await db.update(tenantIntegrations).set({ ...data, updatedAt: new Date() }).where(eq(tenantIntegrations.id, id)).returning();
+        return result;
+      },
+      () => Promise.resolve(undefined)
+    );
+  }
 }
