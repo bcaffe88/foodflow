@@ -23,7 +23,9 @@ interface OrderDetails {
 }
 
 export default function OrderConfirmationPage() {
+  // Mover hooks para topo - React Hook Rules!
   const location = useLocation();
+  const navigate = location[1];
   const [orderId, setOrderId] = useState("");
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,8 +137,6 @@ export default function OrderConfirmationPage() {
       </div>
     );
   }
-
-  const navigate = useLocation()[1];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
