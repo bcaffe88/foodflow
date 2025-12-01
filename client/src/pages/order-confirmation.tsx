@@ -60,7 +60,7 @@ export default function OrderConfirmationPage() {
       const timer = setTimeout(() => {
         window.open(whatsappUrl, "_blank");
         setWhatsappOpened(true);
-      }, 1000);
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [whatsappUrl, whatsappOpened]);
@@ -78,14 +78,9 @@ export default function OrderConfirmationPage() {
         restaurantId,
       });
       
-      // Open WhatsApp IMMEDIATELY with restaurant link
+      // Open WhatsApp with restaurant link via useEffect (single source of truth)
       if (result?.waLink) {
         setWhatsappUrl(result.waLink);
-        // Auto-open after tiny delay for smooth UX
-        setTimeout(() => {
-          window.open(result.waLink, '_blank');
-          setWhatsappOpened(true);
-        }, 500);
       }
     } catch (error) {
       console.error("Payment confirmation error:", error);
