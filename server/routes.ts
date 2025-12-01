@@ -874,19 +874,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Email and password required" });
         }
 
-        // Check if staff already exists
-        const existing = await storage.getUserByEmail(email);
+        // Check if kitchen staff already exists by email
+        const existing = await storage.getKitchenStaffByEmailOnly(email);
         if (existing) {
           return res.status(400).json({ error: "Email already in use" });
         }
 
-        const hashedPassword = await import("bcryptjs").then(m => m.hash(password, 10));
-        const staff = await storage.createUser({
+        const { hash } = await import("bcryptjs");
+        const hashedPassword = await hash(password, 10);
+        const staff = await storage.createKitchenStaff({
           email,
           password: hashedPassword,
           name: name || email.split("@")[0],
-          role: "kitchen_staff",
           tenantId,
+          isActive: true,
         });
 
         res.json({ id: staff.id, email: staff.email, name: staff.name });
@@ -907,12 +908,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { staffId } = req.params;
         const tenantId = req.user!.tenantId!;
 
-        const staff = await storage.getUser(staffId);
-        if (!staff || staff.tenantId !== tenantId || staff.role !== "kitchen_staff") {
+        const staff = await storage.getKitchenStaffByTenant(tenantId);
+        const targetStaff = staff.find(s => s.id === staffId);
+        
+        if (!targetStaff) {
           return res.status(404).json({ error: "Kitchen staff not found" });
         }
 
-        // Soft delete
+        await storage.deleteKitchenStaff(staffId);
         console.log(`[Kitchen] Staff ${staffId} deleted`);
         res.json({ success: true });
       } catch (error) {

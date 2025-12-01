@@ -132,6 +132,7 @@ export interface IStorage {
   // Kitchen Staff
   createKitchenStaff(staff: InsertKitchenStaff): Promise<KitchenStaff>;
   getKitchenStaffByEmail(email: string, tenantId: string): Promise<KitchenStaff | undefined>;
+  getKitchenStaffByEmailOnly(email: string): Promise<KitchenStaff | undefined>;
   getKitchenStaffByTenant(tenantId: string): Promise<KitchenStaff[]>;
   updateKitchenStaff(id: string, data: Partial<InsertKitchenStaff>): Promise<KitchenStaff | undefined>;
   deleteKitchenStaff(id: string): Promise<void>;
@@ -1364,6 +1365,16 @@ export class SmartStorage implements IStorage {
     return this.tryDb(
       async () => {
         const [result] = await db.select().from(kitchenStaff).where(and(eq(kitchenStaff.email, email), eq(kitchenStaff.tenantId, tenantId)));
+        return result;
+      },
+      () => Promise.resolve(undefined)
+    );
+  }
+
+  async getKitchenStaffByEmailOnly(email: string): Promise<KitchenStaff | undefined> {
+    return this.tryDb(
+      async () => {
+        const [result] = await db.select().from(kitchenStaff).where(eq(kitchenStaff.email, email));
         return result;
       },
       () => Promise.resolve(undefined)

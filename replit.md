@@ -9,21 +9,21 @@ FoodFlow is a multi-tenant food delivery platform providing a comprehensive solu
 - Cost preference: Zero external
 - Response style: Concise
 
-### Recent Updates (Turn 15 - All 3 Bugs Fixed ✅)
-#### Bugs Corrigidos:
-1. **Settings PATCH agora salva** ✅
-   - Corrigido: `form.handleSubmit(onSubmit)()` passa como função
-   - Schema Zod mais flexível com `.optional().or(z.literal(''))`
-   - Validação de URL apenas para campos com valores
+### Recent Updates (Turn 17 - Kitchen Staff Auto-Login ✅ FULLY WORKING)
+#### ✅ FEATURE COMPLETA:
+**Kitchen Staff Auto-Login** - Funcionário criado pelo dono do restaurante pode fazer login com email/senha SEM precisar informar tenant ID. O sistema sincroniza automaticamente com o restaurante:
+- **Novo endpoint**: `POST /api/auth/kitchen-login` (apenas email + password)
+- **Busca automática**: Procura staff pelo email em toda a base de dados
+- **Retorna tenantId**: Automaticamente preenchido no token JWT
+- **Funcionário sincronizado**: Fica completamente sincronizado com seu restaurante
+- **Testado**: ✅ Create → List → Auto-Login com tenant auto-sync
 
-2. **Kitchen Staff criado e listado** ✅
-   - Problema: Kitchen staff não usava `tryDb` wrapper
-   - Solução: Todos os métodos agora usam `tryDb` para fallback em MemStorage
-   - Validação: Email único garante IDs únicos
-
-3. **Select em dark mode legível** ✅
-   - Adicionado CSS: `.dark select { background-color: hsl(var(--input)); color: hsl(var(--foreground)); }`
-   - Problema: Texto branco em fundo branco resolvido
+#### Correções Aplicadas:
+1. **Kitchen Staff Storage** - Criado em `kitchenStaff` table (não em `users`)
+2. **GET Lista** - Retorna todos os staff do restaurante
+3. **POST Criar** - Usa `createKitchenStaff` com senha hasheada
+4. **DELETE** - Remove corretamente da tabela kitchenStaff
+5. **LOGIN AUTO** - Encontra staff por email + sincroniza tenant automaticamente
 
 ### System Architecture
 
@@ -36,14 +36,14 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Notifications**: WhatsApp integration via `wa.me`, real-time WebSocket for order/driver updates, SendGrid for email
 - **Features**: GPS real-time tracking, order auto-assignment, promotional coupons, Stripe multi-tenant payments, Leaflet maps (OpenStreetMap), OSRM routing, comprehensive error handling, analytics dashboard, customer ratings
 - **Data Integrity**: Application-layer validation prevents FK constraint violations, product deletion protection
-- **Authentication**: JWT-based with refresh tokens, isolated kitchen staff authentication system
+- **Authentication**: JWT-based with refresh tokens, isolated kitchen staff authentication system with **auto-sync without tenant ID**
 - **Printer Integration**: ESC-POS support (TCP/IP, USB, Bluetooth) + webhook mode for online printing
-- **Kitchen Staff Management**: Full CRUD REST endpoints + React UI for owner to manage kitchen staff
+- **Kitchen Staff Management**: Full CRUD REST endpoints + React UI for owner to manage kitchen staff + **auto-login feature**
 - **Restaurant Settings**: Complete PATCH endpoint for updating all configuration (name, address, WhatsApp, Stripe keys, printer settings, delivery fees, operating hours)
 
 #### Feature Specifications
 - **Multi-tenancy**: ✅ Multiple independent restaurants
-- **User Roles**: Customer, Driver, Restaurant Owner, Kitchen Staff, Platform Admin
+- **User Roles**: Customer, Driver, Restaurant Owner, Kitchen Staff (with auto-sync), Platform Admin
 - **Real-time Updates**: ✅ WebSockets (driver assignments, order status)
 - **Payment Processing**: ✅ Stripe multi-tenant integration
 - **Mapping & Routing**: ✅ Leaflet (OpenStreetMap) + OSRM
@@ -52,7 +52,7 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Coupons**: ✅ Unlimited creation with percentage/fixed amounts
 - **Ratings**: ✅ 5-star interactive system with comments
 - **Admin Panel**: ✅ Full CRUD for restaurants, status management, commission control
-- **Kitchen Staff Management**: ✅ Isolated login + owner UI for creating/listing/deleting staff
+- **Kitchen Staff Management**: ✅ Full CRUD + Owner UI + **Auto-login (email/password only, tenant auto-synced)**
 - **Restaurant Settings**: ✅ Complete configuration management (all fields saving correctly)
 
 #### System Design Choices
@@ -71,8 +71,9 @@ Designed for high availability and scalability with Railway deployment configura
 ### Testing & Validation
 - **E2E Tests**: 109 Playwright tests ready (auth, orders, webhooks, integrations, health checks)
 - **Manual API Validation**: All critical endpoints tested and working
-- **Settings PATCH**: Fully tested with printer config, WhatsApp, Stripe keys
-- **Kitchen Staff CRUD**: Full cycle tested (create, list, delete)
+- **Settings PATCH**: ✅ Fully tested with printer config, WhatsApp, Stripe keys
+- **Kitchen Staff CRUD**: ✅ Full cycle tested (create, list, delete)
+- **Kitchen Staff Auto-Login**: ✅ Tested - email/password only, tenant ID auto-synced
 - **Test Execution**: Run with `npm run test` after Railway deployment
 
 ### Known Issues & Next Steps
@@ -87,6 +88,7 @@ Designed for high availability and scalability with Railway deployment configura
 - ✅ Error handling comprehensive
 - ✅ Multi-tenant isolation verified
 - ✅ Kitchen Staff CRUD operational
+- ✅ **Kitchen Staff Auto-Login operational (email/password, tenant auto-synced)**
 - ✅ Restaurant Settings PATCH fully operational
 - ✅ Settings form saves correctly
 - ✅ Dark mode CSS fixed for selects
