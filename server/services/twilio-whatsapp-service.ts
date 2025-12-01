@@ -246,7 +246,7 @@ export async function sendOrderNotification(
 }
 
 /**
- * Send status update notification
+ * Send status update notification via N8N webhook + wa.me link
  */
 export async function sendStatusUpdate(
   customerPhone: string,
@@ -254,7 +254,7 @@ export async function sendStatusUpdate(
   previousStatus: string,
   newStatus: string,
   restaurantName: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; waLink?: string }> {
   const statusMessages: Record<string, string> = {
     pending: "Seu pedido foi recebido! ✅",
     confirmed: "Seu pedido foi confirmado! 🎉",
@@ -271,10 +271,25 @@ export async function sendStatusUpdate(
     .substring(0, 8)
     .toUpperCase()}`;
 
+  // Generate wa.me link for fallback
+  const waLink = generateWaMe(customerPhone, message);
+  
+  // Send via N8N webhook (if configured)
+  const n8nUrl = process.env.N8N_WEBHOOK_URL || "https://n8n-docker-production-6703.up.railway.app/webhook/foodflow-orders";
+  await sendViaN8NWebhook(n8nUrl, customerPhone, message, {
+    orderId,
+    previousStatus,
+    newStatus,
+    restaurantName,
+  });
+
+  // Also try Twilio fallback
   const result = await sendWhatsAppMessage(customerPhone, message);
+  
   return {
     success: result.success,
     error: result.error,
+    waLink, // Return wa.me link for frontend
   };
 }
 

@@ -1036,17 +1036,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get tenant to retrieve webhook URL
         const tenant = await storage.getTenant(req.user!.tenantId!);
 
-        // Send WhatsApp notification about status update
+        // Send WhatsApp notification about status update + get wa.me link
+        let waLink: string | undefined;
         try {
           const customerPhone = order.customerPhone?.replace(/\D/g, '');
           if (customerPhone && tenant) {
-            await whatsappService.sendOrderStatusUpdate(
+            const whatsappResult = await whatsappService.sendOrderStatusUpdate(
               order,
               previousStatus,
               status,
               customerPhone,
               tenant.name
             );
+            waLink = (whatsappResult as any)?.waLink;
           }
         } catch (whatsappErr) {
           console.error("[WhatsApp] Error sending status update:", whatsappErr);
@@ -1121,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        res.json(order);
+        res.json({ ...order, waLink });
       } catch (error) {
         console.error("Update order status error:", error);
         res.status(500).json({ error: "Failed to update order status" });

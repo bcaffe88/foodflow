@@ -47,8 +47,14 @@ export default function RestaurantOrders() {
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     try {
-      await apiRequest("PATCH", `/api/restaurant/orders/${orderId}/status`, { status: newStatus });
+      const result = await apiRequest("PATCH", `/api/restaurant/orders/${orderId}/status`, { status: newStatus });
       toast({ title: "Status atualizado!" });
+      
+      // Se houver wa.me link, abrir automaticamente em nova aba
+      if (result?.waLink) {
+        window.open(result.waLink, '_blank');
+      }
+      
       await loadOrders();
     } catch (error) {
       toast({ title: "Erro ao atualizar", variant: "destructive" });
