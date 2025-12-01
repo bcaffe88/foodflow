@@ -726,10 +726,11 @@ export default function RestaurantSettingsPage() {
           </Card>
 
           <Button
-            onClick={form.handleSubmit(onSubmit)}
+            onClick={() => form.handleSubmit(onSubmit)()}
             disabled={isSaving}
             className="w-full"
             size="lg"
+            data-testid="button-save-settings"
           >
             {isSaving ? "Salvando..." : "Salvar Configurações"}
           </Button>
