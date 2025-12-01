@@ -2599,16 +2599,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Update order with customer info
-      const order = await storage.updateOrder(orderId, {
-        customerName,
-        customerPhone,
-        paymentMethod: paymentMethod || "cash",
-      } as any);
-
+      // Get existing order
+      let order = await storage.getOrder(orderId);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
+
+      // Update order with customer info directly in object
+      order.customerName = customerName;
+      order.customerPhone = customerPhone;
+      order.paymentMethod = paymentMethod || "cash";
 
       // Get tenant info
       const tenant = await storage.getTenant(restaurantId);

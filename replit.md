@@ -9,21 +9,46 @@ FoodFlow is a multi-tenant food delivery platform providing a comprehensive solu
 - Cost preference: Zero external
 - Response style: Concise
 
-### Recent Updates (Turn 18 - WhatsApp Status Updates ✅ FULLY INTEGRATED)
+### Recent Updates (Turn 19 - Fluxo Completo de Checkout ✅ IMPLEMENTADO)
 #### ✅ FEATURE COMPLETA:
-**WhatsApp Status Updates** - Pedidos finalizados agora enviam notificação formatada no WhatsApp:
-- **Endpoint**: `PATCH /api/restaurant/orders/:id/status` agora retorna `waLink`
-- **Webhook N8N**: Integrado para enviar mensagens via N8N
-- **wa.me Link**: Automaticamente gerado com mensagem formatada
-- **Frontend**: Abre link wa.me em nova aba quando status é atualizado
-- **Mensagem formatada**: `📦 *Atualização de Pedido*` com status, restaurante, pedido ID
-- **Fallback**: Se Twilio não configurado, usa wa.me + N8N webhook
+**Checkout Flow Completo** - Pedidos agora possuem fluxo end-to-end:
 
-#### Fluxo Completo:
-1. Dono atualiza status → `PATCH /api/restaurant/orders/:id/status`
-2. Backend gera wa.me link + envia N8N webhook
-3. Frontend recebe waLink + abre automaticamente em nova aba
-4. Cliente recebe mensagem formatada no WhatsApp
+#### Fluxo Detalhado:
+1. **Página Order Placement** (`/order-placement`):
+   - Cliente preenche nome + telefone com WhatsApp
+   - Escolhe entrega ou retirada
+   - Seleciona método de pagamento (dinheiro, PIX, cartão)
+   - Insere endereço (se entrega) e observações
+   - Submete para criar pedido
+
+2. **Pagamento**:
+   - **Dinheiro**: Vai direto para `POST /api/orders/confirm-with-whatsapp` → abre WhatsApp
+   - **PIX/Cartão**: Vai para checkout Stripe → após pagamento → abre WhatsApp
+
+3. **Confirmação WhatsApp**:
+   - Backend gera wa.me link com mensagem formatada
+   - Envia webhook N8N com detalhes do pedido
+   - Frontend abre link automaticamente em nova aba
+   - Cliente envia mensagem para dono do restaurante
+
+4. **Fila do Dono**:
+   - Pedido aparece na `GET /api/restaurant/orders` 
+   - Dono aprova pedido → status muda para "confirmed"
+   - Sincroniza com fila da cozinha automaticamente
+
+5. **Notificações**:
+   - Status updates enviam wa.me links + N8N webhook
+   - Cliente recebe atualizações no WhatsApp
+
+#### Endpoints Criados:
+- `POST /api/customer/orders` - Criar pedido
+- `POST /api/orders/confirm-with-whatsapp` - Confirmar + gerar wa.me link
+- `PATCH /api/restaurant/orders/:id/status` - Atualizar status + notificar
+
+#### Páginas Criadas/Modificadas:
+- `client/src/pages/order-placement.tsx` - Novo: formulário completo com nome/telefone/entrega/pagamento
+- `client/src/pages/checkout.tsx` - Modificado: passa customerName/Phone/paymentMethod para confirmation
+- `client/src/pages/order-confirmation.tsx` - Modificado: abre WhatsApp após pagamento confirmado
 
 ### System Architecture
 
@@ -41,12 +66,13 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Kitchen Staff Management**: Full CRUD REST endpoints + React UI for owner to manage kitchen staff + auto-login feature
 - **Restaurant Settings**: Complete PATCH endpoint for updating all configuration (name, address, WhatsApp, Stripe keys, printer settings, delivery fees, operating hours)
 - **WhatsApp Notifications**: Status updates with wa.me links + N8N webhook integration
+- **Checkout Flow**: Complete order placement with customer info collection, payment processing (Stripe/PIX/cash), WhatsApp confirmation
 
 #### Feature Specifications
 - **Multi-tenancy**: ✅ Multiple independent restaurants
 - **User Roles**: Customer, Driver, Restaurant Owner, Kitchen Staff (with auto-sync), Platform Admin
 - **Real-time Updates**: ✅ WebSockets (driver assignments, order status)
-- **Payment Processing**: ✅ Stripe multi-tenant integration
+- **Payment Processing**: ✅ Stripe multi-tenant integration (PIX/cartão/dinheiro)
 - **Mapping & Routing**: ✅ Leaflet (OpenStreetMap) + OSRM
 - **Error Handling**: ✅ Standardized error responses, auto-logging
 - **Analytics**: ✅ Dashboard with KPIs, revenue charts, order stats
@@ -55,13 +81,14 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Admin Panel**: ✅ Full CRUD for restaurants, status management, commission control
 - **Kitchen Staff Management**: ✅ Full CRUD + Owner UI + Auto-login (email/password only)
 - **WhatsApp Notifications**: ✅ Status updates with wa.me links + N8N integration
+- **Checkout Flow**: ✅ Order placement → Payment → WhatsApp → Restaurant Queue → Kitchen Queue
 
 #### System Design Choices
 Designed for high availability and scalability with Railway deployment configurations for automatic scaling. Emphasizes robust error handling, multi-tenant isolation, comprehensive documentation, and application-layer data integrity. Production-ready with all critical features implemented and tested.
 
 ### External Dependencies
 - **Database**: PostgreSQL (Neon-backed on Railway)
-- **Payment Gateway**: Stripe
+- **Payment Gateway**: Stripe (PIX/Cartão)
 - **Mapping**: Leaflet (OpenStreetMap)
 - **Routing**: OSRM
 - **Messaging**: Twilio (WhatsApp optional), SendGrid (email)
@@ -77,6 +104,7 @@ Designed for high availability and scalability with Railway deployment configura
 - **Kitchen Staff CRUD**: ✅ Full cycle tested (create, list, delete)
 - **Kitchen Staff Auto-Login**: ✅ Tested - email/password only, tenant ID auto-synced
 - **WhatsApp Status Updates**: ✅ Tested - wa.me links generated and N8N webhook integrated
+- **Checkout Flow**: ✅ Order placement form → Payment processing → WhatsApp confirmation
 - **Test Execution**: Run with `npm run test` after Railway deployment
 
 ### Known Issues & Next Steps
@@ -97,5 +125,6 @@ Designed for high availability and scalability with Railway deployment configura
 - ✅ Settings form saves correctly
 - ✅ Dark mode CSS fixed for selects
 - ✅ WhatsApp Status Updates operational (wa.me links + N8N webhook)
+- ✅ Checkout Flow Complete (order placement → payment → WhatsApp → restaurant queue)
 - ✅ 109 E2E tests ready for Railway execution
 - ✅ **READY FOR PRODUCTION DEPLOYMENT** 🚀
