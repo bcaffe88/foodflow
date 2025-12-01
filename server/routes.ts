@@ -2616,12 +2616,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Restaurant not found" });
       }
 
-      // Generate WhatsApp message
-      const orderNumber = order.id.substring(0, 8).toUpperCase();
-      const message = `Olá! Gostaria de confirmar meu pedido.\n\n📦 *Pedido #${orderNumber}*\nRestaurante: ${tenant.name}\nTotal: R$ ${order.total}\n\nPor favor, confirme o recebimento!`;
+      // Get order items for message
+      const orderItems = await storage.getOrderItems(orderId);
+      const formattedItems = orderItems?.map((item: any) => `${item.quantity}x ${item.name}`) || [];
       
-      // Generate wa.me link
-      const waLink = `https://wa.me/${customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      // Generate WhatsApp message for RESTAURANT
+      const orderNumber = order.id.substring(0, 8).toUpperCase();
+      const message = `🍽️ *NOVO PEDIDO #${orderNumber}*\n\n👤 Cliente: ${customerName}\n📞 Telefone: ${customerPhone}\n📍 Endereço: ${order.deliveryAddress || 'Retirada'}\n\n📋 Itens:\n${formattedItems.map((item: string) => `• ${item}`).join('\n')}\n\n💰 Total: R$ ${order.total}\n💳 Pagamento: ${order.paymentMethod}\n\n${order.orderNotes ? `📝 Observações: ${order.orderNotes}` : ''}`;
+      
+      // Get restaurant WhatsApp phone and generate wa.me link TO RESTAURANT
+      const restaurantWhatsappPhone = tenant.whatsappPhone?.replace(/\D/g, '') || tenant.phone?.replace(/\D/g, '') || '';
+      const waLink = restaurantWhatsappPhone 
+        ? `https://wa.me/${restaurantWhatsappPhone}?text=${encodeURIComponent(message)}`
+        : null;
 
       // Send N8N webhook
       try {

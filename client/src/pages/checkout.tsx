@@ -74,11 +74,12 @@ function CheckoutForm({
       const customerName = params.get("customerName") || "Cliente";
       const customerPhone = params.get("customerPhone") || "";
       const paymentMethod = params.get("paymentMethod") || "card";
+      const restaurantId = params.get("restaurantId") || "";
 
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/order-confirmation?orderId=${orderId}&customerName=${encodeURIComponent(customerName)}&customerPhone=${encodeURIComponent(customerPhone)}&paymentMethod=${paymentMethod}&confirmed=true`,
+          return_url: `${window.location.origin}/order-confirmation?orderId=${orderId}&customerName=${encodeURIComponent(customerName)}&customerPhone=${encodeURIComponent(customerPhone)}&paymentMethod=${paymentMethod}&restaurantId=${restaurantId}&confirmed=true`,
         },
       });
 

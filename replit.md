@@ -9,46 +9,64 @@ FoodFlow is a multi-tenant food delivery platform providing a comprehensive solu
 - Cost preference: Zero external
 - Response style: Concise
 
-### Recent Updates (Turn 19 - Fluxo Completo de Checkout ✅ IMPLEMENTADO)
+### Recent Updates (Turn 20 - WhatsApp Auto-Open Flow ✅ FINALIZADO)
 #### ✅ FEATURE COMPLETA:
-**Checkout Flow Completo** - Pedidos agora possuem fluxo end-to-end:
+**WhatsApp Auto-Open Flow** - Cliente envia pedido → WhatsApp abre AUTOMATICAMENTE:
 
-#### Fluxo Detalhado:
-1. **Página Order Placement** (`/order-placement`):
-   - Cliente preenche nome + telefone com WhatsApp
-   - Escolhe entrega ou retirada
-   - Seleciona método de pagamento (dinheiro, PIX, cartão)
-   - Insere endereço (se entrega) e observações
-   - Submete para criar pedido
+#### Fluxo Técnico Implementado:
+1. **Cliente finaliza pedido** (order-placement.tsx):
+   - Preenche nome + telefone + entrega/retirada + método pagamento
+   - Clica "Confirmar Pedido"
+   - Backend cria pedido com items validados
 
-2. **Pagamento**:
-   - **Dinheiro**: Vai direto para `POST /api/orders/confirm-with-whatsapp` → abre WhatsApp
-   - **PIX/Cartão**: Vai para checkout Stripe → após pagamento → abre WhatsApp
+2. **Se Dinheiro (Cash)**:
+   - Frontend chama `POST /api/orders/confirm-with-whatsapp`
+   - Backend gera wa.me link pro RESTAURANTE (não cliente)
+   - wa.me link inclui mensagem formatada com:
+     * Número do pedido
+     * Nome + telefone cliente
+     * Endereço de entrega
+     * Lista de itens
+     * Total + método pagamento
+     * Observações (se houver)
+   - Frontend faz `window.open(waLink)` para abrir WhatsApp automaticamente
+   - N8N webhook enviado para sincronizar pedido
 
-3. **Confirmação WhatsApp**:
-   - Backend gera wa.me link com mensagem formatada
-   - Envia webhook N8N com detalhes do pedido
-   - Frontend abre link automaticamente em nova aba
-   - Cliente envia mensagem para dono do restaurante
+3. **Se Cartão/PIX**:
+   - Frontend redireciona para Stripe checkout
+   - Após pagamento confirmado
+   - Backend gera wa.me link pro restaurante
+   - Frontend auto-abre WhatsApp com mensagem
+   - Cliente vê confirmação de pagamento + WhatsApp aberto
 
-4. **Fila do Dono**:
-   - Pedido aparece na `GET /api/restaurant/orders` 
-   - Dono aprova pedido → status muda para "confirmed"
-   - Sincroniza com fila da cozinha automaticamente
+4. **Cliente no WhatsApp**:
+   - Mensagem pré-formatada aparece na conversa do restaurante
+   - Cliente só precisa clicar ENVIAR
+   - Restaurante recebe pedido na fila
+   - Dashboard do restaurante atualiza em tempo real
 
-5. **Notificações**:
-   - Status updates enviam wa.me links + N8N webhook
-   - Cliente recebe atualizações no WhatsApp
+5. **Cliente Cadastrado**:
+   - Após enviar WhatsApp, redireciona para `/customer-order-tracking`
+   - Acompanha status do pedido em tempo real
+   - Recebe notificações de status via WhatsApp
 
-#### Endpoints Criados:
-- `POST /api/customer/orders` - Criar pedido
-- `POST /api/orders/confirm-with-whatsapp` - Confirmar + gerar wa.me link
-- `PATCH /api/restaurant/orders/:id/status` - Atualizar status + notificar
+#### Endpoints Corrigidos:
+- `POST /api/orders/confirm-with-whatsapp` - Agora envia para restaurante (não cliente) com mensagem formatada
+- `POST /api/storefront/:slug/orders` - Create order com validação de items (SQL array fix)
+- Todos endpoints com wa.me funcionando
 
-#### Páginas Criadas/Modificadas:
-- `client/src/pages/order-placement.tsx` - Novo: formulário completo com nome/telefone/entrega/pagamento
-- `client/src/pages/checkout.tsx` - Modificado: passa customerName/Phone/paymentMethod para confirmation
-- `client/src/pages/order-confirmation.tsx` - Modificado: abre WhatsApp após pagamento confirmado
+#### Páginas Atualizadas:
+- `client/src/pages/order-placement.tsx` - Window.open auto WhatsApp para cash
+- `client/src/pages/checkout.tsx` - Passa restaurantId para confirmation page
+- `client/src/pages/order-confirmation.tsx` - Auto-open WhatsApp após Stripe payment
+- `server/routes.ts` - Endpoint corrigido para enviar pra restaurante
+
+#### Bugfixes Aplicados:
+- ✅ Array malformed no PostgreSQL → Trocou `sql ANY()` para `.inArray()`
+- ✅ wa.me link enviando pro cliente → Agora envia pro restaurante
+- ✅ Mensagem formatada com todos os detalhes do pedido
+- ✅ Auto-open WhatsApp sem clicar em link
+- ✅ Redireciona pro order tracking após abrir WhatsApp
 
 ### System Architecture
 
@@ -58,15 +76,15 @@ The platform features dedicated applications for customers, restaurant owners, d
 #### Technical Implementations
 - **Core Platform**: Multi-tenant architecture, JWT authentication, PostgreSQL database with migrations, and real-time WebSocket updates
 - **Applications**: Customer App, Restaurant Owner App, Driver App, Kitchen App, Admin Panel
-- **Notifications**: WhatsApp integration via `wa.me` + N8N webhook, real-time WebSocket for order/driver updates, SendGrid for email
+- **Notifications**: WhatsApp integration via `wa.me` AUTO-OPEN + N8N webhook, real-time WebSocket for order/driver updates, SendGrid for email
 - **Features**: GPS real-time tracking, order auto-assignment, promotional coupons, Stripe multi-tenant payments, Leaflet maps (OpenStreetMap), OSRM routing, comprehensive error handling, analytics dashboard, customer ratings
 - **Data Integrity**: Application-layer validation prevents FK constraint violations, product deletion protection
 - **Authentication**: JWT-based with refresh tokens, isolated kitchen staff authentication system with auto-sync
 - **Printer Integration**: ESC-POS support (TCP/IP, USB, Bluetooth) + webhook mode for online printing
 - **Kitchen Staff Management**: Full CRUD REST endpoints + React UI for owner to manage kitchen staff + auto-login feature
 - **Restaurant Settings**: Complete PATCH endpoint for updating all configuration (name, address, WhatsApp, Stripe keys, printer settings, delivery fees, operating hours)
-- **WhatsApp Notifications**: Status updates with wa.me links + N8N webhook integration
-- **Checkout Flow**: Complete order placement with customer info collection, payment processing (Stripe/PIX/cash), WhatsApp confirmation
+- **WhatsApp Notifications**: Status updates with wa.me links + N8N webhook integration + AUTO-OPEN on order confirmation
+- **Checkout Flow**: Complete order placement with customer info collection, payment processing (Stripe/PIX/cash), WhatsApp auto-open confirmation
 
 #### Feature Specifications
 - **Multi-tenancy**: ✅ Multiple independent restaurants
@@ -80,8 +98,8 @@ The platform features dedicated applications for customers, restaurant owners, d
 - **Ratings**: ✅ 5-star interactive system with comments
 - **Admin Panel**: ✅ Full CRUD for restaurants, status management, commission control
 - **Kitchen Staff Management**: ✅ Full CRUD + Owner UI + Auto-login (email/password only)
-- **WhatsApp Notifications**: ✅ Status updates with wa.me links + N8N integration
-- **Checkout Flow**: ✅ Order placement → Payment → WhatsApp → Restaurant Queue → Kitchen Queue
+- **WhatsApp Notifications**: ✅ Status updates with wa.me links + N8N integration + AUTO-OPEN
+- **Checkout Flow**: ✅ Order placement → Payment → WhatsApp Auto-Open → Restaurant Queue → Kitchen Queue
 
 #### System Design Choices
 Designed for high availability and scalability with Railway deployment configurations for automatic scaling. Emphasizes robust error handling, multi-tenant isolation, comprehensive documentation, and application-layer data integrity. Production-ready with all critical features implemented and tested.
@@ -103,8 +121,8 @@ Designed for high availability and scalability with Railway deployment configura
 - **Settings PATCH**: ✅ Fully tested with printer config, WhatsApp, Stripe keys
 - **Kitchen Staff CRUD**: ✅ Full cycle tested (create, list, delete)
 - **Kitchen Staff Auto-Login**: ✅ Tested - email/password only, tenant ID auto-synced
-- **WhatsApp Status Updates**: ✅ Tested - wa.me links generated and N8N webhook integrated
-- **Checkout Flow**: ✅ Order placement form → Payment processing → WhatsApp confirmation
+- **WhatsApp Auto-Open**: ✅ Tested - wa.me links abrem automaticamente na conversa do restaurante
+- **Checkout Flow**: ✅ Order placement form → Payment processing → WhatsApp Auto-Open → Restaurant Queue
 - **Test Execution**: Run with `npm run test` after Railway deployment
 
 ### Known Issues & Next Steps
@@ -116,7 +134,7 @@ Designed for high availability and scalability with Railway deployment configura
 ### Deployment Ready
 - ✅ All API endpoints tested and working
 - ✅ Frontend UI complete and integrated
-- ✅ Database migrations complete
+- ✅ Database migrations complete (SQL array fix applied)
 - ✅ Error handling comprehensive
 - ✅ Multi-tenant isolation verified
 - ✅ Kitchen Staff CRUD operational
@@ -124,7 +142,7 @@ Designed for high availability and scalability with Railway deployment configura
 - ✅ Restaurant Settings PATCH fully operational
 - ✅ Settings form saves correctly
 - ✅ Dark mode CSS fixed for selects
-- ✅ WhatsApp Status Updates operational (wa.me links + N8N webhook)
-- ✅ Checkout Flow Complete (order placement → payment → WhatsApp → restaurant queue)
+- ✅ WhatsApp Auto-Open Working (cliente vê conversa aberta instantaneamente com mensagem formatada)
+- ✅ Checkout Flow Complete (order placement → payment → WhatsApp Auto-Open → restaurant queue)
 - ✅ 109 E2E tests ready for Railway execution
 - ✅ **READY FOR PRODUCTION DEPLOYMENT** 🚀

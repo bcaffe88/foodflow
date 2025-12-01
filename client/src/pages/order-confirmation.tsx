@@ -78,8 +78,14 @@ export default function OrderConfirmationPage() {
         restaurantId,
       });
       
+      // Open WhatsApp IMMEDIATELY with restaurant link
       if (result?.waLink) {
         setWhatsappUrl(result.waLink);
+        // Auto-open after tiny delay for smooth UX
+        setTimeout(() => {
+          window.open(result.waLink, '_blank');
+          setWhatsappOpened(true);
+        }, 500);
       }
     } catch (error) {
       console.error("Payment confirmation error:", error);
@@ -126,36 +132,24 @@ export default function OrderConfirmationPage() {
 
   const formatAndPrepareWhatsApp = async (order: any) => {
     try {
-      // Get restaurant details for WhatsApp number
-      const restaurant = await apiRequest("GET", `/api/tenants/${order.tenantId}`);
-      
-      const orderNumber = `ORD${order.id.slice(-8)}`;
-      const itemsList = (order.items || [])
-        .map((item: any) => `• ${item.quantity}x ${item.name}\n  R$ ${(item.price).toFixed(2)} cada`)
-        .join("\n\n");
-
-      const paymentLabels: { [key: string]: string } = {
-        pix: "PIX",
-        card: "Cartão de Crédito",
-        cash: "Dinheiro",
-        stripe: "Cartão de Crédito",
-      };
-
-      const deliveryLabels: { [key: string]: string } = {
-        delivery: "Delivery",
-        pickup: "Retirada",
-      };
-
-      const subtotal = parseFloat(order.subtotal || "0");
-      const deliveryFee = parseFloat(order.deliveryFee || "0");
-      const total = parseFloat(order.total || "0");
-
-      const whatsappMessage = `🍽️ *Novo Pedido #${orderNumber}*\n\n📱 Cliente: ${order.customerName}\n📞 Telefone: ${order.customerPhone}\n📍 Endereço: ${order.deliveryAddress}\n\n📋 *Itens:*\n${itemsList}\n\n💰 Subtotal: R$ ${subtotal.toFixed(2)}\n🚗 Entrega: R$ ${deliveryFee.toFixed(2)}\n*Total: R$ ${total.toFixed(2)}*\n\n💳 Pagamento: ${paymentLabels[order.paymentMethod] || order.paymentMethod}\n\n${order.deliveryType ? `🚚 Tipo: ${deliveryLabels[order.deliveryType] || order.deliveryType}` : ""}\n${order.orderNotes ? `📝 Obs: ${order.orderNotes}` : ""}`;
-
-      const whatsappPhone = restaurant?.whatsappPhone || "5511999999999";
-      const url = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`;
-      
-      setWhatsappUrl(url);
+      // Already handled by backend confirm-with-whatsapp endpoint
+      // This is just fallback/backup
+      if (!whatsappUrl) {
+        const params = new URLSearchParams(location[0].split("?")[1]);
+        const restaurantId = params.get("restaurantId") || order.tenantId;
+        
+        const result = await apiRequest("POST", "/api/orders/confirm-with-whatsapp", {
+          orderId: order.id,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          paymentMethod: order.paymentMethod,
+          restaurantId,
+        });
+        
+        if (result?.waLink) {
+          setWhatsappUrl(result.waLink);
+        }
+      }
     } catch (error) {
       console.error("Failed to format WhatsApp message:", error);
     }

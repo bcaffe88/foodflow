@@ -69,18 +69,28 @@ export default function OrderPlacementPage() {
 
       // If payment is card/pix, go to checkout
       if (paymentMethod === "card" || paymentMethod === "pix") {
-        navigate(`/checkout?orderId=${order.id}&total=${total}&customerName=${encodeURIComponent(customerName)}&customerPhone=${encodeURIComponent(customerPhone)}&paymentMethod=${paymentMethod}`);
+        navigate(`/checkout?orderId=${order.id}&total=${total}&customerName=${encodeURIComponent(customerName)}&customerPhone=${encodeURIComponent(customerPhone)}&paymentMethod=${paymentMethod}&restaurantId=${restaurantId}`);
       } else {
-        // If cash, confirm order and open WhatsApp
-        await apiRequest("POST", "/api/orders/confirm-with-whatsapp", {
+        // If cash, confirm order and open WhatsApp IMMEDIATELY
+        const result = await apiRequest("POST", "/api/orders/confirm-with-whatsapp", {
           orderId: order.id,
           customerName,
           customerPhone,
           paymentMethod: "cash",
           restaurantId,
         });
-        toast({ title: "Pedido criado!", description: "WhatsApp será aberto em breve..." });
-        navigate(`/order-confirmation?orderId=${order.id}`);
+        
+        // Open WhatsApp link immediately if available
+        if (result?.waLink) {
+          window.open(result.waLink, '_blank');
+        }
+        
+        toast({ title: "✅ Pedido criado!", description: "WhatsApp aberto com sua mensagem" });
+        
+        // Redirect to tracking page after small delay
+        setTimeout(() => {
+          navigate(`/customer-order-tracking?orderId=${order.id}`);
+        }, 1000);
       }
     } catch (error: any) {
       toast({ 
