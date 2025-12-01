@@ -24,22 +24,22 @@ const daySchema = z.object({
 const settingsSchema = z.object({
   name: z.string().min(2),
   address: z.string().min(5),
-  description: z.string().optional(),
-  logo: z.string().url().optional(),
+  description: z.string().optional().or(z.literal('')),
+  logo: z.string().optional().or(z.literal('')).refine(v => !v || v.startsWith('http'), { message: 'URL inválida' }),
   whatsappPhone: z.string().min(10),
-  stripePublicKey: z.string().optional(),
-  stripeSecretKey: z.string().optional(),
-  n8nWebhookUrl: z.string().url().optional(),
+  stripePublicKey: z.string().optional().or(z.literal('')),
+  stripeSecretKey: z.string().optional().or(z.literal('')),
+  n8nWebhookUrl: z.string().optional().or(z.literal('')).refine(v => !v || v.startsWith('http'), { message: 'URL inválida' }),
   useOwnDriver: z.boolean(),
   deliveryFeeBusiness: z.string(),
   deliveryFeeCustomer: z.string(),
   // 🖨️ Printer settings
-  printerTcpIp: z.string().optional(),
+  printerTcpIp: z.string().optional().or(z.literal('')),
   printerTcpPort: z.number().optional(),
   printerType: z.enum(['tcp', 'usb', 'bluetooth', 'webhook']).optional(),
   printerEnabled: z.boolean().default(false),
-  printerWebhookUrl: z.string().url().optional(),
-  printerWebhookSecret: z.string().optional(),
+  printerWebhookUrl: z.string().optional().or(z.literal('')).refine(v => !v || v.startsWith('http'), { message: 'URL inválida' }),
+  printerWebhookSecret: z.string().optional().or(z.literal('')),
   printerWebhookEnabled: z.boolean().default(false),
   printKitchenOrders: z.boolean().default(true),
   operatingHours: z.object({
@@ -236,51 +236,50 @@ export default function RestaurantSettingsPage() {
   const onSubmit = async (data: SettingsFormData) => {
     setIsSaving(true);
     try {
-      await apiRequest("PATCH", "/api/restaurant/settings", {
+      const payload = {
         name: data.name,
         address: data.address,
-        description: data.description,
-        logo: data.logo,
+        description: data.description || "",
+        logo: data.logo || "",
         whatsappPhone: data.whatsappPhone,
-        stripePublicKey: data.stripePublicKey,
-        stripeSecretKey: data.stripeSecretKey,
-        n8nWebhookUrl: data.n8nWebhookUrl,
+        stripePublicKey: data.stripePublicKey || "",
+        stripeSecretKey: data.stripeSecretKey || "",
+        n8nWebhookUrl: data.n8nWebhookUrl || "",
         useOwnDriver: data.useOwnDriver,
         deliveryFeeBusiness: data.deliveryFeeBusiness,
         deliveryFeeCustomer: data.deliveryFeeCustomer,
         operatingHours: data.operatingHours,
         // 🖨️ Printer config
-        printerTcpIp: data.printerTcpIp,
-        printerTcpPort: data.printerTcpPort,
-        printerType: data.printerType,
+        printerTcpIp: data.printerTcpIp || "",
+        printerTcpPort: data.printerTcpPort || 9100,
+        printerType: data.printerType || "tcp",
         printerEnabled: data.printerEnabled,
         printKitchenOrders: data.printKitchenOrders,
-      });
+      };
+
+      console.log("📤 Enviando payload:", payload);
+      await apiRequest("PATCH", "/api/restaurant/settings", payload);
       
       // Invalidar TODOS os caches relacionados
-      // 1. Lista de restaurantes no storefront
       queryClient.invalidateQueries({ queryKey: ["/api/storefront/restaurants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/restaurant/settings"] });
       
-      // 2. Restaurante específico pelo slug
       if (restaurant?.slug) {
         queryClient.invalidateQueries({ queryKey: [`/api/storefront/${restaurant.slug}`] });
-        
         try {
-          // Limpar localStorage cache
           localStorage.removeItem(`storefront-${restaurant.slug}`);
-          // Forçar recarga do storefront se estiver aberta em outra aba
           window.dispatchEvent(new CustomEvent('storefront-updated', { detail: { slug: restaurant.slug } }));
         } catch (e) {
           console.log("Cache invalidation:", e);
         }
       }
       
-      // 3. Settings do restaurante
-      queryClient.invalidateQueries({ queryKey: ["/api/restaurant/settings"] });
-      
-      toast({ title: "Sucesso!", description: "Configurações salvas e lista atualizada" });
-    } catch (error) {
-      toast({ title: "Erro", description: "Falha ao salvar configurações", variant: "destructive" });
+      toast({ title: "✅ Salvo!", description: "Configurações atualizadas com sucesso" });
+      // Recarregar settings após sucesso
+      loadSettings();
+    } catch (error: any) {
+      console.error("❌ Erro ao salvar:", error);
+      toast({ title: "Erro", description: error?.message || "Falha ao salvar configurações", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }

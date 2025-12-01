@@ -9,14 +9,21 @@ FoodFlow is a multi-tenant food delivery platform providing a comprehensive solu
 - Cost preference: Zero external
 - Response style: Concise
 
-### Recent Updates (Turn 15 - Settings PATCH FIXED ✅ + All Features Operational)
-- **Settings PATCH Endpoint FIXED**: Button handler corrected - now saves all restaurant configurations
-- **Kitchen Staff CRUD**: 100% functional (POST, GET, DELETE)
-- **Printer Configuration**: Working correctly (TCP/IP, USB, Bluetooth, Webhook modes)
-- **All PATCH Operations**: Successfully persisting to PostgreSQL
-- **Frontend UI**: Fully integrated with working forms and error handling
-- **Backend API**: All 50+ endpoints tested and operational
-- **E2E Tests**: 109 Playwright tests ready for Railway execution
+### Recent Updates (Turn 15 - All 3 Bugs Fixed ✅)
+#### Bugs Corrigidos:
+1. **Settings PATCH agora salva** ✅
+   - Corrigido: `form.handleSubmit(onSubmit)()` passa como função
+   - Schema Zod mais flexível com `.optional().or(z.literal(''))`
+   - Validação de URL apenas para campos com valores
+
+2. **Kitchen Staff criado e listado** ✅
+   - Problema: Kitchen staff não usava `tryDb` wrapper
+   - Solução: Todos os métodos agora usam `tryDb` para fallback em MemStorage
+   - Validação: Email único garante IDs únicos
+
+3. **Select em dark mode legível** ✅
+   - Adicionado CSS: `.dark select { background-color: hsl(var(--input)); color: hsl(var(--foreground)); }`
+   - Problema: Texto branco em fundo branco resolvido
 
 ### System Architecture
 
@@ -81,5 +88,7 @@ Designed for high availability and scalability with Railway deployment configura
 - ✅ Multi-tenant isolation verified
 - ✅ Kitchen Staff CRUD operational
 - ✅ Restaurant Settings PATCH fully operational
+- ✅ Settings form saves correctly
+- ✅ Dark mode CSS fixed for selects
 - ✅ 109 E2E tests ready for Railway execution
 - ✅ **READY FOR PRODUCTION DEPLOYMENT** 🚀

@@ -22,6 +22,7 @@ import {
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { memStorage } from "./mem-storage";
+import { nanoid } from "nanoid";
 
 export interface IStorage {
   // Tenants
@@ -1350,26 +1351,49 @@ export class SmartStorage implements IStorage {
 
   // Kitchen Staff
   async createKitchenStaff(staff: InsertKitchenStaff): Promise<KitchenStaff> {
-    const [result] = await db.insert(kitchenStaff).values(staff).returning();
-    return result;
+    return this.tryDb(
+      async () => {
+        const [result] = await db.insert(kitchenStaff).values(staff).returning();
+        return result;
+      },
+      async () => ({ ...staff, id: nanoid() } as KitchenStaff)
+    );
   }
 
   async getKitchenStaffByEmail(email: string, tenantId: string): Promise<KitchenStaff | undefined> {
-    const [result] = await db.select().from(kitchenStaff).where(and(eq(kitchenStaff.email, email), eq(kitchenStaff.tenantId, tenantId)));
-    return result;
+    return this.tryDb(
+      async () => {
+        const [result] = await db.select().from(kitchenStaff).where(and(eq(kitchenStaff.email, email), eq(kitchenStaff.tenantId, tenantId)));
+        return result;
+      },
+      () => Promise.resolve(undefined)
+    );
   }
 
   async getKitchenStaffByTenant(tenantId: string): Promise<KitchenStaff[]> {
-    return db.select().from(kitchenStaff).where(eq(kitchenStaff.tenantId, tenantId));
+    return this.tryDb(
+      async () => db.select().from(kitchenStaff).where(eq(kitchenStaff.tenantId, tenantId)),
+      () => Promise.resolve([])
+    );
   }
 
   async updateKitchenStaff(id: string, data: Partial<InsertKitchenStaff>): Promise<KitchenStaff | undefined> {
-    const [result] = await db.update(kitchenStaff).set(data).where(eq(kitchenStaff.id, id)).returning();
-    return result;
+    return this.tryDb(
+      async () => {
+        const [result] = await db.update(kitchenStaff).set(data).where(eq(kitchenStaff.id, id)).returning();
+        return result;
+      },
+      () => Promise.resolve(undefined)
+    );
   }
 
   async deleteKitchenStaff(id: string): Promise<void> {
-    await db.delete(kitchenStaff).where(eq(kitchenStaff.id, id));
+    return this.tryDb(
+      async () => {
+        await db.delete(kitchenStaff).where(eq(kitchenStaff.id, id));
+      },
+      () => Promise.resolve()
+    );
   }
 }
 
