@@ -20,7 +20,7 @@ import {
   tenantIntegrations, kitchenStaff,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, inArray } from "drizzle-orm";
 import { memStorage } from "./mem-storage";
 import { nanoid } from "nanoid";
 
@@ -388,7 +388,7 @@ export class DatabaseStorage implements IStorage {
       if (itemsData && itemsData.length > 0) {
         const productIds = itemsData.map(item => item.productId);
         const existingProducts = await tx.select({ id: products.id }).from(products).where(
-          sql`${products.id} = ANY(${productIds}::text[])`
+          inArray(products.id, productIds)
         );
         const existingIds = existingProducts.map((p: any) => p.id);
         const missingIds = productIds.filter((id: string) => !existingIds.includes(id));
