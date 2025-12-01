@@ -2590,6 +2590,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create payment intent (Stripe)
+  // Confirm order with WhatsApp notification (for cash payments)
+  app.post("/api/orders/confirm-with-whatsapp", optionalAuth, async (req: AuthRequest, res) => {
+    try {
+      const { orderId, customerName, customerPhone, paymentMethod, restaurantId } = req.body;
+      
+      if (!orderId || !customerName || !customerPhone) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Update order with customer info
+      const order = await storage.updateOrder(orderId, {
+        customerName,
+        customerPhone,
+        paymentMethod: paymentMethod || "cash",
+      } as any);
+
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Get tenant info
+      const tenant = await storage.getTenant(restaurantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+
+      // Generate WhatsApp message
+      const orderNumber = order.id.substring(0, 8).toUpperCase();
+      const message = `Olá! Gostaria de confirmar meu pedido.\n\n📦 *Pedido #${orderNumber}*\nRestaurante: ${tenant.name}\nTotal: R$ ${order.total}\n\nPor favor, confirme o recebimento!`;
+      
+      // Generate wa.me link
+      const waLink = `https://wa.me/${customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+
+      // Send N8N webhook
+      try {
+        const n8nUrl = process.env.N8N_WEBHOOK_URL || "https://n8n-docker-production-6703.up.railway.app/webhook/foodflow-orders";
+        await fetch(n8nUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: "order.created",
+            orderId: order.id,
+            customerName,
+            customerPhone,
+            message,
+            tenantId: restaurantId,
+          })
+        }).catch(err => console.error("[N8N] Error:", err));
+      } catch (e) {
+        console.error("[WhatsApp] N8N webhook error:", e);
+      }
+
+      res.json({ order, waLink });
+    } catch (error) {
+      console.error("Confirm order error:", error);
+      res.status(500).json({ error: "Failed to confirm order" });
+    }
+  });
+
   app.post("/api/payments/create-intent", optionalAuth, async (req: AuthRequest, res) => {
     try {
       const { orderId, amount } = req.body;

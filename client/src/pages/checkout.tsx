@@ -69,10 +69,16 @@ function CheckoutForm({
     setIsLoading(true);
 
     try {
+      // Get customer info from URL params
+      const params = new URLSearchParams(window.location.search);
+      const customerName = params.get("customerName") || "Cliente";
+      const customerPhone = params.get("customerPhone") || "";
+      const paymentMethod = params.get("paymentMethod") || "card";
+
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/order-confirmation?orderId=${orderId}`,
+          return_url: `${window.location.origin}/order-confirmation?orderId=${orderId}&customerName=${encodeURIComponent(customerName)}&customerPhone=${encodeURIComponent(customerPhone)}&paymentMethod=${paymentMethod}&confirmed=true`,
         },
       });
 

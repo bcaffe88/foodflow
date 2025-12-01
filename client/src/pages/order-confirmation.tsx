@@ -35,9 +35,19 @@ export default function OrderConfirmationPage() {
   useEffect(() => {
     const params = new URLSearchParams(location[0].split("?")[1]);
     const id = params.get("orderId");
+    const confirmed = params.get("confirmed") === "true";
+    const customerName = params.get("customerName");
+    const customerPhone = params.get("customerPhone");
+    const paymentMethod = params.get("paymentMethod");
+    
     if (id) {
       setOrderId(id);
       loadOrderDetails(id);
+      
+      // If payment was confirmed, trigger WhatsApp confirmation
+      if (confirmed && customerName && customerPhone && paymentMethod) {
+        handlePaymentConfirmation(id, customerName, customerPhone, paymentMethod);
+      }
     } else {
       setIsLoading(false);
     }
@@ -54,6 +64,27 @@ export default function OrderConfirmationPage() {
       return () => clearTimeout(timer);
     }
   }, [whatsappUrl, whatsappOpened]);
+
+  const handlePaymentConfirmation = async (id: string, customerName: string, customerPhone: string, paymentMethod: string) => {
+    try {
+      const params = new URLSearchParams(location[0].split("?")[1]);
+      const restaurantId = params.get("restaurantId") || orderDetails?.tenantId || "";
+      
+      const result = await apiRequest("POST", "/api/orders/confirm-with-whatsapp", {
+        orderId: id,
+        customerName,
+        customerPhone,
+        paymentMethod,
+        restaurantId,
+      });
+      
+      if (result?.waLink) {
+        setWhatsappUrl(result.waLink);
+      }
+    } catch (error) {
+      console.error("Payment confirmation error:", error);
+    }
+  };
 
   const loadOrderDetails = async (id: string) => {
     try {
