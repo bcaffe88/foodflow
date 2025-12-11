@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AddressSelector } from "@/components/address-selector";
 
 export default function OrderPlacementPage() {
   const location = useLocation();
@@ -22,6 +23,8 @@ export default function OrderPlacementPage() {
   const [deliveryType, setDeliveryType] = useState("delivery");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [addressLatitude, setAddressLatitude] = useState<number | undefined>();
+  const [addressLongitude, setAddressLongitude] = useState<number | undefined>();
   const [notes, setNotes] = useState("");
   
   // Get cart data from URL
@@ -64,6 +67,8 @@ export default function OrderPlacementPage() {
         restaurantId,
         items,
         deliveryAddress: deliveryType === "pickup" ? restaurantName : deliveryAddress,
+        addressLatitude: addressLatitude?.toString(),
+        addressLongitude: addressLongitude?.toString(),
         orderNotes: notes,
       });
 
@@ -202,14 +207,17 @@ export default function OrderPlacementPage() {
                   {deliveryType === "delivery" && (
                     <div>
                       <Label htmlFor="address">Endereço de Entrega *</Label>
-                      <Input
-                        id="address"
-                        value={deliveryAddress}
-                        onChange={(e) => setDeliveryAddress(e.target.value)}
-                        placeholder="Rua, número, bairro"
-                        data-testid="input-delivery-address"
-                        className="mt-1"
-                      />
+                      <div className="mt-1">
+                        <AddressSelector
+                          onAddressSelect={(address) => {
+                            setDeliveryAddress(address.address);
+                            setAddressLatitude(address.latitude);
+                            setAddressLongitude(address.longitude);
+                          }}
+                          placeholder="Digite seu endereço em Ouricuri, PE..."
+                          value={deliveryAddress}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
