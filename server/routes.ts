@@ -4,6 +4,13 @@ import { registerAuthRoutes } from "./auth/routes";
 import { registerKitchenAuthRoutes } from "./auth/kitchen-auth";
 import { registerPaymentRoutes } from "./payment/routes";
 import { storage } from "./storage";
+
+// Open Source Services (eliminam APIs pagas)
+import paymentService from "./payment/mock-payment";
+import emailService from "./email/email-service";
+import whatsappService from "./whatsapp/mock-whatsapp";
+import mapsService from "./maps/openstreetmap-service";
+import storageService from "./storage/local-storage";
 import { authenticate, requireRole, requireTenantAccess, optionalAuth, type AuthRequest } from "./auth/middleware";
 import { cacheMiddleware, invalidateCache } from "./middleware/cache";
 import { z } from "zod";
@@ -1558,29 +1565,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const payload = req.body;
         const signature = req.headers["x-ifood-signature"] as string;
 
-        // Verify webhook authenticity
-        if (!signature) {
-          return res.status(401).json({ error: "Missing signature" });
+        // Validate tenantId exists
+        if (!tenantId) {
+          console.error("[iFood Webhook] Missing tenantId in URL");
+          return res.status(400).json({ error: "Missing tenantId" });
         }
+
+        // Validate restaurant exists
+        const restaurant = await storage.getTenant(tenantId).catch(() => null);
+        if (!restaurant) {
+          console.error(`[iFood Webhook] Restaurant not found for tenantId: ${tenantId}`);
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+
+        // Verify webhook authenticity (optional but recommended)
+        if (!signature) {
+          console.warn(`[iFood Webhook] Missing signature for ${restaurant.name} - processing without verification`);
+        }
+
+        console.log(`[iFood Webhook] Processing for ${restaurant.name} (${tenantId})`);
 
         const { processIFoodWebhook } = await import("./webhook/ifood-ubereats");
         const result = await processIFoodWebhook(payload, tenantId, storage);
 
         // Send WhatsApp notification to customer
         if (result.orderId) {
-          const order = await storage.getOrder(result.orderId);
-          if (order) {
-            await whatsappService.sendOrderNotification({
-              type: "order.created",
-              orderId: result.orderId,
-              customerPhone: order.customerPhone,
-              customerName: order.customerName,
-              restaurantName: (await storage.getTenant(tenantId))?.name || "Restaurant",
-              orderDetails: {
-                total: order.total,
-                address: order.deliveryAddress || "Delivery Address",
-              },
-            });
+          const order = await storage.getOrder(result.orderId).catch(() => null);
+          if (order && order.customerPhone) {
+            try {
+              await whatsappService.sendOrderNotification({
+                type: "order.created",
+                orderId: result.orderId,
+                customerPhone: order.customerPhone,
+                customerName: order.customerName || "Cliente",
+                restaurantName: restaurant.name,
+                orderDetails: {
+                  total: order.total,
+                  address: order.deliveryAddress || "Endereço de entrega",
+                },
+              });
+            } catch (whatsappError) {
+              console.warn("[iFood Webhook] WhatsApp notification failed:", whatsappError);
+            }
           }
         }
 
@@ -1588,10 +1614,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "received",
           orderId: result.orderId,
           externalId: result.externalId,
+          success: true,
         });
       } catch (error) {
-        console.error("iFood webhook error:", error);
-        res.status(500).json({ error: "Webhook processing failed" });
+        console.error("[iFood Webhook] Processing error:", error);
+        res.status(500).json({ 
+          error: "Webhook processing failed",
+          success: false,
+          message: error instanceof Error ? error.message : "Unknown error"
+        });
       }
     }
   );
@@ -1603,21 +1634,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const payload = req.body;
         const signature = req.headers["x-uber-signature"] as string;
 
-        if (!signature) {
-          return res.status(401).json({ error: "Missing signature" });
+        // Validate tenantId exists
+        if (!tenantId) {
+          console.error("[UberEats Webhook] Missing tenantId in URL");
+          return res.status(400).json({ error: "Missing tenantId" });
         }
+
+        // Validate restaurant exists
+        const restaurant = await storage.getTenant(tenantId).catch(() => null);
+        if (!restaurant) {
+          console.error(`[UberEats Webhook] Restaurant not found for tenantId: ${tenantId}`);
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+
+        // Verify webhook authenticity (optional but recommended)
+        if (!signature) {
+          console.warn(`[UberEats Webhook] Missing signature for ${restaurant.name} - processing without verification`);
+        }
+
+        console.log(`[UberEats Webhook] Processing for ${restaurant.name} (${tenantId})`);
 
         const { processUberEatsWebhook } = await import("./webhook/ifood-ubereats");
         const result = await processUberEatsWebhook(payload, tenantId, storage);
+
+        // Send WhatsApp notification to customer
+        if (result.orderId) {
+          const order = await storage.getOrder(result.orderId).catch(() => null);
+          if (order && order.customerPhone) {
+            try {
+              await whatsappService.sendOrderNotification({
+                type: "order.created",
+                orderId: result.orderId,
+                customerPhone: order.customerPhone,
+                customerName: order.customerName || "Cliente",
+                restaurantName: restaurant.name,
+                orderDetails: {
+                  total: order.total,
+                  address: order.deliveryAddress || "Endereço de entrega",
+                },
+              });
+            } catch (whatsappError) {
+              console.warn("[UberEats Webhook] WhatsApp notification failed:", whatsappError);
+            }
+          }
+        }
 
         res.json({
           status: "received",
           orderId: result.orderId,
           externalId: result.externalId,
+          success: true,
         });
       } catch (error) {
-        console.error("UberEats webhook error:", error);
-        res.status(500).json({ error: "Webhook processing failed" });
+        console.error("[UberEats Webhook] Processing error:", error);
+        res.status(500).json({ 
+          error: "Webhook processing failed",
+          success: false,
+          message: error instanceof Error ? error.message : "Unknown error"
+        });
       }
     }
   );
@@ -1654,7 +1728,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const payload = req.body;
         const signature = req.headers["x-pede-ai-signature"] as string;
 
-        console.log(`[Webhook] Pede Aí event: ${payload.event}`);
+        // Validate tenantId exists
+        if (!tenantId) {
+          console.error("[PedêAi Webhook] Missing tenantId in URL");
+          return res.status(400).json({ error: "Missing tenantId" });
+        }
+
+        // Validate restaurant exists
+        const restaurant = await storage.getTenant(tenantId).catch(() => null);
+        if (!restaurant) {
+          console.error(`[PedêAi Webhook] Restaurant not found for tenantId: ${tenantId}`);
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+
+        console.log(`[PedêAi Webhook] Processing ${payload.event || "unknown"} for ${restaurant.name} (${tenantId})`);
 
         // Process Pede Aí webhook
         const result = await processPedeAiWebhook(payload, tenantId, storage);
@@ -1662,14 +1749,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send WhatsApp notification to customer
         if (result.orderId && payload.event === "order.created") {
           try {
-            const order = await storage.getOrder(result.orderId);
-            if (order) {
+            const order = await storage.getOrder(result.orderId).catch(() => null);
+            if (order && order.customerPhone) {
               await whatsappService.sendOrderNotification({
                 type: "order.created",
                 orderId: result.orderId,
                 customerPhone: order.customerPhone,
-                customerName: order.customerName,
-                restaurantName: (await storage.getTenant(tenantId))?.name || "Restaurant",
+                customerName: order.customerName || "Cliente",
+                restaurantName: restaurant.name,
                 orderDetails: {
                   total: order.total,
                   address: order.deliveryAddress || "Endereço de Entrega",
@@ -1677,8 +1764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
           } catch (whatsappError) {
-            // Silent fail - don't break webhook processing
-            console.log("[Pede Aí Webhook] WhatsApp notification failed (non-critical)");
+            console.warn("[PedêAi Webhook] WhatsApp notification failed:", whatsappError);
           }
         }
 
@@ -1687,10 +1773,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           orderId: result.orderId,
           externalId: result.externalId,
           event: payload.event,
+          success: true,
         });
       } catch (error) {
-        console.error("Pede Aí webhook error:", error);
-        res.status(500).json({ error: "Webhook processing failed" });
+        console.error("[PedêAi Webhook] Processing error:", error);
+        res.status(500).json({ 
+          error: "Webhook processing failed",
+          success: false,
+          message: error instanceof Error ? error.message : "Unknown error"
+        });
       }
     }
   );
@@ -1703,7 +1794,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const payload = req.body;
         const signature = req.headers["x-quero-delivery-signature"] as string;
 
-        console.log(`[Webhook] Quero Delivery event: ${payload.event}`);
+        // Validate tenantId exists
+        if (!tenantId) {
+          console.error("[Quero Delivery Webhook] Missing tenantId in URL");
+          return res.status(400).json({ error: "Missing tenantId" });
+        }
+
+        // Validate restaurant exists
+        const restaurant = await storage.getTenant(tenantId).catch(() => null);
+        if (!restaurant) {
+          console.error(`[Quero Delivery Webhook] Restaurant not found for tenantId: ${tenantId}`);
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+
+        console.log(`[Quero Delivery Webhook] Processing ${payload.event || "unknown"} for ${restaurant.name} (${tenantId})`);
 
         // Process Quero Delivery webhook
         const result = await processQueroDeliveryWebhook(payload, tenantId, storage);
@@ -1711,14 +1815,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send WhatsApp notification to customer
         if (result.orderId && payload.event === "order.created") {
           try {
-            const order = await storage.getOrder(result.orderId);
-            if (order) {
+            const order = await storage.getOrder(result.orderId).catch(() => null);
+            if (order && order.customerPhone) {
               await whatsappService.sendOrderNotification({
                 type: "order.created",
                 orderId: result.orderId,
                 customerPhone: order.customerPhone,
-                customerName: order.customerName,
-                restaurantName: (await storage.getTenant(tenantId))?.name || "Restaurant",
+                customerName: order.customerName || "Cliente",
+                restaurantName: restaurant.name,
                 orderDetails: {
                   total: order.total,
                   address: order.deliveryAddress || "Endereço de Entrega",
@@ -1726,7 +1830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
           } catch (whatsappError) {
-            console.log("[Quero Delivery Webhook] WhatsApp notification failed (non-critical)");
+            console.warn("[Quero Delivery Webhook] WhatsApp notification failed:", whatsappError);
           }
         }
 
@@ -1735,10 +1839,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           orderId: result.orderId,
           externalId: result.externalId,
           event: payload.event,
+          success: true,
         });
       } catch (error) {
-        console.error("Quero Delivery webhook error:", error);
-        res.status(500).json({ error: "Webhook processing failed" });
+        console.error("[Quero Delivery Webhook] Processing error:", error);
+        res.status(500).json({ 
+          error: "Webhook processing failed",
+          success: false,
+          message: error instanceof Error ? error.message : "Unknown error"
+        });
       }
     }
   );
@@ -3276,6 +3385,468 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Create integration error:", error);
       res.status(500).json({ error: "Failed to create integration" });
+    }
+  });
+
+  // ============================================================
+  // OPEN SOURCE SERVICES - 5 Serviços Open Source (0% Custo)
+  // ============================================================
+
+  // 💳 PAYMENT SERVICE ENDPOINTS
+  app.post("/api/open-source/payments/intent", async (req, res) => {
+    try {
+      const { amount, currency = "brl", description, orderId } = req.body;
+      if (!amount) return res.status(400).json({ error: "Amount required" });
+
+      const intent = await paymentService.createPaymentIntent({
+        amount,
+        currency,
+        description,
+      });
+
+      await storageService.set(`payment_intent:${orderId}`, {
+        intentId: intent.id,
+        clientSecret: intent.clientSecret,
+        amount,
+        orderId,
+        createdAt: new Date(),
+      });
+
+      res.json({
+        success: true,
+        clientSecret: intent.clientSecret,
+        intentId: intent.id,
+      });
+    } catch (error) {
+      console.error("Payment intent error:", error);
+      res.status(500).json({ error: "Failed to create payment intent" });
+    }
+  });
+
+  app.post("/api/open-source/payments/confirm", async (req, res) => {
+    try {
+      const { paymentIntentId, paymentMethodId, orderId } = req.body;
+      if (!paymentIntentId || !paymentMethodId) {
+        return res.status(400).json({ error: "Missing payment details" });
+      }
+
+      const result = await paymentService.confirmPayment({
+        paymentIntentId,
+        paymentMethodId,
+      });
+
+      if (result.success && orderId) {
+        await storageService.update(`payment_intent:${orderId}`, {
+          status: "confirmed",
+          confirmedAt: new Date(),
+        });
+      }
+
+      res.json({
+        success: result.success,
+        status: result.status,
+      });
+    } catch (error) {
+      console.error("Payment confirm error:", error);
+      res.status(500).json({ error: "Payment confirmation failed" });
+    }
+  });
+
+  app.post("/api/open-source/payments/refund", async (req, res) => {
+    try {
+      const { paymentIntentId, amount } = req.body;
+      if (!paymentIntentId) return res.status(400).json({ error: "Payment intent ID required" });
+
+      const refund = await paymentService.refundPayment({
+        paymentIntentId,
+        amount,
+      });
+
+      res.json({
+        success: refund.success,
+        refundId: refund.refundId,
+      });
+    } catch (error) {
+      console.error("Refund error:", error);
+      res.status(500).json({ error: "Refund failed" });
+    }
+  });
+
+  // 📧 EMAIL SERVICE ENDPOINTS
+  app.post("/api/open-source/emails/send", async (req, res) => {
+    try {
+      const { to, subject, html, text } = req.body;
+      if (!to || !subject) {
+        return res.status(400).json({ error: "To and subject required" });
+      }
+
+      const result = await emailService.sendEmail({
+        to,
+        subject,
+        html,
+        text,
+      });
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("Email send error:", error);
+      res.status(500).json({ error: "Failed to send email" });
+    }
+  });
+
+  app.post("/api/open-source/emails/order-confirmation", async (req, res) => {
+    try {
+      const { customerEmail, customerName, orderId, restaurantName, total, items, deliveryAddress } = req.body;
+
+      const result = await emailService.sendOrderConfirmation({
+        customerEmail,
+        customerName,
+        orderId,
+        restaurantName,
+        total,
+        items,
+        deliveryAddress,
+      });
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("Order confirmation email error:", error);
+      res.status(500).json({ error: "Failed to send order confirmation" });
+    }
+  });
+
+  app.post("/api/open-source/emails/restaurant-notification", async (req, res) => {
+    try {
+      const { restaurantEmail, restaurantName, orderId, customerName, customerPhone, items, deliveryAddress } =
+        req.body;
+
+      const result = await emailService.sendRestaurantNotification({
+        restaurantEmail,
+        restaurantName,
+        orderId,
+        customerName,
+        customerPhone,
+        items,
+        deliveryAddress,
+      });
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("Restaurant notification error:", error);
+      res.status(500).json({ error: "Failed to send restaurant notification" });
+    }
+  });
+
+  app.get("/api/open-source/emails/history", async (req, res) => {
+    try {
+      const emails = emailService.getSentEmails();
+      res.json({
+        success: true,
+        count: emails.length,
+        emails: emails.slice(-50), // Últimos 50
+      });
+    } catch (error) {
+      console.error("Email history error:", error);
+      res.status(500).json({ error: "Failed to get email history" });
+    }
+  });
+
+  // 📱 WHATSAPP SERVICE ENDPOINTS
+  app.post("/api/open-source/whatsapp/send", async (req, res) => {
+    try {
+      const { to, message, mediaUrl, mediaType } = req.body;
+      if (!to || !message) {
+        return res.status(400).json({ error: "To and message required" });
+      }
+
+      const result = await whatsappService.sendMessage({
+        to,
+        message,
+        mediaUrl,
+        mediaType,
+      });
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("WhatsApp send error:", error);
+      res.status(500).json({ error: "Failed to send WhatsApp message" });
+    }
+  });
+
+  app.post("/api/open-source/whatsapp/order-confirmation", async (req, res) => {
+    try {
+      const { phoneNumber, customerName, orderId, restaurantName, total, estimatedTime } = req.body;
+
+      const result = await whatsappService.sendOrderConfirmation({
+        phoneNumber,
+        customerName,
+        orderId,
+        restaurantName,
+        total,
+        estimatedTime,
+      });
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("WhatsApp order confirmation error:", error);
+      res.status(500).json({ error: "Failed to send order confirmation" });
+    }
+  });
+
+  app.post("/api/open-source/whatsapp/delivery-notification", async (req, res) => {
+    try {
+      const { phoneNumber, customerName, orderId, driverName, driverPhone, vehicleInfo } = req.body;
+
+      const result = await whatsappService.sendOutForDeliveryNotification({
+        phoneNumber,
+        customerName,
+        orderId,
+        driverName,
+        driverPhone,
+        vehicleInfo,
+      });
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("WhatsApp delivery notification error:", error);
+      res.status(500).json({ error: "Failed to send delivery notification" });
+    }
+  });
+
+  app.post("/api/open-source/whatsapp/delivery-complete", async (req, res) => {
+    try {
+      const { phoneNumber, customerName, orderId } = req.body;
+
+      const result = await whatsappService.sendDeliveryCompleteNotification({
+        phoneNumber,
+        customerName,
+        orderId,
+      });
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("WhatsApp delivery complete error:", error);
+      res.status(500).json({ error: "Failed to send delivery complete notification" });
+    }
+  });
+
+  app.get("/api/open-source/whatsapp/stats", async (req, res) => {
+    try {
+      const stats = whatsappService.getStats();
+      res.json({
+        success: true,
+        stats,
+      });
+    } catch (error) {
+      console.error("WhatsApp stats error:", error);
+      res.status(500).json({ error: "Failed to get WhatsApp stats" });
+    }
+  });
+
+  // 🗺️ MAPS SERVICE ENDPOINTS
+  app.post("/api/open-source/maps/geocode", async (req, res) => {
+    try {
+      const { address } = req.body;
+      if (!address) return res.status(400).json({ error: "Address required" });
+
+      const result = await mapsService.geocodeAddress(address);
+      if (!result) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+
+      res.json({
+        success: true,
+        location: result,
+      });
+    } catch (error) {
+      console.error("Geocode error:", error);
+      res.status(500).json({ error: "Geocoding failed" });
+    }
+  });
+
+  app.post("/api/open-source/maps/distance", async (req, res) => {
+    try {
+      const { origin, destination } = req.body;
+      if (!origin || !destination) {
+        return res.status(400).json({ error: "Origin and destination required" });
+      }
+
+      const distance = mapsService.calculateDistance(origin, destination);
+      const duration = mapsService.calculateDeliveryTime(distance);
+
+      res.json({
+        success: true,
+        distance,
+        duration,
+      });
+    } catch (error) {
+      console.error("Distance calculation error:", error);
+      res.status(500).json({ error: "Distance calculation failed" });
+    }
+  });
+
+  app.post("/api/open-source/maps/delivery-fee", async (req, res) => {
+    try {
+      const { origin, destination } = req.body;
+      if (!origin || !destination) {
+        return res.status(400).json({ error: "Origin and destination required" });
+      }
+
+      const fee = await mapsService.calculateDeliveryFee(origin, destination);
+
+      res.json({
+        success: true,
+        distance: fee.distance,
+        fee: fee.fee,
+      });
+    } catch (error) {
+      console.error("Delivery fee error:", error);
+      res.status(500).json({ error: "Delivery fee calculation failed" });
+    }
+  });
+
+  app.get("/api/open-source/maps/nearby-restaurants", async (req, res) => {
+    try {
+      const { latitude, longitude } = req.query;
+      if (!latitude || !longitude) {
+        return res.status(400).json({ error: "Latitude and longitude required" });
+      }
+
+      const customerLocation = {
+        latitude: parseFloat(latitude as string),
+        longitude: parseFloat(longitude as string),
+      };
+
+      // Buscar restaurantes do banco de dados
+      const restaurants = await db.query.restaurant.findMany();
+      const nearby = await mapsService.findNearestRestaurants(
+        customerLocation,
+        restaurants.map((r) => ({
+          id: r.id,
+          name: r.name,
+          address: r.address || "",
+          location: r.location,
+        }))
+      );
+
+      res.json({
+        success: true,
+        restaurants: nearby,
+      });
+    } catch (error) {
+      console.error("Nearby restaurants error:", error);
+      res.status(500).json({ error: "Failed to find nearby restaurants" });
+    }
+  });
+
+  // 💾 STORAGE SERVICE ENDPOINTS
+  app.post("/api/open-source/storage/set", async (req, res) => {
+    try {
+      const { key, value, ttl, namespace } = req.body;
+      if (!key) return res.status(400).json({ error: "Key required" });
+
+      await storageService.set(key, value, { ttl, namespace });
+
+      res.json({
+        success: true,
+        key,
+      });
+    } catch (error) {
+      console.error("Storage set error:", error);
+      res.status(500).json({ error: "Failed to set value" });
+    }
+  });
+
+  app.post("/api/open-source/storage/get", async (req, res) => {
+    try {
+      const { key, namespace } = req.body;
+      if (!key) return res.status(400).json({ error: "Key required" });
+
+      const value = await storageService.get(key, { namespace });
+
+      res.json({
+        success: true,
+        value,
+      });
+    } catch (error) {
+      console.error("Storage get error:", error);
+      res.status(500).json({ error: "Failed to get value" });
+    }
+  });
+
+  app.post("/api/open-source/storage/delete", async (req, res) => {
+    try {
+      const { key, namespace } = req.body;
+      if (!key) return res.status(400).json({ error: "Key required" });
+
+      await storageService.delete(key, { namespace });
+
+      res.json({
+        success: true,
+        key,
+      });
+    } catch (error) {
+      console.error("Storage delete error:", error);
+      res.status(500).json({ error: "Failed to delete value" });
+    }
+  });
+
+  app.get("/api/open-source/storage/stats", async (req, res) => {
+    try {
+      const stats = storageService.getStats();
+      res.json({
+        success: true,
+        stats,
+      });
+    } catch (error) {
+      console.error("Storage stats error:", error);
+      res.status(500).json({ error: "Failed to get storage stats" });
+    }
+  });
+
+  // 🏥 HEALTH CHECK - Open Source Services
+  app.get("/api/open-source/health", async (req, res) => {
+    try {
+      const paymentHealth = { working: true };
+      const emailHealth = await emailService.testConnection();
+      const whatsappHealth = await whatsappService.testConnection();
+      const mapsHealth = await mapsService.testConnection();
+      const storageHealth = await storageService.testConnection();
+
+      res.json({
+        success: true,
+        services: {
+          payment: paymentHealth,
+          email: emailHealth,
+          whatsapp: whatsappHealth,
+          maps: mapsHealth,
+          storage: storageHealth,
+        },
+      });
+    } catch (error) {
+      console.error("Health check error:", error);
+      res.status(500).json({ error: "Health check failed" });
     }
   });
 

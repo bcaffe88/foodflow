@@ -1,0 +1,633 @@
+{
+    "info": {
+        "name": "🚀 Open Source Services - FoodFlow",
+        "description": "Coleção completa de endpoints dos 5 serviços open-source (Payment, Email, WhatsApp, Maps, Storage)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "💳 Payment Service",
+            "item": [
+                {
+                    "name": "Create Payment Intent",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 10000,\n  \"currency\": \"brl\",\n  \"description\": \"Pizza Deluxe\",\n  \"orderId\": \"ORD-123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/payments/intent",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "payments",
+                                "intent"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Confirm Payment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"paymentIntentId\": \"pi_mock_123\",\n  \"paymentMethodId\": \"pm_card_visa_4242\",\n  \"orderId\": \"ORD-123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/payments/confirm",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "payments",
+                                "confirm"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Refund Payment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"paymentIntentId\": \"pi_mock_123\",\n  \"amount\": 5000\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/payments/refund",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "payments",
+                                "refund"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "📧 Email Service",
+            "item": [
+                {
+                    "name": "Send Email",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"to\": \"cliente@example.com\",\n  \"subject\": \"Bem-vindo ao FoodFlow!\",\n  \"html\": \"<h1>Olá!</h1><p>Bem-vindo ao nosso serviço.</p>\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/emails/send",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "emails",
+                                "send"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Send Order Confirmation Email",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerEmail\": \"cliente@example.com\",\n  \"customerName\": \"João Silva\",\n  \"orderId\": \"ORD-123456\",\n  \"restaurantName\": \"Pizzaria Deluxe\",\n  \"total\": 10000,\n  \"items\": [\n    {\n      \"name\": \"Pizza Margherita\",\n      \"quantity\": 1,\n      \"price\": 5000\n    }\n  ],\n  \"deliveryAddress\": \"Rua das Flores, 123, São Paulo, SP\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/emails/order-confirmation",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "emails",
+                                "order-confirmation"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Send Restaurant Notification",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"restaurantEmail\": \"rest@pizzaria.com\",\n  \"restaurantName\": \"Pizzaria Deluxe\",\n  \"orderId\": \"ORD-123456\",\n  \"customerName\": \"João Silva\",\n  \"customerPhone\": \"+55 11 99999-9999\",\n  \"items\": [\n    {\n      \"name\": \"Pizza Margherita\",\n      \"quantity\": 1\n    }\n  ],\n  \"deliveryAddress\": \"Rua das Flores, 123\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/emails/restaurant-notification",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "emails",
+                                "restaurant-notification"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Email History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/emails/history",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "emails",
+                                "history"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "📱 WhatsApp Service",
+            "item": [
+                {
+                    "name": "Send WhatsApp Message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"to\": \"+5511999999999\",\n  \"message\": \"Olá João! Seu pedido foi confirmado! 🎉\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/whatsapp/send",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "whatsapp",
+                                "send"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Send Order Confirmation WhatsApp",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"phoneNumber\": \"+5511999999999\",\n  \"customerName\": \"João\",\n  \"orderId\": \"ORD-123456\",\n  \"restaurantName\": \"Pizzaria Deluxe\",\n  \"total\": 10000,\n  \"estimatedTime\": 45\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/whatsapp/order-confirmation",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "whatsapp",
+                                "order-confirmation"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Send Delivery Notification",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"phoneNumber\": \"+5511999999999\",\n  \"customerName\": \"João\",\n  \"orderId\": \"ORD-123456\",\n  \"driverName\": \"Carlos\",\n  \"driverPhone\": \"+55 11 98888-8888\",\n  \"vehicleInfo\": \"Moto branca - ABC-1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/whatsapp/delivery-notification",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "whatsapp",
+                                "delivery-notification"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Send Delivery Complete Notification",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"phoneNumber\": \"+5511999999999\",\n  \"customerName\": \"João\",\n  \"orderId\": \"ORD-123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/whatsapp/delivery-complete",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "whatsapp",
+                                "delivery-complete"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get WhatsApp Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/whatsapp/stats",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "whatsapp",
+                                "stats"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "🗺️ Maps Service",
+            "item": [
+                {
+                    "name": "Geocode Address",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"address\": \"Av Paulista, 1000, São Paulo, SP, Brasil\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/maps/geocode",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "maps",
+                                "geocode"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Calculate Distance",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"origin\": {\n    \"latitude\": -23.5505,\n    \"longitude\": -46.6333\n  },\n  \"destination\": {\n    \"latitude\": -23.5565,\n    \"longitude\": -46.6437\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/maps/distance",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "maps",
+                                "distance"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Calculate Delivery Fee",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"origin\": \"Av Paulista, 1000, São Paulo, SP\",\n  \"destination\": \"Rua das Flores, 123, São Paulo, SP\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/maps/delivery-fee",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "maps",
+                                "delivery-fee"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Find Nearby Restaurants",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/maps/nearby-restaurants?latitude=-23.5505&longitude=-46.6333",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "maps",
+                                "nearby-restaurants"
+                            ],
+                            "query": [
+                                {
+                                    "key": "latitude",
+                                    "value": "-23.5505"
+                                },
+                                {
+                                    "key": "longitude",
+                                    "value": "-46.6333"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "💾 Storage Service",
+            "item": [
+                {
+                    "name": "Set Storage Value",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"key\": \"user:12345\",\n  \"value\": {\n    \"name\": \"João Silva\",\n    \"email\": \"joao@example.com\",\n    \"phone\": \"+55 11 99999-9999\"\n  },\n  \"ttl\": 3600,\n  \"namespace\": \"users\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/storage/set",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "storage",
+                                "set"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Storage Value",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"key\": \"user:12345\",\n  \"namespace\": \"users\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/storage/get",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "storage",
+                                "get"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Storage Value",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"key\": \"user:12345\",\n  \"namespace\": \"users\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/storage/delete",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "storage",
+                                "delete"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Storage Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/storage/stats",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "storage",
+                                "stats"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "🏥 Health & Status",
+            "item": [
+                {
+                    "name": "Open Source Services Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/api/open-source/health",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "api",
+                                "open-source",
+                                "health"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

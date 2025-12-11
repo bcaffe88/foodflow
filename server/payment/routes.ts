@@ -125,8 +125,6 @@ export function registerPaymentRoutes(app: Express) {
       if (!stripeClient) {
         return res.status(503).json({ 
           error: "Payment service not configured",
-          clientSecret: `pi_mock_${Date.now()}`,
-          paymentIntentId: `pi_mock_${Date.now()}`,
         });
       }
 
@@ -153,8 +151,6 @@ export function registerPaymentRoutes(app: Express) {
       // Fallback: Return mock intent on error
       res.status(500).json({ 
         error: "Failed to create payment intent",
-        clientSecret: `pi_mock_${Date.now()}`,
-        paymentIntentId: `pi_mock_${Date.now()}`,
       });
     }
   });
