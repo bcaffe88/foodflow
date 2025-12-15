@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { LogOut, Plus, Trash2, Edit2, ChevronLeft, Eye, EyeOff } from "lucide-react";
@@ -15,7 +16,7 @@ export default function RestaurantProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -59,7 +60,7 @@ export default function RestaurantProducts() {
       
       setFormData({ name: "", description: "", price: "", image: "", categoryId: "", isAvailable: true });
       setEditingId(null);
-      setShowForm(false);
+      setIsDialogOpen(false);
       await loadData();
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao salvar produto", variant: "destructive" });
@@ -76,15 +77,7 @@ export default function RestaurantProducts() {
       isAvailable: product.isAvailable,
     });
     setEditingId(product.id);
-    setShowForm(true);
-    
-    // Scroll to form
-    setTimeout(() => {
-      const formElement = document.querySelector('[data-testid="form-edit-product"]');
-      if (formElement) {
-        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50);
+    setIsDialogOpen(true);
   };
 
   const handleToggleAvailable = async (product: Product) => {
@@ -174,20 +167,18 @@ export default function RestaurantProducts() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {!showForm ? (
-          <>
-            <Button
-              onClick={() => {
-                setShowForm(true);
-                setEditingId(null);
-                setFormData({ name: "", description: "", price: "", image: "", categoryId: "", isAvailable: true });
-              }}
-              className="mb-6"
-              data-testid="button-add-product"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Produto
-            </Button>
+        <Button
+          onClick={() => {
+            setIsDialogOpen(true);
+            setEditingId(null);
+            setFormData({ name: "", description: "", price: "", image: "", categoryId: "", isAvailable: true });
+          }}
+          className="mb-6"
+          data-testid="button-add-product"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Produto
+        </Button>
 
             {categories.map((category) => {
               const categoryProducts = products.filter(p => p.categoryId === category.id);
@@ -256,18 +247,20 @@ export default function RestaurantProducts() {
               );
             })}
 
-            {products.length === 0 && (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">Nenhum produto cadastrado</p>
-              </Card>
-            )}
-          </>
-        ) : (
-          <Card className="max-w-2xl mx-auto p-6" data-testid="form-edit-product">
-            <h2 className="text-xl font-bold mb-4">
-              {editingId ? "Editar Produto" : "Novo Produto"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        {products.length === 0 && (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">Nenhum produto cadastrado</p>
+          </Card>
+        )}
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? "Editar Produto" : "Novo Produto"}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4" data-testid="form-edit-product">
               <div>
                 <label className="text-sm font-medium">Nome</label>
                 <Input
@@ -379,7 +372,7 @@ export default function RestaurantProducts() {
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    setShowForm(false);
+                    setIsDialogOpen(false);
                     setEditingId(null);
                   }}
                   data-testid="button-cancel"
@@ -388,8 +381,8 @@ export default function RestaurantProducts() {
                 </Button>
               </div>
             </form>
-          </Card>
-        )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
