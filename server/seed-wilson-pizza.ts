@@ -4,139 +4,178 @@ import { eq } from "drizzle-orm";
 
 export async function seedWilsonPizza() {
   try {
-    // Check if Wilson Pizza already exists (try both slug variants)
-    let existing = await db.select().from(tenants).where(eq(tenants.slug, "wilsonpizza")).limit(1).then((r: any) => r[0]);
-    
-    if (!existing) {
-      existing = await db.select().from(tenants).where(eq(tenants.slug, "wilson-pizza")).limit(1).then((r: any) => r[0]);
-    }
+    // Check if Wilson Pizza already exists
+    let existing = await db.select().from(tenants).where(eq(tenants.slug, "wilson-pizza")).limit(1).then((r: any) => r[0]);
 
     if (existing) {
       console.log("[Seed] Wilson Pizza restaurant already exists with ID:", existing.id);
       
-      // Ensure it has products - seed them if missing
+      // Check if it has products
       const productCount = await db.select().from(products).where(eq(products.tenantId, existing.id)).limit(1);
-      if (productCount.length === 0) {
-        console.log("[Seed] Adding products to existing Wilson Pizza restaurant");
-        // Continue to add products below
-      } else {
+      if (productCount.length > 0) {
         console.log("[Seed] Wilson Pizza has products, skipping");
         return;
       }
+      console.log("[Seed] Adding products to existing Wilson Pizza restaurant");
     }
 
-    // Create Wilson Pizza tenant with unified slug
+    // Create Wilson Pizza tenant if it doesn't exist
     const tenant = existing || await db.insert(tenants).values({
-      name: "Wilson Pizza",
+      name: "Wilson Pizzaria",
       slug: "wilson-pizza",
-      description: "As melhores pizzas da cidade! Tradicional, saudável e com ingredientes de qualidade.",
-      phone: "551133334444",
-      address: "Rua das Pizzas, 123 - São Paulo, SP",
+      description: "As melhores pizzas de Ouricuri! Tradicionais, massas, pastéis e muito mais. Qualidade e sabor em cada pedido.",
+      phone: "+5587999480699",
+      address: "Ouricuri, PE",
       commissionPercentage: "15.00",
       isActive: true,
     } as any).returning().then((r: any) => r[0]);
 
-
-    // Insert categories directly
-    const pizzasTraditionals = await db.insert(categories).values({
+    // Create categories
+    const catSalgadas = await db.insert(categories).values({
       tenantId: tenant.id,
-      name: "Pizzas Tradicionais",
-      slug: "pizzas-tradicionais",
+      name: "Pizzas Salgadas",
+      slug: "salgadas",
       displayOrder: 1,
     } as any).returning().then((r: any) => r[0]);
 
-    const pizzasDoces = await db.insert(categories).values({
+    const catDoces = await db.insert(categories).values({
       tenantId: tenant.id,
       name: "Pizzas Doces",
-      slug: "pizzas-doces",
+      slug: "doces",
       displayOrder: 2,
     } as any).returning().then((r: any) => r[0]);
 
-    const massas = await db.insert(categories).values({
+    const catMassas = await db.insert(categories).values({
       tenantId: tenant.id,
       name: "Massas",
       slug: "massas",
       displayOrder: 3,
     } as any).returning().then((r: any) => r[0]);
 
-    const apetitivos = await db.insert(categories).values({
+    const catPasteis = await db.insert(categories).values({
       tenantId: tenant.id,
-      name: "Apetitivos",
-      slug: "apetitivos",
+      name: "Pastéis de Forno",
+      slug: "pasteis",
       displayOrder: 4,
     } as any).returning().then((r: any) => r[0]);
 
-    const bebidas = await db.insert(categories).values({
+    const catLasanhas = await db.insert(categories).values({
       tenantId: tenant.id,
-      name: "Bebidas",
-      slug: "bebidas",
+      name: "Lasanhas",
+      slug: "lasanhas",
       displayOrder: 5,
     } as any).returning().then((r: any) => r[0]);
 
-    const sobremesas = await db.insert(categories).values({
+    const catCalzones = await db.insert(categories).values({
       tenantId: tenant.id,
-      name: "Sobremesas",
-      slug: "sobremesas",
+      name: "Calzones",
+      slug: "calzones",
       displayOrder: 6,
     } as any).returning().then((r: any) => r[0]);
 
+    const catPetiscos = await db.insert(categories).values({
+      tenantId: tenant.id,
+      name: "Petiscos",
+      slug: "petiscos",
+      displayOrder: 7,
+    } as any).returning().then((r: any) => r[0]);
 
-    // Products data
-    const productsToInsert = [
-      // Pizzas Tradicionais
-      { categoryId: pizzasTraditionals?.id, name: "Margherita", description: "Molho de tomate, mussarela de búfala, tomate fresco e manjericão", price: "45.00", image: "https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=600&h=400&fit=crop" },
-      { categoryId: pizzasTraditionals?.id, name: "Calabresa", description: "Calabresa especial, cebola, azeitonas, mussarela e orégano", price: "48.00", image: "https://images.unsplash.com/photo-1628840042765-356cda07f0ff?w=600&h=400&fit=crop" },
-      { categoryId: pizzasTraditionals?.id, name: "Quatro Queijos", description: "Mussarela, gorgonzola, provolone, parmesão e molho branco", price: "52.00", image: "https://images.unsplash.com/photo-1557003996-380b9dd62dd3?w=600&h=400&fit=crop" },
-      { categoryId: pizzasTraditionals?.id, name: "Frango com Catupiry", description: "Peito de frango desfiado, catupiry cremoso e milho verde", price: "50.00", image: "https://images.unsplash.com/photo-1599599810694-b3b5ef35d475?w=600&h=400&fit=crop" },
-      { categoryId: pizzasTraditionals?.id, name: "Romeu e Julieta", description: "Goiabada cremosa e queijo mussarela tradicional", price: "46.00", image: "https://images.unsplash.com/photo-1608050545552-54f8ee496020?w=600&h=400&fit=crop" },
-      { categoryId: pizzasTraditionals?.id, name: "Portuguesa", description: "Presunto, ovo, cebola, pimentão, azeitonas e mussarela", price: "49.00", image: "https://images.unsplash.com/photo-1628840042765-356cda07f0ff?w=600&h=400&fit=crop" },
-      { categoryId: pizzasTraditionals?.id, name: "Moda da Casa", description: "Presunto, frango, calabresa, bacon, ovos e cebola", price: "55.00", image: "https://images.unsplash.com/photo-1595521624637-48d4b8e1c6e3?w=600&h=400&fit=crop" },
-      { categoryId: pizzasTraditionals?.id, name: "Vegetariana", description: "Brócolis, cenoura, cebola, pimentão e azeitonas verdes", price: "44.00", image: "https://images.unsplash.com/photo-1571407-615cef97baa9?w=600&h=400&fit=crop" },
+    const catBebidas = await db.insert(categories).values({
+      tenantId: tenant.id,
+      name: "Bebidas",
+      slug: "bebidas",
+      displayOrder: 8,
+    } as any).returning().then((r: any) => r[0]);
 
-      // Pizzas Doces
-      { categoryId: pizzasDoces?.id, name: "Brigadeiro com Leite Ninho", description: "Base doce com brigadeiro e leite ninho em pó", price: "42.00", image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&h=400&fit=crop" },
-      { categoryId: pizzasDoces?.id, name: "Chocolate com Morango", description: "Chocolate derretido com morangos frescos", price: "48.00", image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&h=400&fit=crop" },
-      { categoryId: pizzasDoces?.id, name: "Banana com Canela", description: "Banana em fatias com açúcar e canela", price: "38.00", image: "https://images.unsplash.com/photo-1595521624637-48d4b8e1c6e3?w=600&h=400&fit=crop" },
+    // Insert products - PIZZAS SALGADAS (Top 20 mais vendidas)
+    const productsData = [
+      // SALGADAS
+      { categoryId: catSalgadas.id, name: "Costela", description: "Costela desfiada, cebola, creme cheese, mussarela e barbecue.", price: "45.00" },
+      { categoryId: catSalgadas.id, name: "Calabresa Especial", description: "Molho de tomate, calabresa fatiada, mussarela, creme cheese, barbecue, orégano e azeitonas.", price: "42.00" },
+      { categoryId: catSalgadas.id, name: "Carne de Sol", description: "Molho de tomate, carne de sol desfiada, cebola fatiada, mussarela, orégano e azeitonas.", price: "44.00" },
+      { categoryId: catSalgadas.id, name: "À Moda do Chefe", description: "Molho de tomate, lombo canadense, bacon, mussarela, champignon, orégano e azeitonas.", price: "38.00" },
+      { categoryId: catSalgadas.id, name: "Frango com Catupiry", description: "Molho de tomate, frango desfiado, catupiry, mussarela, orégano e azeitonas.", price: "42.00" },
+      { categoryId: catSalgadas.id, name: "4 Queijos", description: "Molho de tomate, mussarela, provolone, catupiry, parmesão, orégano e azeitonas.", price: "41.00" },
+      { categoryId: catSalgadas.id, name: "Camarão", description: "Molho de tomate, mussarela, filé de camarão, orégano e azeitonas.", price: "45.00" },
+      { categoryId: catSalgadas.id, name: "Frango Bolonhesa", description: "Molho de tomate, frango desfiado, queijo parmesão, orégano e azeitonas.", price: "42.00" },
+      { categoryId: catSalgadas.id, name: "Nordestina", description: "Molho de tomate, carne de charque desfiada, cebola, pimentão, pimenta de cheiro, orégano e azeitonas.", price: "42.00" },
+      { categoryId: catSalgadas.id, name: "Caipira", description: "Molho de tomate, frango desfiado, milho verde, catupiry, orégano e azeitonas.", price: "42.00" },
+      { categoryId: catSalgadas.id, name: "Toscana", description: "Molho de tomate, calabresa moída, cebola, mussarela, orégano e azeitonas.", price: "38.00" },
+      { categoryId: catSalgadas.id, name: "À Moda da Casa", description: "Molho de tomate, frango desfiado, milho verde, mussarela, bacon, orégano e azeitonas.", price: "42.00" },
+      { categoryId: catSalgadas.id, name: "Portuguesa", description: "Molho de tomate, presunto, ovos, cebola, mussarela, orégano e azeitonas.", price: "40.00" },
+      { categoryId: catSalgadas.id, name: "Bacon", description: "Molho de tomate, mussarela, bacon, rodelas de tomate, orégano e azeitonas.", price: "42.00" },
+      { categoryId: catSalgadas.id, name: "Marguerita", description: "Molho de tomate, mussarela, manjericão, rodelas de tomate, parmesão, orégano e azeitonas.", price: "38.00" },
+      { categoryId: catSalgadas.id, name: "Calabresa", description: "Molho de tomate, calabresa, mussarela, orégano e azeitonas.", price: "38.00" },
+      { categoryId: catSalgadas.id, name: "Mussarela", description: "Molho de tomate, mussarela, rodelas de tomate, orégano e azeitonas.", price: "38.00" },
+      { categoryId: catSalgadas.id, name: "Bauru", description: "Molho de tomate, presunto, mussarela, rodelas de tomate, orégano e azeitonas.", price: "38.00" },
+      { categoryId: catSalgadas.id, name: "Vegetariana", description: "Molho de tomate, mussarela, palmito, tomate fatiado, pimentão, champignon, manjericão, orégano e azeitonas.", price: "40.00" },
+      { categoryId: catSalgadas.id, name: "Pepperone", description: "Molho de tomate, mussarela, salaminho tipo peperone, parmesão, orégano e azeitonas.", price: "38.00" },
 
-      // Massas
-      { categoryId: massas?.id, name: "Macarrão à Bolonhesa", description: "Macarrão integral com molho à bolonhesa caseiro", price: "42.00", image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop" },
-      { categoryId: massas?.id, name: "Risoto de Frango", description: "Risoto cremoso com frango desfiado e sálvia", price: "45.00", image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop" },
-      { categoryId: massas?.id, name: "Fettuccini Carbonara", description: "Fettuccini com bacon, ovos e parmesão", price: "48.00", image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop" },
+      // DOCES
+      { categoryId: catDoces.id, name: "Chocolate com Morango", description: "Chocolate com morango.", price: "35.00" },
+      { categoryId: catDoces.id, name: "Banana Nevada", description: "Banana com canela, creme de leite e chocolate branco com borda de doce de leite.", price: "35.00" },
+      { categoryId: catDoces.id, name: "Cartola", description: "Mussarela, catupiry, banana fatiada, açúcar e canela com borda de doce de leite.", price: "35.00" },
+      { categoryId: catDoces.id, name: "Romeu e Julieta", description: "Mussarela coberta com fatia de goiabada, com borda de doce de leite.", price: "35.00" },
+      { categoryId: catDoces.id, name: "Dois Amores", description: "Chocolate branco e chocolate de avelã com borda de doce de leite.", price: "35.00" },
 
-      // Apetitivos
-      { categoryId: apetitivos?.id, name: "Batata Frita com Cheddar", description: "Batata palha crocante coberta com molho cheddar quente", price: "18.00", image: "https://images.unsplash.com/photo-1599022176476-e1a9a8a0dfc7?w=600&h=400&fit=crop" },
-      { categoryId: apetitivos?.id, name: "Pastel de Queijo", description: "Pastel crocante recheado com queijo derretido", price: "12.00", image: "https://images.unsplash.com/photo-1599022176476-e1a9a8a0dfc7?w=600&h=400&fit=crop" },
-      { categoryId: apetitivos?.id, name: "Água de Banana", description: "Folhado crocante recheado de doce de leite e banana", price: "16.00", image: "https://images.unsplash.com/photo-1599022176476-e1a9a8a0dfc7?w=600&h=400&fit=crop" },
+      // MASSAS
+      { categoryId: catMassas.id, name: "Espaguete", description: "Serve 1 pessoa. Monte sua massa escolhendo molho e até 6 ingredientes.", price: "26.00" },
+      { categoryId: catMassas.id, name: "Parafuso (Penne)", description: "Serve 1 pessoa. Monte sua massa escolhendo molho e até 6 ingredientes.", price: "26.00" },
+      { categoryId: catMassas.id, name: "Penne", description: "Serve 1 pessoa. Monte sua massa escolhendo molho e até 6 ingredientes.", price: "26.00" },
+      { categoryId: catMassas.id, name: "Rigatoni", description: "Serve 1 pessoa. Monte sua massa escolhendo molho e até 6 ingredientes.", price: "26.00" },
 
-      // Bebidas
-      { categoryId: bebidas?.id, name: "Coca-Cola 2L", description: "Refrigerante Coca-Cola 2 litros gelado", price: "10.00", image: "https://images.unsplash.com/photo-1554866585-56f4e13c8e13?w=600&h=400&fit=crop" },
-      { categoryId: bebidas?.id, name: "Suco Natural Laranja", description: "Suco de laranja natural 500ml, sem açúcar", price: "8.00", image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&h=400&fit=crop" },
-      { categoryId: bebidas?.id, name: "Chopp Brahma 1L", description: "Chopp Brahma gelado 1 litro", price: "28.00", image: "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&h=400&fit=crop" },
+      // PASTÉIS
+      { categoryId: catPasteis.id, name: "Pastel de Queijo", description: "Pastel crocante recheado com queijo derretido.", price: "15.00" },
+      { categoryId: catPasteis.id, name: "Pastel de Carne", description: "Pastel crocante recheado com carne moída e temperos.", price: "15.00" },
+      { categoryId: catPasteis.id, name: "Pastel de Frango", description: "Pastel crocante recheado com frango desfiado.", price: "15.00" },
+      { categoryId: catPasteis.id, name: "Pastel de Calabresa", description: "Pastel crocante recheado com calabresa e queijo.", price: "15.00" },
+      { categoryId: catPasteis.id, name: "Pastel de Presunto", description: "Pastel crocante recheado com presunto e queijo.", price: "15.00" },
+      { categoryId: catPasteis.id, name: "Pastel de Espinafre", description: "Pastel crocante recheado com espinafre e queijo.", price: "15.00" },
+      { categoryId: catPasteis.id, name: "Pastel de Brócolis", description: "Pastel crocante recheado com brócolis e queijo.", price: "15.00" },
+      { categoryId: catPasteis.id, name: "Pastel Mix", description: "Pastel crocante com mix de recheios deliciosos.", price: "16.00" },
 
-      // Sobremesas
-      { categoryId: sobremesas?.id, name: "Brownie com Sorvete", description: "Brownie de chocolate quente com sorvete de baunilha", price: "18.00", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&h=400&fit=crop" },
-      { categoryId: sobremesas?.id, name: "Pudim de Leite Condensado", description: "Pudim cremoso com calda de caramelo", price: "14.00", image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&h=400&fit=crop" },
-      { categoryId: sobremesas?.id, name: "Pavê de Chocolate", description: "Pavê tradicional com biscoito, chocolate e leite condensado", price: "16.00", image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&h=400&fit=crop" },
-      { categoryId: sobremesas?.id, name: "Sorvete de Baunilha", description: "Sorvete cremoso de baunilha premium 500ml", price: "12.00", image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&h=400&fit=crop" },
+      // LASANHAS
+      { categoryId: catLasanhas.id, name: "Lasanha à Bolonhesa", description: "Lasanha caseira com molho bolonhesa, mussarela e parmesão.", price: "32.00" },
+      { categoryId: catLasanhas.id, name: "Lasanha 4 Queijos", description: "Lasanha caseira com 4 tipos de queijo derretido.", price: "32.00" },
+      { categoryId: catLasanhas.id, name: "Lasanha de Frango", description: "Lasanha caseira com frango desfiado e molho branco.", price: "32.00" },
+      { categoryId: catLasanhas.id, name: "Lasanha de Brócolis", description: "Lasanha caseira com brócolis, molho branco e queijo.", price: "32.00" },
+
+      // CALZONES
+      { categoryId: catCalzones.id, name: "Calzone Calabresa", description: "Pizza fechada recheada com calabresa, mussarela e cebola.", price: "42.00" },
+      { categoryId: catCalzones.id, name: "Calzone Mussarela", description: "Pizza fechada recheada com mussarela fresca e orégano.", price: "38.00" },
+      { categoryId: catCalzones.id, name: "Calzone Frango", description: "Pizza fechada recheada com frango desfiado e catupiry.", price: "42.00" },
+      { categoryId: catCalzones.id, name: "Calzone 4 Queijos", description: "Pizza fechada recheada com mix de 4 queijos.", price: "42.00" },
+      { categoryId: catCalzones.id, name: "Calzone Portuguesa", description: "Pizza fechada recheada com presunto, ovo, cebola e mussarela.", price: "40.00" },
+      { categoryId: catCalzones.id, name: "Calzone Costela", description: "Pizza fechada recheada com costela desfiada e creme cheese.", price: "45.00" },
+
+      // PETISCOS
+      { categoryId: catPetiscos.id, name: "Asinhas de Frango", description: "Asinhas de frango temperadas e assadas na brasa.", price: "28.00" },
+      { categoryId: catPetiscos.id, name: "Bolinha de Queijo", description: "Bolinhas crocantes de queijo derretido por dentro.", price: "24.00" },
+      { categoryId: catPetiscos.id, name: "Batata Frita", description: "Batata frita crocante e saborosa.", price: "18.00" },
+      { categoryId: catPetiscos.id, name: "Aros de Cebola", description: "Aros de cebola empanados e fritos até ficar crocante.", price: "20.00" },
+      { categoryId: catPetiscos.id, name: "Linguiça Grelhada", description: "Linguiça fina grelhada e temperada.", price: "26.00" },
+      { categoryId: catPetiscos.id, name: "Cubos de Queijo", description: "Cubos de queijo empanados e fritos.", price: "22.00" },
+
+      // BEBIDAS
+      { categoryId: catBebidas.id, name: "Refrigerante 2L", description: "Refrigerante gelado (Coca-Cola, Guaraná ou Fanta).", price: "12.00" },
+      { categoryId: catBebidas.id, name: "Suco Natural", description: "Suco natural fresco de frutas da estação.", price: "10.00" },
+      { categoryId: catBebidas.id, name: "Água", description: "Água mineral geladinha.", price: "3.00" },
+      { categoryId: catBebidas.id, name: "Cerveja 350ml", description: "Cerveja gelada importada ou local.", price: "8.00" },
+      { categoryId: catBebidas.id, name: "Chopp 1L", description: "Chopp gelado direto do barril.", price: "25.00" },
     ];
 
-    // Insert products
-    for (const p of productsToInsert) {
-      if (p.categoryId) {
-        await db.insert(products).values({
-          tenantId: tenant.id,
-          categoryId: p.categoryId,
-          name: p.name,
-          description: p.description,
-          price: p.price,
-          image: p.image,
-          isAvailable: true,
-        } as any);
-      }
+    // Insert all products
+    for (const product of productsData) {
+      await db.insert(products).values({
+        ...product,
+        tenantId: tenant.id,
+        isAvailable: true,
+      } as any);
     }
 
-    console.log("[Seed] Wilson Pizza restaurant, categories and products created successfully");
+    console.log(`[Seed] ✅ Wilson Pizzaria seeded successfully with ${productsData.length} products!`);
   } catch (error) {
     console.error("[Seed] Error seeding Wilson Pizza:", error);
+    throw error;
   }
 }
