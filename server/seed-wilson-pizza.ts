@@ -1,9 +1,15 @@
-import { db } from "./db";
+import { db, isDatabaseConfigured } from "./db";
 import { tenants, categories, products } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export async function seedWilsonPizza() {
   try {
+    // Skip if database is not configured
+    if (!isDatabaseConfigured) {
+      console.warn("[Seed] Skipping Wilson Pizza seed: database not configured");
+      return;
+    }
+
     // Check if Wilson Pizza already exists (try both slug variants)
     let existing = await db.select().from(tenants).where(eq(tenants.slug, "wilsonpizza")).limit(1).then((r: any) => r[0]);
     

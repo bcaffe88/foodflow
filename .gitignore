@@ -17,3 +17,4 @@ out
 .turbo
 pnpm-lock.yaml
 yarn.lock
+test-results

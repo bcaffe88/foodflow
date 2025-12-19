@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -41,8 +42,16 @@ export default function DriverMap() {
     return url.searchParams.get('tenantId') || localStorage.getItem('tenantId') || 'default';
   };
 
+  const tenantId = getTenantId();
+
   const { data: drivers = [] } = useQuery<DriverLocation[]>({
-    queryKey: ['/api/driver/active-locations', getTenantId()],
+    queryKey: ['/api/driver/active-locations', tenantId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (tenantId) params.set("tenantId", tenantId);
+      const response = await apiRequest("GET", `/api/driver/active-locations${params.toString() ? `?${params.toString()}` : ""}`);
+      return Array.isArray(response) ? response : (response?.data || []);
+    },
     refetchInterval: 10000, // Atualiza a cada 10s (mesmo intervalo do GPS)
   });
 

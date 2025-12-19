@@ -1,11 +1,17 @@
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { db } from "./db";
+import { db, isDatabaseConfigured } from "./db";
 import { log } from "./logger";
 import fs from "fs";
 
 export async function runMigrations() {
   log("Running Drizzle migrations...");
   try {
+    // Skip migrations when database is not configured
+    if (!isDatabaseConfigured) {
+      log("Skipping migrations: database not configured");
+      return;
+    }
+
     // Tenta encontrar a pasta de migrações - verifica ambos os caminhos
     let migrationsFolder = "./migrations";
     
