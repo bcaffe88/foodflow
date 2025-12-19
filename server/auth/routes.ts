@@ -11,6 +11,9 @@ const registerSchema = z.object({
   name: z.string().min(2),
   phone: z.string().optional(),
   role: z.enum(["customer", "driver", "restaurant_owner", "platform_admin"]).optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  category: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -37,6 +40,23 @@ export function registerAuthRoutes(app: Express) {
       // Hash password
       const hashedPassword = await hash(data.password, 10);
 
+      // Create tenant automatically for restaurant owners so it's linked to their account
+      let tenantId: string | undefined;
+      if (data.role === "restaurant_owner") {
+        const baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "restaurante";
+        const existingSlug = await storage.getTenantBySlug(baseSlug);
+        const slug = existingSlug ? `${baseSlug}-${Date.now().toString(36)}` : baseSlug;
+
+        const tenant = await storage.createTenant({
+          name: data.name,
+          slug,
+          phone: data.phone,
+          address: data.address,
+          description: data.category,
+        } as any);
+        tenantId = tenant.id;
+      }
+
       // Create user
       const user = await storage.createUser({
         email: data.email,
@@ -44,6 +64,7 @@ export function registerAuthRoutes(app: Express) {
         name: data.name,
         phone: data.phone,
         role: data.role || "customer",
+        tenantId,
         isActive: true,
       });
 
