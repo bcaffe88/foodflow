@@ -42,11 +42,14 @@ export default function DriverMap() {
     return url.searchParams.get('tenantId') || localStorage.getItem('tenantId') || 'default';
   };
 
+  const tenantId = getTenantId();
+
   const { data: drivers = [] } = useQuery<DriverLocation[]>({
-    queryKey: ['/api/driver/active-locations', getTenantId()],
+    queryKey: ['/api/driver/active-locations', tenantId],
     queryFn: async () => {
-      const tenantId = getTenantId();
-      const response = await apiRequest("GET", `/api/driver/active-locations${tenantId ? `?tenantId=${tenantId}` : ""}`);
+      const params = new URLSearchParams();
+      if (tenantId) params.set("tenantId", tenantId);
+      const response = await apiRequest("GET", `/api/driver/active-locations${params.toString() ? `?${params.toString()}` : ""}`);
       return Array.isArray(response) ? response : (response?.data || []);
     },
     refetchInterval: 10000, // Atualiza a cada 10s (mesmo intervalo do GPS)
