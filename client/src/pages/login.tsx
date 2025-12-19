@@ -228,7 +228,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={isLoading}
                   className="w-full h-10 md:h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm md:text-base"
-                  data-testid="button-submit-login"
+                  data-testid="button-login"
                 >
                   {isLoading ? "Autenticando..." : "Entrar"}
                   <LogIn className="ml-2 h-3 md:h-4 w-3 md:w-4" />

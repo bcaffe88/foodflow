@@ -6,6 +6,7 @@ const { Pool } = pg;
 
 // Use Replit DATABASE_URL first (native PostgreSQL), then fallback to RAILWAY_DATABASE_URL
 const databaseUrl = process.env.DATABASE_URL || process.env.RAILWAY_DATABASE_URL;
+const isDatabaseConfigured = Boolean(databaseUrl);
 
 let pool: any;
 let db: any;
@@ -53,4 +54,4 @@ if (!databaseUrl) {
   });
 }
 
-export { pool, db };
+export { pool, db, isDatabaseConfigured };
